@@ -9,6 +9,9 @@ set(CMAKE_CXX_STANDARD 20)
 #force c++ 20
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+#Output directory for executable
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+
 #load fetchContent module
 include(FetchContent)
 
@@ -69,3 +72,13 @@ endif()
 add_library(ECSLib INTERFACE)
 
 target_include_directories(ECSLib INTERFACE "${ecslib_SOURCE_DIR}")
+
+#CLIENT
+add_executable(RTypeClient Client/main.cpp)
+
+target_link_libraries(RTypeClient PRIVATE GraphicLib ECSLib)
+
+#SERVER
+add_executable(RTypeServer Server/main.cpp)
+
+target_link_libraries(RTypeServer PRIVATE GraphicLib ECSLib)
