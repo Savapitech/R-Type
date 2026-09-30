@@ -1,4 +1,4 @@
-#include "../../include/network/protocol/PacketWriter.hpp"
+#include <network/protocol/PacketWriter.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
