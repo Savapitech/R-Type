@@ -11,4 +11,8 @@ rm -rf _deps
 
 rm -rf build
 
+rm -rf bin
+rm -rf RTypeClient
+rm -rf RTypeServer
+
 echo "clean finished"
