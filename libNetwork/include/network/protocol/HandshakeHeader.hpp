@@ -1,5 +1,7 @@
 #pragma once
 
+#include "PacketReader.hpp"
+#include "PacketWriter.hpp"
 #include <cstddef>
 #include <cstdint>
 
@@ -17,5 +19,8 @@ struct HandshakeHeader {
   std::uint8_t version = VERSION;
   HandshakeType type = HandshakeType::Hello;
 
-  static constexpr std::size_t HEADER_SIZE = 6; 
+  static constexpr std::size_t HEADER_SIZE = 6;
+
+  bool serialize(PacketWriter &writer) const;
+  bool deserialize(PacketReader&reader);
 };

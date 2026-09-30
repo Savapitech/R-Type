@@ -12,7 +12,7 @@ PacketReader::PacketReader(const std::vector<uint8_t> &data) :
 {}
 
 bool PacketReader::canRead(std::size_t size) const {
-  if(_offset > size)
+  if(_offset > _size)
     return false;
   return size <= (_size - _offset);
 }
@@ -39,10 +39,10 @@ bool PacketReader::readUInt32(std::uint32_t &value) {
   if (!canRead(4))
     return false;
 
-  value = (static_cast<uint16_t>(_data[_offset]) << 24 |
-      static_cast<uint16_t>(_data[_offset + 1]) << 16 | 
-      static_cast<uint16_t>(_data[_offset + 2]) << 8 | 
-      static_cast<uint16_t>(_data[_offset + 3])); 
+  value = (static_cast<uint32_t>(_data[_offset]) << 24 |
+      static_cast<uint32_t>(_data[_offset + 1]) << 16 | 
+      static_cast<uint32_t>(_data[_offset + 2]) << 8 | 
+      static_cast<uint32_t>(_data[_offset + 3])); 
   _offset += 4;
   return true;
 }
@@ -62,20 +62,22 @@ bool PacketReader::readBytes(std::uint8_t *destination, std::size_t size) {
 
 std::size_t PacketReader::getOffset() const
 {
-    return _offset;
+  return _offset;
 }
 
 std::size_t PacketReader::getRemaining() const
 {
-    return (_size - _offset);
+  if (_offset >= _size)
+    return 0;
+  return (_size - _offset);
 }
 
 bool PacketReader::isEnd() const
 {
-    return _offset >= _size;
+  return _offset >= _size;
 }
 
 void PacketReader::reset()
 {
-    _offset = 0;
+  _offset = 0;
 }

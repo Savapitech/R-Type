@@ -9,7 +9,7 @@
 #include <memory>
 #include <system_error>
 #include <vector>
-#include <network/metrics/UdpTransport.hpp>
+#include <network/transport/UdpTransport.hpp>
 
 UdpTransport::UdpTransport(asio::io_context &context, std::uint16_t port, NetworkMetrics &metrics)
   : _socket(context, asio::ip::udp::endpoint(asio::ip::udp::v4(), port)), _metrics(metrics) {
