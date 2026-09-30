@@ -1,0 +1,9 @@
+# External Lib
+
+External
+_deps
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+build
