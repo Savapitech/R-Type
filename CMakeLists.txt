@@ -98,11 +98,6 @@ add_executable(r-type_client src/Client/main.cpp)
 target_link_libraries(r-type_client PRIVATE GraphicLib ECSLib GameEngine Vulkan::Vulkan)
 
 if (APPLE)
-    set_target_properties(r-type_client PROPERTIES
-        INSTALL_RPATH_USE_LINK_PATH TRUE
-        BUILD_WITH_INSTALL_RPATH TRUE
-    )
-
     set_property(TARGET r-type_client APPEND PROPERTY 
         BUILD_RPATH "${graphiclib_SOURCE_DIR}/lib"
     )
