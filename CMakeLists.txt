@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+    cmake_minimum_required(VERSION 3.20)
 
 project(R-Type VERSION 0.1 LANGUAGES CXX)
 #force CMP0135 new force a timestamps on fetch
@@ -61,9 +61,16 @@ if(WIN32)
 endif()
 
 set_target_properties(GraphicLib PROPERTIES
-    IMPORTED_LOCATION "${graphiclib_SOURCE_DIR}/${GRAPHIC_BIN_NAME}"
-    INTERFACE_INCLUDE_DIRECTORIES "${graphiclib_SOURCE_DIR}/include;${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
+     IMPORTED_LOCATION "${graphiclib_SOURCE_DIR}/${GRAPHIC_BIN_NAME}"
+    INTERFACE_INCLUDE_DIRECTORIES "${graphiclib_SOURCE_DIR}/include"
 )
+
+# Only add the vcpkg include path when vcpkg is actually used
+if(DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
+    set_property(TARGET GraphicLib APPEND PROPERTY
+        INTERFACE_INCLUDE_DIRECTORIES "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include")
+endif()
+
 
 #set variable to fetch the ECS part
 set(ECS_URL "https://github.com/rtk-lib/ECS/releases/latest/download/rtk_ecs-v1.0.3.tar.gz")
