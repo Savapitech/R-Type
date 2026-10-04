@@ -1,14 +1,19 @@
 {
-      "name": "rtk-graphical",
-      "version": "1.2.1",
-      "dependencies": [
-        "glm",
-        "miniaudio",
-        "stb",
-        "vulkan-headers",
-        {
-          "name": "vulkan-loader",
-          "features": ["xlib", "xcb", "wayland"]
-        }
-      ]
+  "name": "rtk-graphical",
+  "version": "1.2.1",
+  "dependencies": [
+    "glm",
+    "miniaudio",
+    "stb",
+    "vulkan-headers",
+    {
+      "name": "vulkan-loader",
+      "platform": "linux",
+      "features": ["xlib", "xcb", "wayland"]
+    },
+    {
+      "name": "vulkan-loader",
+      "platform": "!linux"
+    }
+  ]
 }

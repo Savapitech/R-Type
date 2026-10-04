@@ -11,6 +11,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 #Output directory for executable
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+foreach(CONFIG_NAME DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+endforeach()
 
 set(CMAKE_MACOSX_RPATH TRUE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
@@ -23,7 +26,8 @@ include(FetchContent)
 #set all the url and the bin name
 if(WIN32)
     set(GRAPHIC_URL "https://github.com/rtk-lib/graphical/releases/latest/download/rtk_graphical-windows.zip")
-    set(GRAPHIC_BIN_NAME "lib/rtk_graphical.dll")
+    set(GRAPHIC_BIN_NAME "bin/rtk_graphical.dll")
+    set(GRAPHIC_IMPLIB_NAME "lib/rtk_graphical.lib")
 elseif(APPLE)
     set(GRAPHIC_URL "https://github.com/rtk-lib/graphical/releases/latest/download/rtk_graphical-macos.tar.gz")
     set(GRAPHIC_BIN_NAME "lib/librtk_graphical.dylib")
@@ -49,6 +53,12 @@ endif()
 
 #add dynamic lib
 add_library(GraphicLib SHARED IMPORTED)
+
+if(WIN32)
+    set_target_properties(GraphicLib PROPERTIES
+        IMPORTED_IMPLIB "${graphiclib_SOURCE_DIR}/${GRAPHIC_IMPLIB_NAME}"
+    )
+endif()
 
 set_target_properties(GraphicLib PROPERTIES
     IMPORTED_LOCATION "${graphiclib_SOURCE_DIR}/${GRAPHIC_BIN_NAME}"
@@ -87,7 +97,28 @@ add_executable(r-type_client src/Client/main.cpp)
 
 target_link_libraries(r-type_client PRIVATE GraphicLib ECSLib GameEngine Vulkan::Vulkan)
 
+if (APPLE)
+    set_target_properties(r-type_client PROPERTIES
+        INSTALL_RPATH_USE_LINK_PATH TRUE
+        BUILD_WITH_INSTALL_RPATH TRUE
+    )
+
+    set_property(TARGET r-type_client APPEND PROPERTY 
+        BUILD_RPATH "${graphiclib_SOURCE_DIR}/lib"
+    )
+endif()
+
 #SERVER
 add_executable(r-type_server src/Server/main.cpp)
 
 target_link_libraries(r-type_server PRIVATE GraphicLib ECSLib GameEngine)
+
+if(WIN32)
+    foreach(TARGET_NAME r-type_client r-type_server)
+        add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${graphiclib_SOURCE_DIR}/${GRAPHIC_BIN_NAME}"
+                "$<TARGET_FILE_DIR:${TARGET_NAME}>"
+        )
+    endforeach()
+endif()

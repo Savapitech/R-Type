@@ -1,10 +1,15 @@
-
 V ?= 0
 ifneq ($(V),0)
   Q :=
 else
   Q := @
 endif
+
+ifeq ($(OS),Windows_NT)
+
+LOG_TIME = cmake -E echo "[ $(strip $(1)) ]"
+
+else
 
 ifneq ($(shell command -v tput),)
   ifneq ($(shell tput colors),0)
@@ -45,3 +50,4 @@ else
   LOG_TIME = echo -e $(call BOXIFY, $(call TIME_MS) ,)
 endif
 
+endif
