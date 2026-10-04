@@ -55,6 +55,10 @@ namespace rtk
                     }
                     const float dt = computeDeltaTime();
 
+                    if constexpr (requires { {game.onUpdate(context, dt)}-> std::same_as<void>;}) {
+                        game.onUpdate(context, dt);
+                    }
+
                     _scheduler.run(_registry, dt);
                 }
             } catch (...) {
