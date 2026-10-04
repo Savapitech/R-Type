@@ -3,16 +3,26 @@ enum class Scene {
     Game
 };
 
+#include <bit>
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <optional>
 #include <exception>
+#include <functional>
 #include <iostream>
 #include <vector>
 
 #include "GameEngine.hpp"
 #include "components/Transform.hpp"
 #include "systems/RenderSystem.hpp"
+
+// rtk::Texture only exposes its handle through friend classes
+static std::uint32_t textureId(const rtk::Texture& texture)
+{
+    static_assert(sizeof(rtk::Texture) == sizeof(std::uint32_t));
+    return std::bit_cast<std::uint32_t>(texture);
+}
 
 class RTypeClientGame
 {
@@ -32,18 +42,20 @@ public:
         rtk::SpriteData
     >();
 
+    auto window = std::ref(_window);
+
     context.scheduler.add<
         rtk::systems::RenderSystem
     >(
         rtk::ecs::Order::Render,
-        _window
+        window
     );
 
     _menuTextureId =
-    _window.loadTexture("menu.png").getHandle();
+    textureId(_window.loadTexture("menu.png"));
 
 _shipTextureId =
-    _window.loadTexture("sprite.png").getHandle();
+    textureId(_window.loadTexture("sprite.png"));
 
     switchScene(
         context.registry,

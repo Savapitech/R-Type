@@ -1,23 +1,27 @@
 #pragma once
 
-#include "include/ISystem.hpp"
+#include <functional>
+#include <stdexcept>
+#include <vector>
+
+#include <ISystem.hpp>
+
 #include "components/Transform.hpp"
 #include "sprite/spriteData.hpp"
 #include "graphical/renderWindow.hpp"
-
-#include <stdexcept>
-#include <vector>
 
 namespace rtk::systems
 {
     class RenderSystem final : public rtk::ecs::ISystem
     {
         public:
-            RenderSystem(rtk::RenderWindow& window)
-                : _window(window)
+            // Scheduler::add forwards its arguments as rvalues, so the window is
+            // passed wrapped in a std::ref to avoid being moved
+            RenderSystem(std::reference_wrapper<rtk::RenderWindow> window)
+                : _window(window.get())
             {}
 
-            ~RenderSystem() override = default;
+            ~RenderSystem() = default;
 
             void onStart(rtk::ecs::Registry&) override
             {

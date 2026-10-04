@@ -1,7 +1,7 @@
 #pragma once
 
-#include "include/Registry.hpp"
-#include "include/Scheduler.hpp"
+#include <Registry.hpp>
+#include <Scheduler.hpp>
 #include "Game.hpp"
 
 namespace rtk

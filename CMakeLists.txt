@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(GameEngine VERSION 1.0 LANGUAGES CXX)
+project(R-Type VERSION 0.1 LANGUAGES CXX)
 #force CMP0135 new force a timestamps on fetch
 cmake_policy(SET CMP0135 NEW)
 
@@ -25,7 +25,7 @@ if(WIN32)
     set(GRAPHIC_URL "https://github.com/rtk-lib/graphical/releases/latest/download/rtk_graphical-windows.zip")
     set(GRAPHIC_BIN_NAME "lib/rtk_graphical.dll")
 elseif(APPLE)
-    set(GRAPHIC_URL "https://github.com/rtk-lib/graphical/releases/latest/download/rtk_graphical-mac.tar.gz")
+    set(GRAPHIC_URL "https://github.com/rtk-lib/graphical/releases/latest/download/rtk_graphical-macos.tar.gz")
     set(GRAPHIC_BIN_NAME "lib/librtk_graphical.dylib")
 elseif(UNIX AND NOT APPLE)
     set(GRAPHIC_URL "https://github.com/rtk-lib/graphical/releases/latest/download/rtk_graphical-linux.tar.gz")
@@ -52,7 +52,7 @@ add_library(GraphicLib SHARED IMPORTED)
 
 set_target_properties(GraphicLib PROPERTIES
     IMPORTED_LOCATION "${graphiclib_SOURCE_DIR}/${GRAPHIC_BIN_NAME}"
-    INTERFACE_INCLUDE_DIRECTORIES "${graphiclib_SOURCE_DIR}/include"
+    INTERFACE_INCLUDE_DIRECTORIES "${graphiclib_SOURCE_DIR}/include;${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
 )
 
 #set variable to fetch the ECS part
@@ -76,18 +76,18 @@ endif()
 
 add_library(ECSLib INTERFACE)
 
-target_include_directories(ECSLib INTERFACE "${ecslib_SOURCE_DIR}")
+target_include_directories(ECSLib INTERFACE "${ecslib_SOURCE_DIR}/include")
 
 #Game Engine Lib
 add_library(GameEngine INTERFACE)
-target_include_directories(GameEngine INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/GameEngine/include")
+target_include_directories(GameEngine INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/lib/GameEngine/include")
 
 #CLIENT
-add_executable(RTypeClient Client/main.cpp)
+add_executable(r-type_client src/Client/main.cpp)
 
-target_link_libraries(RTypeClient PRIVATE GraphicLib ECSLib GameEngine Vulkan::Vulkan)
+target_link_libraries(r-type_client PRIVATE GraphicLib ECSLib GameEngine Vulkan::Vulkan)
 
 #SERVER
-add_executable(RTypeServer Server/main.cpp)
+add_executable(r-type_server src/Server/main.cpp)
 
-target_link_libraries(RTypeServer PRIVATE GraphicLib ECSLib GameEngine)
+target_link_libraries(r-type_server PRIVATE GraphicLib ECSLib GameEngine)
