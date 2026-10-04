@@ -12,6 +12,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 #Output directory for executable
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
+set(CMAKE_MACOSX_RPATH TRUE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+
+find_package(Vulkan REQUIRED)
+
 #load fetchContent module
 include(FetchContent)
 
@@ -51,7 +56,7 @@ set_target_properties(GraphicLib PROPERTIES
 )
 
 #set variable to fetch the ECS part
-set(ECS_URL "https://github.com/rtk-lib/ECS/releases/latest/download/rtk_ecs-v1.0.2.tar.gz")
+set(ECS_URL "https://github.com/rtk-lib/ECS/releases/latest/download/rtk_ecs-v1.0.3.tar.gz")
 set(ECS_FOLDER_NAME "rtk_ecs/include")
 
 #declare a fetch toward the ecs lib
@@ -80,7 +85,7 @@ target_include_directories(GameEngine INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/Gam
 #CLIENT
 add_executable(RTypeClient Client/main.cpp)
 
-target_link_libraries(RTypeClient PRIVATE GraphicLib ECSLib GameEngine)
+target_link_libraries(RTypeClient PRIVATE GraphicLib ECSLib GameEngine Vulkan::Vulkan)
 
 #SERVER
 add_executable(RTypeServer Server/main.cpp)
