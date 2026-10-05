@@ -24,6 +24,11 @@ void UdpTransport::startReceive() {
           return;
         }
 
+        if (bytesReceived > MAX_PAYLOAD_SIZE) {
+          startReceive();
+          return;
+        }
+
         onPacketReceived(_metrics, bytesReceived);
 
         std::vector<std::uint8_t> data(_receiveBuffer.begin(), _receiveBuffer.begin() + bytesReceived);
@@ -41,6 +46,8 @@ void UdpTransport::startReceive() {
 }
 
 void UdpTransport::send(const asio::ip::udp::endpoint &endpoint, const std::vector<std::uint8_t>& data) {
+  if (data.size() > MAX_PAYLOAD_SIZE)
+    return;
   auto buffer = std::make_shared<std::vector<std::uint8_t>>(data);
 
   asio::post(_socket.get_executor(),

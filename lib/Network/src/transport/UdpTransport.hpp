@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "../metrics/Metrics.hpp"
+#include "../config/NetworkConfig.hpp"
 
 class UdpTransport {
   public:
