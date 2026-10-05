@@ -2,10 +2,14 @@
 #include "../protocol/HandshakeHeader.hpp"
 #include "../connection/Connection.hpp"
 #include "../protocol/PacketWriter.hpp"
+#include "../protocol/PingMessage.hpp"
+#include "../protocol/PongMessage.hpp"
 
 #include <asio/post.hpp>
 #include <cstdint>
+#include <iterator>
 #include <memory>
+#include <ostream>
 #include <thread>
 #include <vector>
 #include <iostream>
@@ -102,10 +106,15 @@ void NetworkServer::handleConnectedPacket(const asio::ip::udp::endpoint &endpoin
   if (res == PacketReceiveRes::TooOld || res == PacketReceiveRes::Dup)
     return;
 
-  std::vector<std::uint8_t> payload(data.begin() + PacketHeader::HEADER_SIZE, data.end());
-  std::cout << "Received payload from client "
-          << header.connectionId
-          << '\n';
+  std::vector<ParsedMessage> messages;
+  if (!MessageParser::parse(reader, messages)) {
+    std::cerr << "Invalid message framing" << header.connectionId << std::endl;
+    return;
+  }
+
+  for (const auto &message : messages) {
+    handleMessage(header.connectionId, message);
+  }
 }
 
 void NetworkServer::handleDatagram(const asio::ip::udp::endpoint &endpoint, const std::vector<std::uint8_t> &data) {
@@ -163,4 +172,53 @@ void NetworkServer::send(std::uint32_t connectionId, const std::vector<std::uint
         doSend(connectionId, payload);
       }
       );
+}
+
+void NetworkServer::handleMessage(std::uint32_t connectionId, const ParsedMessage &message) {
+    switch (message.type) {
+        case MessageType::Input:
+            std::cout << "INPUT from " << connectionId << std::endl;
+            break;
+
+        case MessageType::Ping: {
+            PacketReader reader(message.payload);
+
+            PingMessage ping;
+
+            if (!ping.deserialize(reader))
+                return;
+
+            if (!reader.isEnd())
+                return;
+
+            PacketWriter writer;
+
+            MessageHeader header;
+            header.setType(MessageType::Pong);
+            header.size = PongMessage::SIZE;
+
+            if (!header.serialize(writer))
+                return;
+
+            PongMessage pong;
+            pong.timestamp = ping.timestamp;
+
+            if (!pong.serialize(writer))
+                return;
+
+            doSend(
+                connectionId,
+                writer.getData()
+            );
+
+            break;
+        }
+
+        case MessageType::Disconnect:
+            std::cout << "DISCONNECT from " << connectionId << std::endl;
+            break;
+
+        default:
+            break;
+    }
 }

@@ -11,6 +11,7 @@
 #include "../connection/Connection.hpp"
 #include "../metrics/Metrics.hpp"
 #include "../transport/UdpTransport.hpp"
+#include "../protocol/MessageParser.hpp"
 
 class NetworkServer {
   public:
@@ -27,6 +28,7 @@ class NetworkServer {
     void handleDatagram(const asio::ip::udp::endpoint &endpoint, const std::vector<std::uint8_t> &data);
     void sendWelcome(Connection &connection);
     void doSend(std::uint32_t connectionId, const std::vector<std::uint8_t> &payload);
+    void handleMessage(std::uint32_t connectionId, const ParsedMessage &message);
     
     asio::io_context _io;
     NetworkMetrics _metrics;

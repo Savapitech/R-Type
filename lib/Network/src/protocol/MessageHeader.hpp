@@ -9,7 +9,9 @@ enum class MessageType : std::uint16_t {
   Invalid = 0,
   Input = 0x01,
   Ping = 0x02,
-  Disconnect = 0x03
+  Disconnect = 0x03,
+
+  Pong = 0x04
 };
 
 struct MessageHeader {
