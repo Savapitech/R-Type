@@ -25,6 +25,7 @@ namespace rtk::systems
 
             void onStart(rtk::ecs::Registry&) override
             {
+                LOG_INFO("Load Render System");
             }
 
             void update(rtk::ecs::Registry& reg, float) override
