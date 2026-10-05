@@ -2,6 +2,7 @@
   "name": "rtk-graphical",
   "version": "1.2.1",
   "dependencies": [
+    "asio",
     "glm",
     "miniaudio",
     "stb",

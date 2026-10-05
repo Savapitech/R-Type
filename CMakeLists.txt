@@ -96,6 +96,7 @@ add_library(ECSLib INTERFACE)
 target_include_directories(ECSLib INTERFACE "${ecslib_SOURCE_DIR}/include")
 
 find_package(Threads REQUIRED)
+find_package(asio CONFIG REQUIRED)
 
 add_library(Network STATIC
     lib/Network/src/metrics/Metrics.cpp
@@ -121,6 +122,7 @@ target_compile_definitions(Network
 target_link_libraries(Network
     PUBLIC
         Threads::Threads
+        asio::asio
 )
 
 
