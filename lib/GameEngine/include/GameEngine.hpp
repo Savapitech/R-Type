@@ -3,6 +3,7 @@
 #include <chrono>
 #include <algorithm>
 
+#include "Game.hpp"
 #include "EngineContext.hpp"
 
 namespace rtk
@@ -36,7 +37,8 @@ namespace rtk
         {
             EngineContext context{
                 .registry = _registry,
-                .scheduler = _scheduler
+                .scheduler = _scheduler,
+                .inputState = _inputState
             };
 
             game.onLoad(context);
@@ -93,6 +95,8 @@ namespace rtk
         ecs::Scheduler _scheduler;
 
         Clock::time_point _previousTime;
+
+        rtk::InputState _inputState;
 
         bool _running = false;
     };
