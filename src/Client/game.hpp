@@ -3,7 +3,9 @@
 #include "GameEngine.hpp"
 #include "graphical/renderWindow.hpp"
 #include "inputAction/InputAction.hpp"
+#include "collision/collisionBuffer.hpp"
 #include "scene/sceneManager.hpp"
+
 
 namespace rtype::client
 {
@@ -21,6 +23,8 @@ namespace rtype::client
         private:
             rtk::RenderWindow _window;
             rtk::InputState _inputState{};
+            rtk::collision::CollisionBuffer _collisionBuffer;
+
             SceneManager _sceneManager;
     };
 }

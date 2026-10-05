@@ -30,32 +30,31 @@ namespace rtk::systems
                 _inputState.actions = InputAction::NoneAction;
                 if (!_window.pollEvents(_event))
                     throw std::runtime_error("Window closed");
-
-                if (_event.isKeyPressed(rtk::Key::Z)){
+                if (_event.isKeyPressed(rtk::Key::Up) || _event.getGamepadAxis(0, rtk::GamepadAxis::LeftY) < -0.30){
                     _inputState.actions |= InputAction::Up;
                     LOG_DEBUG("Key [Up] pressed.");
                 }
-                if (_event.isKeyPressed(rtk::Key::S)){
+                if (_event.isKeyPressed(rtk::Key::Down) || _event.getGamepadAxis(0, rtk::GamepadAxis::LeftY) > 0.30){
                     LOG_DEBUG("Key [Down] pressed.");
                     _inputState.actions |= InputAction::Down;
                 }
-                if (_event.isKeyPressed(rtk::Key::Q)){
+                if (_event.isKeyPressed(rtk::Key::Left )|| _event.getGamepadAxis(0, rtk::GamepadAxis::LeftX) < -0.30){
                     LOG_DEBUG("Key [Left] pressed.");
                     _inputState.actions |= InputAction::Left;
                 }
-                if (_event.isKeyPressed(rtk::Key::D)){
+                if (_event.isKeyPressed(rtk::Key::Right) || _event.getGamepadAxis(0, rtk::GamepadAxis::LeftX) > 0.30){
                     LOG_DEBUG("Key [Right] pressed.");
                     _inputState.actions |= InputAction::Right;
                 }
-                if (_event.isKeyPressed(rtk::Key::Space)){
+                if (_event.isKeyPressed(rtk::Key::Space) || _event.isGamepadButtonPressed(0, rtk::GamepadButton::R2)){
                     LOG_DEBUG("Key [Shoot] pressed.");
                     _inputState.actions |= InputAction::Shoot;
                 }
-                if (_event.isKeyPressed(rtk::Key::Escape)){
+                if (_event.isKeyPressed(rtk::Key::Escape) ){
                     LOG_DEBUG("Key [Close] pressed.");
                     _inputState.closeRequested = true;
                 }
-                if (_event.isKeyPressed(rtk::Key::Enter)) {
+                if (_event.isKeyPressed(rtk::Key::Enter) || _event.isGamepadButtonPressed(0, rtk::GamepadButton::Cross)) {
                     LOG_DEBUG("Key [Confirm] pressed.");
                     _inputState.actions |= rtk::InputAction::Confirm;
                 }

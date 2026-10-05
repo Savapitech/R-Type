@@ -1,7 +1,8 @@
-#include "gameScene.hpp"
+#include <sprite/spriteData.hpp>
 
+#include "gameScene.hpp"
 #include "components/Transform.hpp"
-#include "sprite/spriteData.hpp"
+#include "components/AABBCollider.hpp"
 
 namespace rtype::client
 {
@@ -29,8 +30,17 @@ namespace rtype::client
             sprite.color = {255, 255, 255, 255};
             sprite.textureId = _textureId;
 
+            component::AABBCollider collider{};
+            collider.offsetX = 0.f;
+            collider.offsetY = 0.f;
+            collider.width = 64.f;
+            collider.height = 32.f;
+            collider.layer = Collider::CollisionLayer::Player;
+            collider.mask = Collider::CollisionLayer::Enemy | Collider::CollisionLayer::EnemyProjectile | Collider::CollisionLayer::Player;
+
             context.registry.get_components<component::Transform>().insert_at(entity, transform);
             context.registry.get_components<rtk::SpriteData>().insert_at(entity, sprite);
+            context.registry.get_components<component::AABBCollider>().insert_at(entity, collider);
 
             _entities.push_back(entity);
         }
