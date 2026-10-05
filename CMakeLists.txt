@@ -131,7 +131,9 @@ add_library(GameEngine INTERFACE)
 target_include_directories(GameEngine INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/lib/GameEngine/include")
 
 #CLIENT
-add_executable(r-type_client src/Client/main.cpp)
+file(GLOB_RECURSE CLIENT_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Client/*.cpp")
+
+add_executable(r-type_client ${CLIENT_SOURCES})
 
 target_link_libraries(r-type_client PRIVATE GraphicLib ECSLib GameEngine Vulkan::Vulkan Network)
 
@@ -142,9 +144,11 @@ if (APPLE)
 endif()
 
 #SERVER
-add_executable(r-type_server src/Server/main.cpp)
+file(GLOB_RECURSE SERVER_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Server/*.cpp")
 
-target_link_libraries(r-type_server PRIVATE GraphicLib ECSLib GameEngine Network)
+add_executable(r-type_server ${SERVER_SOURCES})
+
+target_link_libraries(r-type_server PRIVATE ECSLib GameEngine Network)
 
 if(WIN32)
     foreach(TARGET_NAME r-type_client r-type_server)
