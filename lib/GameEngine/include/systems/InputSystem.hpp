@@ -8,7 +8,7 @@
 #include <graphical/renderWindow.hpp>
 
 #include "components/Transform.hpp"
-#include "InputAction.hpp"
+#include "inputAction/InputAction.hpp"
 
 
 namespace rtk::systems
@@ -27,22 +27,38 @@ namespace rtk::systems
 
             void update([[maybe_unused]] rtk::ecs::Registry& reg, float) override
             {
-                _inputState.actions = InputAction::None;
-                _window.pollEvents(_event);
+                _inputState.actions = InputAction::NoneAction;
+                if (!_window.pollEvents(_event))
+                    throw std::runtime_error("Window closed");
 
-                if (_event.isKeyPressed(rtk::Key::Up))
+                if (_event.isKeyPressed(rtk::Key::Z)){
                     _inputState.actions |= InputAction::Up;
-                if (_event.isKeyPressed(rtk::Key::Down))
+                    LOG_DEBUG("Key [Up] pressed.");
+                }
+                if (_event.isKeyPressed(rtk::Key::S)){
+                    LOG_DEBUG("Key [Down] pressed.");
                     _inputState.actions |= InputAction::Down;
-                if (_event.isKeyPressed(rtk::Key::Left))
+                }
+                if (_event.isKeyPressed(rtk::Key::Q)){
+                    LOG_DEBUG("Key [Left] pressed.");
                     _inputState.actions |= InputAction::Left;
-                if (_event.isKeyPressed(rtk::Key::Right))
+                }
+                if (_event.isKeyPressed(rtk::Key::D)){
+                    LOG_DEBUG("Key [Right] pressed.");
                     _inputState.actions |= InputAction::Right;
-                if (_event.isKeyPressed(rtk::Key::Space))
+                }
+                if (_event.isKeyPressed(rtk::Key::Space)){
+                    LOG_DEBUG("Key [Shoot] pressed.");
                     _inputState.actions |= InputAction::Shoot;
-                if (_event.isKeyPressed(rtk::Key::Escape))
+                }
+                if (_event.isKeyPressed(rtk::Key::Escape)){
+                    LOG_DEBUG("Key [Close] pressed.");
                     _inputState.closeRequested = true;
-
+                }
+                if (_event.isKeyPressed(rtk::Key::Enter)) {
+                    LOG_DEBUG("Key [Confirm] pressed.");
+                    _inputState.actions |= rtk::InputAction::Confirm;
+                }
             }
 
             void onStop(rtk::ecs::Registry&) override

@@ -12,7 +12,5 @@ namespace rtk
     {
         ecs::Registry& registry;
         ecs::Scheduler& scheduler;
-
-        rtk::InputState& inputState;
     };
 }

@@ -6,12 +6,13 @@ namespace rtk
 {
     enum class InputAction : std::uint8_t
     {
-        None  = 0,
-        Up    = 1 << 0,
-        Down  = 1 << 1,
-        Left  = 1 << 2,
-        Right = 1 << 3,
-        Shoot = 1 << 4
+        NoneAction  = 0,
+        Up          = 1 << 0,
+        Down        = 1 << 1,
+        Left        = 1 << 2,
+        Right       = 1 << 3,
+        Shoot       = 1 << 4,
+        Confirm     = 1 << 5
     };
 
     constexpr InputAction operator|(InputAction left, InputAction right)
@@ -24,13 +25,16 @@ namespace rtk
         return left;
     }
 
-    constexpr bool hasAction(InputAction actions, InputAction action) {
-        return (static_cast<std::uint8_t>(actions) & static_cast<std::uint8_t>(action)) != 0;
+    namespace Input {
+        [[nodiscard]]
+        constexpr bool hasAction(InputAction actions, InputAction action) {
+            return (static_cast<std::uint8_t>(actions) & static_cast<std::uint8_t>(action)) != 0;
+        }
     }
 
     struct InputState
     {
-        InputAction actions = InputAction::None;
+        InputAction actions = InputAction::NoneAction;
         bool closeRequested = false;
     };
 }
