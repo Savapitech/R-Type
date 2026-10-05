@@ -55,7 +55,7 @@ void UdpTransport::send(const asio::ip::udp::endpoint &endpoint, const std::vect
         if (!_socket.is_open())
           return;
         _socket.async_send_to(asio::buffer(*buffer), *destination,
-          [this, buffer](const asio::error_code &error, std::size_t bytesSent) {
+          [this, destination](const asio::error_code &error, std::size_t bytesSent) {
             if (error) {
               if (error != asio::error::operation_aborted)
                 std::cerr << error.message() << std::endl;

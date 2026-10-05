@@ -2,6 +2,7 @@
 #include "../protocol/HandshakeHeader.hpp"
 #include "../connection/Connection.hpp"
 #include "../protocol/PacketWriter.hpp"
+
 #include <asio/post.hpp>
 #include <cstdint>
 #include <memory>
@@ -18,10 +19,8 @@ NetworkServer::~NetworkServer() {
 }
 
 void NetworkServer::start() {
-  if (_running)
+  if (_running.exchange(true))
     return;
-
-  _running = true;
 
   _transport.setReceiveCallback(
         [this](const asio::ip::udp::endpoint &endpoint, const std::vector<std::uint8_t> &data) {
@@ -37,11 +36,9 @@ void NetworkServer::start() {
 }
 
 void NetworkServer::stop() {
-  if (!_running)
+  if (!_running.exchange(false))
     return;
 
-  _running = false;
-  _io.stop();
   _transport.close();
 
   if (_networkThread.joinable())
@@ -160,6 +157,8 @@ void NetworkServer::doSend(std::uint32_t connectionId, const std::vector<std::ui
 }
 
 void NetworkServer::send(std::uint32_t connectionId, const std::vector<std::uint8_t> &payload) {
+   if(!_running.load())
+     return;
   asio::post(_io, [this, connectionId, payload]() {
         doSend(connectionId, payload);
       }
