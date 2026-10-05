@@ -52,6 +52,9 @@ bool PacketReader::readBytes(std::uint8_t *destination, std::size_t size) {
     return false;
   }
 
+  if (size == 0)
+    return true;
+
   if (!canRead(size))
     return false;
   

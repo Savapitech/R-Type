@@ -1,10 +1,12 @@
+#pragma once 
 
 #include <cstddef>
 #include <cstdint>
 #include <vector>
+
 class PacketWriter {
   public:
-    static constexpr std::size_t MAX_PACKET_SIZE = 576;
+    static constexpr std::size_t MAX_PACKET_SIZE = 548;
 
     PacketWriter();
     bool writeUInt8(std::uint8_t value);

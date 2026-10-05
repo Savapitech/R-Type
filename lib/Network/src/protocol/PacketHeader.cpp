@@ -1,6 +1,5 @@
 #include "PacketHeader.hpp"
 
-#include <iostream>
 
 bool PacketHeader::serialize(PacketWriter &writer) const {
  return writer.writeUInt32(connectionId) && writer.writeUInt32(sequence) &&
@@ -18,7 +17,6 @@ bool PacketHeader::deserialize(PacketReader &reader) {
 
   if (!reader.readUInt32(readConnectionId) || !reader.readUInt32(readSequence) ||
     !reader.readUInt32(readAck) || !reader.readUInt32(readAckBits)) {
-    std::cerr << "READ FAILED\n";
     return false;
   }
 

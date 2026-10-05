@@ -108,9 +108,7 @@ add_library(Network STATIC
 
 target_include_directories(Network
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/Network/src/metrics
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/Network/src/protocol
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/Network/src/transport
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/Network/src
 )
 
 target_compile_definitions(Network

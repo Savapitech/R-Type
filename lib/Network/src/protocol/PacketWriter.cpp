@@ -44,6 +44,9 @@ bool PacketWriter::writeBytes(const std::uint8_t *data, std::size_t size) {
     return false;
   }
 
+  if (size == 0)
+    return true;
+
   if (!canWrite(size))
     return false;
 
