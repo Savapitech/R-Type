@@ -95,23 +95,34 @@ add_library(ECSLib INTERFACE)
 
 target_include_directories(ECSLib INTERFACE "${ecslib_SOURCE_DIR}/include")
 
+#Network
 find_package(Threads REQUIRED)
 find_package(asio CONFIG REQUIRED)
 
 add_library(Network STATIC
     lib/Network/src/metrics/Metrics.cpp
+
     lib/Network/src/protocol/PacketReader.cpp
     lib/Network/src/protocol/PacketWriter.cpp
     lib/Network/src/protocol/PacketHeader.cpp
     lib/Network/src/protocol/HandshakeHeader.cpp
+    lib/Network/src/protocol/MessageHeader.cpp
+    lib/Network/src/protocol/MessageParser.cpp
+
+    lib/Network/src/tracking/PacketTracker.cpp
+    lib/Network/src/connection/Connection.cpp
     lib/Network/src/transport/UdpTransport.cpp
+    lib/Network/src/server/NetworkServer.cpp
 )
 
 target_include_directories(Network
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/Network/src/metrics
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/Network/src/protocol
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/Network/src/transport
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/Network/src
+)
+
+target_compile_features(Network
+    PUBLIC
+        cxx_std_20
 )
 
 target_compile_definitions(Network
@@ -124,7 +135,6 @@ target_link_libraries(Network
         Threads::Threads
         asio::asio
 )
-
 
 #Game Engine Lib
 add_library(GameEngine INTERFACE)

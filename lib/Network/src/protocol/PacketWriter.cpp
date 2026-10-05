@@ -4,11 +4,11 @@
 #include <vector>
 
 PacketWriter::PacketWriter() {
-  _buffer.reserve(MAX_PACKET_SIZE);
+  _buffer.reserve(MAX_PAYLOAD_SIZE);
 }
 
 bool PacketWriter::canWrite(std::size_t size) const {
-  return _buffer.size() + size <= MAX_PACKET_SIZE;
+  return _buffer.size() + size <= MAX_PAYLOAD_SIZE;
 }
 
 bool PacketWriter::writeUInt8(std::uint8_t value) {
@@ -43,6 +43,9 @@ bool PacketWriter::writeBytes(const std::uint8_t *data, std::size_t size) {
   if (data == nullptr && size != 0) {
     return false;
   }
+
+  if (size == 0)
+    return true;
 
   if (!canWrite(size))
     return false;

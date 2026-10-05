@@ -1,6 +1,5 @@
 #include "HandshakeHeader.hpp"
 #include <cstdint>
-#include <iostream>
 
 bool HandshakeHeader::serialize(PacketWriter &writer) const {
  return writer.writeUInt32(magic) && writer.writeUInt8(version) &&
@@ -18,7 +17,6 @@ bool HandshakeHeader::deserialize(PacketReader &reader) {
   if (!reader.readUInt32(readMagic) ||
     !reader.readUInt8(readVersion) ||
     !reader.readUInt8(readType)) {
-    std::cerr << "READ FAILED\n";
     return false;
   }
 

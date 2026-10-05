@@ -1,8 +1,3 @@
-#include <asio.hpp>
-#include <asio/error.hpp>
-#include <asio/error_code.hpp>
-#include <asio/post.hpp>
-#include <asio/registered_buffer.hpp>
 #include "UdpTransport.hpp"
 #include <iostream>
 
@@ -29,6 +24,11 @@ void UdpTransport::startReceive() {
           return;
         }
 
+        if (bytesReceived > MAX_PAYLOAD_SIZE) {
+          startReceive();
+          return;
+        }
+
         onPacketReceived(_metrics, bytesReceived);
 
         std::vector<std::uint8_t> data(_receiveBuffer.begin(), _receiveBuffer.begin() + bytesReceived);
@@ -46,14 +46,16 @@ void UdpTransport::startReceive() {
 }
 
 void UdpTransport::send(const asio::ip::udp::endpoint &endpoint, const std::vector<std::uint8_t>& data) {
+  if (data.size() > MAX_PAYLOAD_SIZE)
+    return;
   auto buffer = std::make_shared<std::vector<std::uint8_t>>(data);
-
+  auto destination = std::make_shared<asio::ip::udp::endpoint>(endpoint);
   asio::post(_socket.get_executor(),
-      [this, endpoint, buffer] {            
+      [this, destination, buffer] {            
         if (!_socket.is_open())
           return;
-        _socket.async_send_to(asio::buffer(*buffer),endpoint,
-          [this, buffer](const asio::error_code &error, std::size_t bytesSent) {
+        _socket.async_send_to(asio::buffer(*buffer), *destination,
+          [this, destination](const asio::error_code &error, std::size_t bytesSent) {
             if (error) {
               if (error != asio::error::operation_aborted)
                 std::cerr << error.message() << std::endl;

@@ -22,6 +22,6 @@ class PacketReader {
     bool canRead(std::size_t size) const;
 
     const std::uint8_t *_data;
-    std::size_t _offset;
     std::size_t _size;
+    std::size_t _offset;
 };
