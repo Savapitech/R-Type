@@ -8,6 +8,7 @@
 #include "GameEngine.hpp"
 #include "components/Transform.hpp"
 #include "systems/RenderSystem.hpp"
+#include "systems/InputSystem.hpp"
 
 enum class Scene {
     Menu,
@@ -24,20 +25,11 @@ public:
 
     void onLoad(rtk::EngineContext& context)
 {
-    context.registry.register_component<
-        component::Transform
-    >();
+    context.registry.register_component<component::Transform>();
+    context.registry.register_component<rtk::SpriteData>();
 
-    context.registry.register_component<
-        rtk::SpriteData
-    >();
-
-    context.scheduler.add<
-        rtk::systems::RenderSystem
-    >(
-        rtk::ecs::Order::Render,
-        _window
-    );
+    context.scheduler.add<rtk::systems::RenderSystem>(rtk::ecs::Order::Render,_window);
+    context.scheduler.add<rtk::systems::InputSystem>(rtk::ecs::Order::Input,_window, _inputState);
 
     _menuTextureId =
     _window.loadTexture("menu.png").getHandle();
@@ -51,36 +43,84 @@ _shipTextureId =
     );
 }
 
-    bool shouldContinue()
+bool shouldContinue() const
 {
-    if (!_window.pollEvents(_event)) {
-        return false;
-    }
+    return !_inputState.closeRequested;
+}
 
+
+void onUpdate(
+    rtk::EngineContext& context,
+    float dt
+) {
     if (
         _scene == Scene::Menu &&
-        _event.isKeyPressed(rtk::Key::Enter)
+        rtk::Input::hasAction(
+            _inputState.actions,
+            rtk::InputAction::Confirm
+        )
     ) {
         _requestedScene = Scene::Game;
     }
 
-    return true;
-}
+    if (_requestedScene.has_value()) {
+        switchScene(
+            context.registry,
+            *_requestedScene
+        );
 
-void onUpdate(
-    rtk::EngineContext& context,
-    float
-) {
-    if (!_requestedScene.has_value()) {
+        _requestedScene.reset();
+    }
+
+    if (_scene != Scene::Game) {
         return;
     }
 
-    switchScene(
-        context.registry,
-        *_requestedScene
-    );
+    if (!_playerEntity.has_value()) {
+        return;
+    }
 
-    _requestedScene.reset();
+    auto& transforms =
+        context.registry.get_components<
+            component::Transform
+        >();
+
+    auto* transform =
+        transforms.get(*_playerEntity);
+
+    if (!transform) {
+        return;
+    }
+
+    constexpr float speed = 300.f;
+
+    if (rtk::Input::hasAction(
+        _inputState.actions,
+        rtk::InputAction::Up
+    )) {
+        transform->position.y -= speed * dt;
+    }
+
+    if (rtk::Input::hasAction(
+        _inputState.actions,
+        rtk::InputAction::Down
+    )) {
+        transform->position.y += speed * dt;
+    }
+
+    if (rtk::Input::hasAction(
+        _inputState.actions,
+        rtk::InputAction::Left
+    )) {
+        transform->position.x -= speed * dt;
+    }
+
+    if (rtk::Input::hasAction(
+        _inputState.actions,
+        rtk::InputAction::Right
+    )) {
+        transform->position.x += speed * dt;
+    }
 }
 
     void onUnload(rtk::EngineContext&e)
@@ -94,41 +134,38 @@ private:
         Game
     };
 
-    void switchScene(
-    rtk::ecs::Registry& registry,
-    Scene nextScene
-) {
-    clearScene(registry);
+        void switchScene(rtk::ecs::Registry& registry, Scene nextScene) {
+        clearScene(registry);
 
-    _scene = nextScene;
+        _scene = nextScene;
 
-    switch (_scene) {
-        case Scene::Menu:
-            createMenuScene(registry);
-            break;
+        switch (_scene) {
+            case Scene::Menu:
+                createMenuScene(registry);
+                break;
 
-        case Scene::Game:
-            createGameScene(registry);
-            break;
+            case Scene::Game:
+                createGameScene(registry);
+                break;
+        }
     }
-}
-void clearScene(rtk::ecs::Registry& registry)
-{
-    for (const auto entity : _sceneEntities) {
-        registry.kill_entity(entity);
+    void clearScene(rtk::ecs::Registry& registry)
+    {
+        for (const auto entity : _sceneEntities) {
+            registry.kill_entity(entity);
+        }
+    
+        registry.flush();
+    
+        _sceneEntities.clear();
+        _playerEntity.reset();
     }
 
-    registry.flush();
-    _sceneEntities.clear();
-}
+    void createMenuScene(
+        rtk::ecs::Registry& registry
+    );
 
-void createMenuScene(
-    rtk::ecs::Registry& registry
-);
-
-void createGameScene(
-    rtk::ecs::Registry& registry
-);
+    void createGameScene(rtk::ecs::Registry& registry);
 
 
     Scene _scene = Scene::Menu;
@@ -139,8 +176,12 @@ void createGameScene(
     rtk::RenderWindow _window;
     rtk::Event _event;
 
+    rtk::InputState _inputState;
+
     std::uint32_t _menuTextureId = 0;
     std::uint32_t _shipTextureId = 0;
+
+    std::optional<std::size_t> _playerEntity;
 };
 
 void RTypeClientGame::createMenuScene(
@@ -178,6 +219,10 @@ void RTypeClientGame::createGameScene(
 ) {
     for (int i = 0; i < 3; ++i) {
         const auto entity = registry.spawn_entity();
+
+        if (i == 0) {
+            _playerEntity = entity;
+        }
 
         component::Transform transform{};
 
