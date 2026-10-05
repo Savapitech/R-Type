@@ -10,7 +10,7 @@
 class Connection {
   public:
 
-    Connection(std::uint32_t id, asio::ip::udp::endpoint &endpoint);
+    Connection(std::uint32_t id, const asio::ip::udp::endpoint &endpoint);
 
     std::uint32_t getId() const;
     const asio::ip::udp::endpoint &getEndpoint() const;

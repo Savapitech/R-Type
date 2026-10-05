@@ -1,6 +1,6 @@
 #include "Connection.hpp"
 
-Connection::Connection(std::uint32_t id, asio::ip::udp::endpoint &endpoint) :
+Connection::Connection(std::uint32_t id, const asio::ip::udp::endpoint &endpoint) :
   _id(id), _endpoint(endpoint)
 {}
 

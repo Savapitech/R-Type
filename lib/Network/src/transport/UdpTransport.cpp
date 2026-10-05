@@ -49,12 +49,12 @@ void UdpTransport::send(const asio::ip::udp::endpoint &endpoint, const std::vect
   if (data.size() > MAX_PAYLOAD_SIZE)
     return;
   auto buffer = std::make_shared<std::vector<std::uint8_t>>(data);
-
+  auto destination = std::make_shared<asio::ip::udp::endpoint>(endpoint);
   asio::post(_socket.get_executor(),
-      [this, endpoint, buffer] {            
+      [this, destination, buffer] {            
         if (!_socket.is_open())
           return;
-        _socket.async_send_to(asio::buffer(*buffer),endpoint,
+        _socket.async_send_to(asio::buffer(*buffer), *destination,
           [this, buffer](const asio::error_code &error, std::size_t bytesSent) {
             if (error) {
               if (error != asio::error::operation_aborted)
