@@ -1,15 +1,10 @@
-#include "UdpTransport.hpp"
 #include <asio.hpp>
 #include <asio/error.hpp>
 #include <asio/error_code.hpp>
 #include <asio/post.hpp>
 #include <asio/registered_buffer.hpp>
-#include <cstddef>
-#include <cstdint>
+#include "UdpTransport.hpp"
 #include <iostream>
-#include <memory>
-#include <system_error>
-#include <vector>
 
 UdpTransport::UdpTransport(asio::io_context &context, std::uint16_t port, NetworkMetrics &metrics)
   : _socket(context, asio::ip::udp::endpoint(asio::ip::udp::v4(), port)), _metrics(metrics) {
@@ -47,7 +42,7 @@ void UdpTransport::startReceive() {
           startReceive();
         }
       }
-      );
+  );
 }
 
 void UdpTransport::send(const asio::ip::udp::endpoint &endpoint, const std::vector<std::uint8_t>& data) {

@@ -95,6 +95,35 @@ add_library(ECSLib INTERFACE)
 
 target_include_directories(ECSLib INTERFACE "${ecslib_SOURCE_DIR}/include")
 
+find_package(Threads REQUIRED)
+
+add_library(Network STATIC
+    lib/Network/src/metrics/Metrics.cpp
+    lib/Network/src/protocol/PacketReader.cpp
+    lib/Network/src/protocol/PacketWriter.cpp
+    lib/Network/src/protocol/PacketHeader.cpp
+    lib/Network/src/protocol/HandshakeHeader.cpp
+    lib/Network/src/transport/UdpTransport.cpp
+)
+
+target_include_directories(Network
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/Network/src/metrics
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/Network/src/protocol
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/Network/src/transport
+)
+
+target_compile_definitions(Network
+    PUBLIC
+        ASIO_STANDALONE
+)
+
+target_link_libraries(Network
+    PUBLIC
+        Threads::Threads
+)
+
+
 #Game Engine Lib
 add_library(GameEngine INTERFACE)
 target_include_directories(GameEngine INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/lib/GameEngine/include")
@@ -102,7 +131,7 @@ target_include_directories(GameEngine INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/lib
 #CLIENT
 add_executable(r-type_client src/Client/main.cpp)
 
-target_link_libraries(r-type_client PRIVATE GraphicLib ECSLib GameEngine Vulkan::Vulkan)
+target_link_libraries(r-type_client PRIVATE GraphicLib ECSLib GameEngine Vulkan::Vulkan Network)
 
 if (APPLE)
     set_property(TARGET r-type_client APPEND PROPERTY 
@@ -113,7 +142,7 @@ endif()
 #SERVER
 add_executable(r-type_server src/Server/main.cpp)
 
-target_link_libraries(r-type_server PRIVATE GraphicLib ECSLib GameEngine)
+target_link_libraries(r-type_server PRIVATE GraphicLib ECSLib GameEngine Network)
 
 if(WIN32)
     foreach(TARGET_NAME r-type_client r-type_server)

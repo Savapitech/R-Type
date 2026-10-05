@@ -1,4 +1,5 @@
 #include "Metrics.hpp"
+
 #include <cstddef>
 #include <cstdint>
 #include <cmath>
