@@ -106,6 +106,7 @@ add_library(Network STATIC
     lib/Network/src/protocol/PacketWriter.cpp
     lib/Network/src/protocol/PacketHeader.cpp
     lib/Network/src/protocol/HandshakeHeader.cpp
+    lib/Network/src/protocol/MessageHeader.cpp
 
     lib/Network/src/tracking/PacketTracker.cpp
     lib/Network/src/connection/Connection.cpp
