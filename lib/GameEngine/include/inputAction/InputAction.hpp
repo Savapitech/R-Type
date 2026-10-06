@@ -36,5 +36,6 @@ namespace rtk
     {
         InputAction actions = InputAction::NoneAction;
         bool closeRequested = false;
+        bool debug = false;
     };
 }

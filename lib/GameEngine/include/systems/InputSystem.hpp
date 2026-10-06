@@ -58,6 +58,10 @@ namespace rtk::systems
                     LOG_DEBUG("Key [Confirm] pressed.");
                     _inputState.actions |= rtk::InputAction::Confirm;
                 }
+                if ((_event.isKeyPressed(rtk::Key::F3) && _event.isKeyReleased(rtk::Key::B)) || _event.isGamepadButtonPressed(0, rtk::GamepadButton::Cross)) {
+                    LOG_DEBUG("Key [Debug] pressed.");
+                    _inputState.debug = !_inputState.debug;
+                }
             }
 
             void onStop(rtk::ecs::Registry&) override
@@ -67,7 +71,6 @@ namespace rtk::systems
         private:
             rtk::Event _event;
             rtk::RenderWindow& _window;
-
             rtk::InputState& _inputState;
     };
 }

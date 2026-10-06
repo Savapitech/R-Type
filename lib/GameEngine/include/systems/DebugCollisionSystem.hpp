@@ -19,7 +19,7 @@ namespace rtk::systems
     class DebugCollisionSystem final : public rtk::ecs::ISystem
     {
         public:
-            explicit DebugCollisionSystem(const rtk::collision::CollisionBuffer& collisionBuffer, rtk::RenderWindow & window) : _collisionBuffer(collisionBuffer), _window(window) {}
+            explicit DebugCollisionSystem(const rtk::collision::CollisionBuffer& collisionBuffer, rtk::RenderWindow & window, const rtk::InputState &inputState) : _collisionBuffer(collisionBuffer), _window(window), _inputState(inputState) {}
             ~DebugCollisionSystem() override = default;
 
            void onStart(rtk::ecs::Registry&) override
@@ -139,7 +139,10 @@ namespace rtk::systems
         transform->rotation = 0.f;
         transform->scale = {1.f, 1.f};
 
-        sprite->size = {line.width, line.height};
+        if (!_inputState.debug)
+            sprite->size = {0, 0};
+        else
+            sprite->size = {line.width, line.height};
         sprite->origin = {0.f, 0.f};
         sprite->textureRect = {0, 0, 1, 1};
         sprite->color = line.colliding ? rtk::ColorRGBA8{255, 0, 0, 255} : rtk::ColorRGBA8{0, 255, 0, 255};
@@ -148,11 +151,11 @@ namespace rtk::systems
 
         const rtk::collision::CollisionBuffer& _collisionBuffer;
         rtk::RenderWindow & _window;
+        const rtk::InputState &_inputState;
 
         std::uint32_t _debugTextureId = 0;
 
         std::vector<std::size_t> _debugEntities;
         std::unordered_set<std::size_t> _collidingEntities;
-
     };
 }

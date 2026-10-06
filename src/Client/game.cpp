@@ -19,7 +19,7 @@ namespace rtype::client
 
         context.scheduler.add<rtk::systems::InputSystem>(rtk::ecs::Order::Input, _window, _inputState);
         context.scheduler.add<rtk::systems::RenderSystem>(rtk::ecs::Order::Render, _window);
-        context.scheduler.add<rtk::systems::DebugCollisionSystem>(rtk::ecs::Order::Physics, _collisionBuffer, _window);
+        context.scheduler.add<rtk::systems::DebugCollisionSystem>(rtk::ecs::Order::Physics, _collisionBuffer, _window, _inputState);
         context.scheduler.add<rtk::systems::ColliderSystem>(rtk::ecs::Order::Physics, _collisionBuffer, 64.f);
 
         _sceneManager.start(context);
