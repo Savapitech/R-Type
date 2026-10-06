@@ -4,7 +4,10 @@
 #include "graphical/renderWindow.hpp"
 #include "inputAction/InputAction.hpp"
 #include "collision/collisionBuffer.hpp"
-#include "scene/sceneManager.hpp"
+#include "sceneManager/sceneManager.hpp"
+
+#include "scene/gameScene.hpp"
+#include "scene/menuScene.hpp"
 
 
 namespace rtype::client
@@ -25,6 +28,6 @@ namespace rtype::client
             rtk::InputState _inputState{};
             rtk::collision::CollisionBuffer _collisionBuffer;
 
-            SceneManager _sceneManager;
+            rtk::SceneManager<rtk::SceneType, rtk::RenderWindow,  MenuScene, GameScene> _sceneManager;
     };
 }

@@ -9,7 +9,7 @@
 
 namespace rtype::client
 {
-    Game::Game() : _window({1280.f, 720.f}, "R-Type"), _sceneManager(_window) {}
+    Game::Game() : _window({1280.f, 720.f}, "R-Type"), _sceneManager(_window, std::in_place_type<MenuScene>) {}
 
     void Game::onLoad(rtk::EngineContext& context)
     {

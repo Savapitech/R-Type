@@ -6,7 +6,7 @@
 #include "GameEngine.hpp"
 #include "inputAction/InputAction.hpp"
 
-namespace rtype::client
+namespace rtk
 {
     enum class SceneType
     {

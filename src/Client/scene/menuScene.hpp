@@ -5,8 +5,8 @@
 #include <optional>
 #include <vector>
 
-#include "sceneConcept.hpp"
 #include "graphical/renderWindow.hpp"
+#include "sceneManager/sceneConcept.hpp"
 
 namespace rtype::client
 {
@@ -16,8 +16,10 @@ namespace rtype::client
             explicit MenuScene(rtk::RenderWindow& window);
             ~MenuScene() = default;
 
+            static constexpr rtk::SceneType Type = rtk::SceneType::Menu;
+
             void onEnter(rtk::EngineContext& context);
-            std::optional<SceneType> onUpdate(rtk::EngineContext& context, const rtk::InputState& inputState, float dt);
+            std::optional<rtk::SceneType> onUpdate(rtk::EngineContext& context, const rtk::InputState& inputState, float dt);
             void onExit(rtk::EngineContext& context);
 
         private:
