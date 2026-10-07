@@ -108,6 +108,8 @@ add_library(Network STATIC
     lib/Network/src/protocol/HandshakeHeader.cpp
     lib/Network/src/protocol/MessageHeader.cpp
     lib/Network/src/protocol/MessageParser.cpp
+    lib/Network/src/protocol/PingMessage.cpp
+    lib/Network/src/protocol/PongMessage.cpp
 
     lib/Network/src/tracking/PacketTracker.cpp
     lib/Network/src/connection/Connection.cpp
@@ -140,15 +142,18 @@ target_link_libraries(Network
 add_library(GameEngine INTERFACE)
 target_include_directories(GameEngine INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/lib/GameEngine/include")
 
+add_library(CommonProtocole INTERFACE)
+target_include_directories(CommonProtocole  INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/Common/)
+
 #CLIENT
 file(GLOB_RECURSE CLIENT_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Client/*.cpp")
 
 add_executable(r-type_client ${CLIENT_SOURCES})
 
-target_link_libraries(r-type_client PRIVATE GraphicLib ECSLib GameEngine Vulkan::Vulkan Network)
+target_link_libraries(r-type_client PRIVATE GraphicLib ECSLib GameEngine Vulkan::Vulkan Network CommonProtocole)
 
 if (APPLE)
-    set_property(TARGET r-type_client APPEND PROPERTY 
+    set_property(TARGET r-type_client APPEND PROPERTY
         BUILD_RPATH "${graphiclib_SOURCE_DIR}/lib"
     )
 endif()
@@ -158,7 +163,7 @@ file(GLOB_RECURSE SERVER_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/
 
 add_executable(r-type_server ${SERVER_SOURCES})
 
-target_link_libraries(r-type_server PRIVATE ECSLib GameEngine Network)
+target_link_libraries(r-type_server PRIVATE ECSLib GameEngine Network CommonProtocole)
 
 if(WIN32)
     foreach(TARGET_NAME r-type_client r-type_server)

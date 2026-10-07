@@ -11,8 +11,7 @@
 namespace rtk
 {
     template<SceneIdentifier TSceneId, typename TDependency, typename TInput, typename... TScenes>
-    requires ((Scene<TScenes, TSceneId, TInput> && ...) && (std::constructible_from<TScenes, TDependency&> && ...)
-    )
+    requires ((Scene<TScenes, TSceneId, TInput> && ...) && (std::constructible_from<TScenes, TDependency&> && ...))
     class SceneManager
     {
     public:
@@ -59,6 +58,20 @@ namespace rtk
                 },
                 _currentScene
             );
+        }
+
+        template<typename TScene>
+        requires (std::same_as<TScene, TScenes> || ...)
+        [[nodiscard]] TScene* get() noexcept
+        {
+            return std::get_if<TScene>(&_currentScene);
+        }
+
+        template<typename TScene>
+        requires (std::same_as<TScene, TScenes> || ...)
+        [[nodiscard]] const TScene* get() const noexcept
+        {
+            return std::get_if<TScene>(&_currentScene);
         }
 
     private:
