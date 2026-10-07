@@ -1,0 +1,12 @@
+# External Lib
+
+External/
+_deps
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+build
+bin
+
+.vscode
+vcpkg_installed

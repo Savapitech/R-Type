@@ -1,4 +1,5 @@
 #include "Metrics.hpp"
+
 #include <cstddef>
 #include <cstdint>
 #include <cmath>
@@ -26,7 +27,7 @@ void updatePacketMetrics(NetworkMetrics &metrics) {
   const uint64_t total = metrics.packetsReceived + metrics.packetsLost;
 
   if (total == 0) {
-    metrics.packetsLost = 0.0f;
+    metrics.packetLossPercentage = 0.0f;
     return;
   }
 

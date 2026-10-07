@@ -1,5 +1,6 @@
+#pragma once
+
 #include <array>
-#include <asio.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <asio.hpp>
@@ -7,6 +8,7 @@
 #include <vector>
 
 #include "../metrics/Metrics.hpp"
+#include "../config/NetworkConfig.hpp"
 
 class UdpTransport {
   public:

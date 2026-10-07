@@ -1,4 +1,7 @@
+#pragma once
+
 #include <cstdint>
+#include <cstddef>
 
 struct NetworkMetrics {
   float rtt = 0.0f;
