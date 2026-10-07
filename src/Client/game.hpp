@@ -28,6 +28,11 @@ namespace rtype::client
             rtk::InputState _inputState{};
             rtk::collision::CollisionBuffer _collisionBuffer;
 
-            rtk::SceneManager<rtk::SceneType, rtk::RenderWindow,  MenuScene, GameScene> _sceneManager;
+            rtk::SceneManager<
+                SceneType,
+                rtk::RenderWindow,
+                rtk::InputState,
+                MenuScene,
+                GameScene > _sceneManager;
     };
 }

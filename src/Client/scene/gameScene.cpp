@@ -46,7 +46,7 @@ namespace rtype::client
         }
     }
 
-    std::optional<rtk::SceneType> GameScene::onUpdate(rtk::EngineContext& context, const rtk::InputState& inputState, float dt)
+    std::optional<SceneType> GameScene::onUpdate(rtk::EngineContext& context, const rtk::InputState& inputState, float dt)
     {
         updatePlayer(context, inputState, dt);
         return std::nullopt;

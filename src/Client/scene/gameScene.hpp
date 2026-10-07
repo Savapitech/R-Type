@@ -8,6 +8,8 @@
 #include "graphical/renderWindow.hpp"
 #include "sceneManager/sceneConcept.hpp"
 
+#include "sceneType.hpp"
+
 namespace rtype::client
 {
     class GameScene
@@ -16,10 +18,10 @@ namespace rtype::client
             explicit GameScene(rtk::RenderWindow& window);
             ~GameScene() = default;
 
-            static constexpr rtk::SceneType Type = rtk::SceneType::Game;
+            static constexpr SceneType Type = SceneType::Game;
 
             void onEnter(rtk::EngineContext& context);
-            std::optional<rtk::SceneType> onUpdate(rtk::EngineContext& context, const rtk::InputState& inputState, float dt);
+            std::optional<SceneType> onUpdate(rtk::EngineContext& context, const rtk::InputState& inputState, float dt);
             void onExit(rtk::EngineContext& context);
 
         private:

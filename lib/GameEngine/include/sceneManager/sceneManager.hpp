@@ -1,38 +1,47 @@
 #pragma once
 
-#include <variant>
+#include <concepts>
 #include <optional>
-#include <vector>
+#include <stdexcept>
+#include <utility>
+#include <variant>
 
 #include "sceneConcept.hpp"
 
 namespace rtk
 {
-    template<typename SceneId, typename SceneDependency, typename... TScenes>
-    requires (Scene<TScenes> && ...)
+    template<SceneIdentifier TSceneId, typename TDependency, typename TInput, typename... TScenes>
+    requires ((Scene<TScenes, TSceneId, TInput> && ...) && (std::constructible_from<TScenes, TDependency&> && ...)
+    )
     class SceneManager
     {
     public:
         using SceneVariant = std::variant<TScenes...>;
 
         template<typename TInitialScene>
-        SceneManager(SceneDependency& dependency, std::in_place_type_t<TInitialScene>)
+        SceneManager(TDependency& dependency, std::in_place_type_t<TInitialScene>)
             : _dependency(dependency),
               _currentScene(std::in_place_type<TInitialScene>, dependency)
         {
         }
 
-        void start(rtk::EngineContext& context)
+        void start(EngineContext& context)
         {
-            std::visit([&](auto& scene) { scene.onEnter(context); }, _currentScene);
+            std::visit(
+                [&](auto& scene)
+                {
+                    scene.onEnter(context);
+                },
+                _currentScene
+            );
         }
 
-        void update(rtk::EngineContext& context, const rtk::InputState& inputState, float dt)
+        void update(EngineContext& context, const TInput& input, float dt)
         {
             const auto requestedScene = std::visit(
                 [&](auto& scene)
                 {
-                    return scene.onUpdate(context, inputState, dt);
+                    return scene.onUpdate(context, input, dt);
                 },
                 _currentScene
             );
@@ -41,18 +50,33 @@ namespace rtk
                 switchScene(context, *requestedScene);
         }
 
-        void stop(rtk::EngineContext& context)
+        void stop(EngineContext& context)
         {
-            std::visit([&](auto& scene) { scene.onExit(context); }, _currentScene);
+            std::visit(
+                [&](auto& scene)
+                {
+                    scene.onExit(context);
+                },
+                _currentScene
+            );
         }
 
     private:
-        void switchScene(rtk::EngineContext& context, SceneId nextScene)
+        template<typename TScene>
+        bool trySwitchScene(TSceneId nextScene)
+        {
+            if (nextScene != TScene::Type)
+                return false;
+
+            _currentScene.template emplace<TScene>(_dependency);
+            return true;
+        }
+
+        void switchScene(EngineContext& context, TSceneId nextScene)
         {
             stop(context);
 
-            const bool found = ((nextScene == TScenes::Type ? (
-                _currentScene .template emplace<TScenes>(_dependency), true) : false) || ...);
+            const bool found = (trySwitchScene<TScenes>(nextScene) || ...);
 
             if (!found)
                 throw std::runtime_error("Unknown scene");
@@ -60,7 +84,7 @@ namespace rtk
             start(context);
         }
 
-        SceneDependency& _dependency;
+        TDependency& _dependency;
         SceneVariant _currentScene;
     };
 }

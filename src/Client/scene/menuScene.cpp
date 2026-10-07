@@ -31,10 +31,10 @@ namespace rtype::client
         _entities.push_back(entity);
     }
 
-    std::optional<rtk::SceneType> MenuScene::onUpdate(rtk::EngineContext&, const rtk::InputState& inputState, float)
+    std::optional<SceneType> MenuScene::onUpdate(rtk::EngineContext&, const rtk::InputState& inputState, float)
     {
         if (rtk::Input::hasAction(inputState.actions, rtk::InputAction::Confirm))
-            return rtk::SceneType::Game;
+            return SceneType::Game;
 
         return std::nullopt;
     }
