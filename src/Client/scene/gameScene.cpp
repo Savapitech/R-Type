@@ -128,7 +128,6 @@ namespace rtype::client
 
     void GameScene::launchBullet(rtk::EngineContext& context)
     {
-        LOG_INFO("luanch bullet");
         std::size_t enttPlayer = 0;
 
         if (_playerEntity.has_value())

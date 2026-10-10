@@ -2,6 +2,8 @@
 
 #include <chrono>
 #include <algorithm>
+#include <string>
+#include <Logger/Logger.hpp>
 
 #include "Game.hpp"
 #include "EngineContext.hpp"
@@ -87,6 +89,14 @@ namespace rtk
 
             _previousTime = currentTime;
 
+            _fpsTimer += dt;
+            _fpsFrames++;
+            if (_fpsTimer >= 1.0f) {
+                LOG_DEBUG("FPS: " + std::to_string(_fpsFrames));
+                _fpsTimer -= 1.0f;
+                _fpsFrames = 0;
+            }
+
             return std::min(dt, 0.1f);
         }
 
@@ -96,5 +106,8 @@ namespace rtk
         Clock::time_point _previousTime;
 
         bool _running = false;
+
+        float _fpsTimer = 0.0f;
+        int _fpsFrames = 0;
     };
 }
