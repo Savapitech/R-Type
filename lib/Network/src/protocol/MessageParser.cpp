@@ -1,7 +1,8 @@
 #include "MessageParser.hpp"
 #include "MessageHeader.hpp"
 
-bool MessageParser::parse(PacketReader &reader, std::vector<ParsedMessage> &messages) {
+bool MessageParser::parse(PacketReader &reader,
+                          std::vector<ParsedMessage> &messages) {
   std::vector<ParsedMessage> parsed;
 
   while (!reader.isEnd()) {

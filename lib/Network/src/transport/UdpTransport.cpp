@@ -1,17 +1,15 @@
 #include "UdpTransport.hpp"
 #include <iostream>
 
-UdpTransport::UdpTransport(asio::io_context &context, std::uint16_t port, NetworkMetrics &metrics)
-  : _socket(context, asio::ip::udp::endpoint(asio::ip::udp::v4(), port)), _metrics(metrics) {
-}
+UdpTransport::UdpTransport(asio::io_context &context, std::uint16_t port,
+                           NetworkMetrics &metrics)
+    : _socket(context, asio::ip::udp::endpoint(asio::ip::udp::v4(), port)),
+      _metrics(metrics) {}
 
 void UdpTransport::startReceive() {
-  _socket.async_receive_from(asio::buffer(_receiveBuffer), _endpoint,
-      [this](
-        const asio::error_code& error,
-        std::size_t bytesReceived
-        ) 
-      {
+  _socket.async_receive_from(
+      asio::buffer(_receiveBuffer), _endpoint,
+      [this](const asio::error_code &error, std::size_t bytesReceived) {
         if (error) {
           if (error == asio::error::operation_aborted)
             return;
@@ -31,7 +29,8 @@ void UdpTransport::startReceive() {
 
         onPacketReceived(_metrics, bytesReceived);
 
-        std::vector<std::uint8_t> data(_receiveBuffer.begin(), _receiveBuffer.begin() + bytesReceived);
+        std::vector<std::uint8_t> data(_receiveBuffer.begin(),
+                                       _receiveBuffer.begin() + bytesReceived);
 
         auto sender = _endpoint;
 
@@ -41,64 +40,58 @@ void UdpTransport::startReceive() {
         if (_socket.is_open()) {
           startReceive();
         }
-      }
-  );
+      });
 }
 
-void UdpTransport::send(const asio::ip::udp::endpoint &endpoint, const std::vector<std::uint8_t>& data) {
+void UdpTransport::send(const asio::ip::udp::endpoint &endpoint,
+                        const std::vector<std::uint8_t> &data) {
   if (data.size() > MAX_PAYLOAD_SIZE)
     return;
   auto buffer = std::make_shared<std::vector<std::uint8_t>>(data);
   auto destination = std::make_shared<asio::ip::udp::endpoint>(endpoint);
-  asio::post(_socket.get_executor(),
-      [this, destination, buffer] {            
-        if (!_socket.is_open())
-          return;
-        _socket.async_send_to(asio::buffer(*buffer), *destination,
-          [this, destination](const asio::error_code &error, std::size_t bytesSent) {
-            if (error) {
-              if (error != asio::error::operation_aborted)
-                std::cerr << error.message() << std::endl;
+  asio::post(_socket.get_executor(), [this, destination, buffer] {
+    if (!_socket.is_open())
+      return;
+    _socket.async_send_to(asio::buffer(*buffer), *destination,
+                          [this, destination](const asio::error_code &error,
+                                              std::size_t bytesSent) {
+                            if (error) {
+                              if (error != asio::error::operation_aborted)
+                                std::cerr << error.message() << std::endl;
 
-              return;
-            }
-            onPacketSend(_metrics, bytesSent);
-          }
-        ); 
-      });
+                              return;
+                            }
+                            onPacketSend(_metrics, bytesSent);
+                          });
+  });
 }
 
-void UdpTransport::setReceiveCallback(std::function<void(
-      const asio::ip::udp::endpoint &Endpoint,
-      const std::vector<std::uint8_t>&)> callback) {
+void UdpTransport::setReceiveCallback(
+    std::function<void(const asio::ip::udp::endpoint &Endpoint,
+                       const std::vector<std::uint8_t> &)>
+        callback) {
   _receiveCallback = std::move(callback);
 }
 
-bool UdpTransport::isOpen() const {
-  return _socket.is_open();
-}
+bool UdpTransport::isOpen() const { return _socket.is_open(); }
 
 void UdpTransport::execClose() {
-  if(!_socket.is_open())
+  if (!_socket.is_open())
     return;
 
   asio::error_code error;
   _socket.cancel(error);
 
-  if(error) 
+  if (error)
     std::cerr << "Udp cancelling error: " << error.message() << std::endl;
-  
+
   error.clear();
   _socket.close(error);
-  
-  if(error) 
+
+  if (error)
     std::cerr << "Udp closing error: " << error.message() << std::endl;
 }
 
 void UdpTransport::close() {
-  asio::post(_socket.get_executor(),
-      [this]() {
-        execClose();
-      }
-      );
+  asio::post(_socket.get_executor(), [this]() { execClose(); });
 }

@@ -1,13 +1,11 @@
 #include "PacketTracker.hpp"
 #include <cstdint>
 
-PacketTracker::PacketTracker() :
-  _nextSequence(1), _hasReceivedPacket(false), _lastReceived(0), _receivedBits(0) 
-{}
+PacketTracker::PacketTracker()
+    : _nextSequence(1), _hasReceivedPacket(false), _lastReceived(0),
+      _receivedBits(0) {}
 
-std::uint32_t PacketTracker::getNextSequence() {
-  return _nextSequence++;
-}
+std::uint32_t PacketTracker::getNextSequence() { return _nextSequence++; }
 
 PacketReceiveRes PacketTracker::onPacketReceived(std::uint32_t sequence) {
   if (!_hasReceivedPacket) {
@@ -21,7 +19,7 @@ PacketReceiveRes PacketTracker::onPacketReceived(std::uint32_t sequence) {
     return PacketReceiveRes::Dup;
 
   if (sequence > _lastReceived) {
-    const std::uint32_t diff = sequence -_lastReceived;
+    const std::uint32_t diff = sequence - _lastReceived;
     if (diff > 32) {
       _receivedBits = 0;
     } else if (diff == 32) {
@@ -45,10 +43,11 @@ PacketReceiveRes PacketTracker::onPacketReceived(std::uint32_t sequence) {
   return PacketReceiveRes::Out;
 }
 
-bool PacketTracker::isPacketinAck(std::uint32_t sequence, std::uint32_t ack, std::uint32_t ackBits) {
+bool PacketTracker::isPacketinAck(std::uint32_t sequence, std::uint32_t ack,
+                                  std::uint32_t ackBits) {
   if (sequence == ack)
     return true;
-  
+
   if (sequence > ack)
     return false;
 
@@ -66,5 +65,3 @@ std::uint32_t PacketTracker::getAck() const {
 std::uint32_t PacketTracker::getAckBits() const {
   return _hasReceivedPacket ? _receivedBits : 0;
 }
-
-

@@ -14,14 +14,13 @@
  * @endcode
  */
 
-#include "sceneManager/sceneConcept.hpp"
-#include "menuScene.hpp"
 #include "gameScene.hpp"
+#include "menuScene.hpp"
+#include "sceneManager/sceneConcept.hpp"
 #include "sceneType.hpp"
 
-namespace rtype::client
-{
-    static_assert(rtk::SceneIdentifier<SceneType>);
-    static_assert(rtk::Scene<MenuScene, SceneType, rtk::InputState>);
-    static_assert(rtk::Scene<GameScene, SceneType, rtk::InputState>);
-}
+namespace rtype::client {
+static_assert(rtk::SceneIdentifier<SceneType>);
+static_assert(rtk::Scene<MenuScene, SceneType, rtk::InputState>);
+static_assert(rtk::Scene<GameScene, SceneType, rtk::InputState>);
+} // namespace rtype::client

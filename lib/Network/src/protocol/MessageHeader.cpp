@@ -1,7 +1,6 @@
 #include "MessageHeader.hpp"
 #include <cstdint>
 
-
 bool MessageHeader::serialize(PacketWriter &writer) const {
   if (!writer.writeUInt16(static_cast<std::uint16_t>(getType())))
     return false;
@@ -21,10 +20,6 @@ bool MessageHeader::deserialize(PacketReader &reader) {
   return true;
 }
 
-void MessageHeader::setType(MessageType type) {
-  _type = type;
-}
+void MessageHeader::setType(MessageType type) { _type = type; }
 
-MessageType MessageHeader::getType() const {
-  return _type;
-}
+MessageType MessageHeader::getType() const { return _type; }

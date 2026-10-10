@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 struct PingMessage {
-  std::uint32_t timestamp =0;
+  std::uint32_t timestamp = 0;
 
   static constexpr std::size_t SIZE = 4;
 

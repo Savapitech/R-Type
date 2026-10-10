@@ -144,6 +144,7 @@ target_include_directories(GameEngine INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/lib
 
 add_library(CommonProtocole INTERFACE)
 target_include_directories(CommonProtocole  INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/Common/)
+target_link_libraries(CommonProtocole INTERFACE Network)
 
 #CLIENT
 file(GLOB_RECURSE CLIENT_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Client/*.cpp")

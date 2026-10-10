@@ -1,12 +1,11 @@
 #include "Metrics.hpp"
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <cmath>
 
 void updateRttMetrics(NetworkMetrics &metrics, float newRtt) {
   metrics.rtt = newRtt;
-
 
   if (metrics.smoothRtt != 0.0f) {
     metrics.smoothRtt = metrics.smoothRtt + 0.1f * (newRtt - metrics.smoothRtt);
@@ -20,7 +19,6 @@ void updateRttMetrics(NetworkMetrics &metrics, float newRtt) {
   }
 
   metrics.previousRtt = newRtt;
-
 }
 
 void updatePacketMetrics(NetworkMetrics &metrics) {
@@ -32,7 +30,7 @@ void updatePacketMetrics(NetworkMetrics &metrics) {
   }
 
   metrics.packetLossPercentage = static_cast<float>(metrics.packetsLost) /
-    static_cast<float>(total) * 100.0f;
+                                 static_cast<float>(total) * 100.0f;
 }
 
 void onPacketSend(NetworkMetrics &metrics, std::size_t packetSize) {
@@ -49,10 +47,6 @@ void onPacketDuplicated(NetworkMetrics &metrics) {
   ++metrics.packetsDuplicated;
 }
 
-void onPacketOut(NetworkMetrics &metrics) {
-  ++metrics.packetsOut;
-}
+void onPacketOut(NetworkMetrics &metrics) { ++metrics.packetsOut; }
 
-void onRetransmission(NetworkMetrics &metrics) {
-  ++metrics.retransmissions;
-}
+void onRetransmission(NetworkMetrics &metrics) { ++metrics.retransmissions; }
