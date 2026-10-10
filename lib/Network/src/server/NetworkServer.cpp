@@ -1,42 +1,36 @@
 #include "NetworkServer.hpp"
-#include "../protocol/HandshakeHeader.hpp"
 #include "../connection/Connection.hpp"
+#include "../protocol/HandshakeHeader.hpp"
 #include "../protocol/PacketWriter.hpp"
 #include "../protocol/PingMessage.hpp"
 #include "../protocol/PongMessage.hpp"
 
 #include <asio/post.hpp>
 #include <cstdint>
+#include <iostream>
 #include <iterator>
 #include <memory>
 #include <ostream>
 #include <thread>
 #include <vector>
-#include <iostream>
 
-NetworkServer::NetworkServer(std::uint16_t port) :
-  _io(), _metrics(), _transport(_io, port, _metrics)
-{}
+NetworkServer::NetworkServer(std::uint16_t port)
+    : _io(), _metrics(), _transport(_io, port, _metrics) {}
 
-NetworkServer::~NetworkServer() {
-  stop();
-}
+NetworkServer::~NetworkServer() { stop(); }
 
 void NetworkServer::start() {
   if (_running.exchange(true))
     return;
 
-  _transport.setReceiveCallback(
-        [this](const asio::ip::udp::endpoint &endpoint, const std::vector<std::uint8_t> &data) {
-            handleDatagram(endpoint, data);
-        }
-    );
+  _transport.setReceiveCallback([this](const asio::ip::udp::endpoint &endpoint,
+                                       const std::vector<std::uint8_t> &data) {
+    handleDatagram(endpoint, data);
+  });
 
   _transport.startReceive();
 
-  _networkThread = std::thread([this](){
-        _io.run(); 
-      });
+  _networkThread = std::thread([this]() { _io.run(); });
 }
 
 void NetworkServer::stop() {
@@ -49,8 +43,8 @@ void NetworkServer::stop() {
     _networkThread.join();
 }
 
-
-Connection *NetworkServer::findConnectionByEndpoint(const asio::ip::udp::endpoint &endpoint) {
+Connection *NetworkServer::findConnectionByEndpoint(
+    const asio::ip::udp::endpoint &endpoint) {
   for (auto &[_, connection] : _connections) {
     if (connection->getEndpoint() == endpoint)
       return connection.get();
@@ -58,32 +52,38 @@ Connection *NetworkServer::findConnectionByEndpoint(const asio::ip::udp::endpoin
   return nullptr;
 }
 
-void NetworkServer::handleHandshake(const asio::ip::udp::endpoint &endpoint, const std::vector<std::uint8_t> &data) {
+void NetworkServer::handleHandshake(const asio::ip::udp::endpoint &endpoint,
+                                    const std::vector<std::uint8_t> &data) {
   PacketReader reader(data);
 
   HandshakeHeader handshake;
 
   if (!handshake.deserialize(reader))
     return;
-  
+
   if (handshake.version != VERSION)
     return;
-  
+
   if (handshake.type != HandshakeType::Hello)
     return;
-  
+
   std::uint32_t connectionId = _nextId++;
   auto connection = std::make_unique<Connection>(connectionId, endpoint);
 
-  auto [it, inserted] = _connections.emplace(connectionId, std::move(connection));
+  auto [it, inserted] =
+      _connections.emplace(connectionId, std::move(connection));
   if (!inserted)
-      return;
+    return;
 
   sendWelcome(*it->second);
+
+  if (_onClientConnected)
+    _onClientConnected(connectionId);
 }
 
-
-void NetworkServer::handleConnectedPacket(const asio::ip::udp::endpoint &endpoint, const std::vector<std::uint8_t> &data) {
+void NetworkServer::handleConnectedPacket(
+    const asio::ip::udp::endpoint &endpoint,
+    const std::vector<std::uint8_t> &data) {
   if (data.size() < PacketHeader::HEADER_SIZE)
     return;
 
@@ -100,7 +100,7 @@ void NetworkServer::handleConnectedPacket(const asio::ip::udp::endpoint &endpoin
   Connection &connection = *it->second;
   if (connection.getEndpoint() != endpoint)
     return;
-  
+
   PacketReceiveRes res = connection.onPacketReceived(header);
 
   if (res == PacketReceiveRes::TooOld || res == PacketReceiveRes::Dup)
@@ -117,7 +117,8 @@ void NetworkServer::handleConnectedPacket(const asio::ip::udp::endpoint &endpoin
   }
 }
 
-void NetworkServer::handleDatagram(const asio::ip::udp::endpoint &endpoint, const std::vector<std::uint8_t> &data) {
+void NetworkServer::handleDatagram(const asio::ip::udp::endpoint &endpoint,
+                                   const std::vector<std::uint8_t> &data) {
   Connection *connection = findConnectionByEndpoint(endpoint);
 
   if (connection == nullptr) {
@@ -144,16 +145,17 @@ void NetworkServer::sendWelcome(Connection &connection) {
   _transport.send(connection.getEndpoint(), writer.getData());
 }
 
-void NetworkServer::doSend(std::uint32_t connectionId, const std::vector<std::uint8_t> &payload) {
+void NetworkServer::doSend(std::uint32_t connectionId,
+                           const std::vector<std::uint8_t> &payload) {
   auto it = _connections.find(connectionId);
   if (it == _connections.end())
     return;
 
   Connection &connection = *it->second;
-  
+
   if (payload.size() > MAX_MESSAGE_SIZE)
     return;
-  
+
   PacketWriter writer;
   PacketHeader header = connection.makeHeader();
   if (!header.serialize(writer))
@@ -161,64 +163,79 @@ void NetworkServer::doSend(std::uint32_t connectionId, const std::vector<std::ui
 
   if (!writer.writeBytes(payload.data(), payload.size()))
     return;
-  
+
   _transport.send(connection.getEndpoint(), writer.getData());
 }
 
-void NetworkServer::send(std::uint32_t connectionId, const std::vector<std::uint8_t> &payload) {
-   if(!_running.load())
-     return;
-  asio::post(_io, [this, connectionId, payload]() {
-        doSend(connectionId, payload);
-      }
-      );
+void NetworkServer::send(std::uint32_t connectionId,
+                         const std::vector<std::uint8_t> &payload) {
+  if (!_running.load())
+    return;
+  asio::post(
+      _io, [this, connectionId, payload]() { doSend(connectionId, payload); });
 }
 
-void NetworkServer::handleMessage(std::uint32_t connectionId, const ParsedMessage &message) {
-    switch (message.type) {
-        case MessageType::Input:
-            std::cout << "INPUT from " << connectionId << std::endl;
-            break;
+void NetworkServer::disconnectClient(std::uint32_t connectionId) {
+  if (_connections.erase(connectionId) == 0)
+    return;
 
-        case MessageType::Ping: {
-            PacketReader reader(message.payload);
+  if (_onClientDisconnected)
+    _onClientDisconnected(connectionId);
+}
 
-            PingMessage ping;
+void NetworkServer::handleMessage(std::uint32_t connectionId,
+                                  const ParsedMessage &message) {
+  switch (message.type) {
+  case MessageType::Ping: {
+    PacketReader reader(message.payload);
 
-            if (!ping.deserialize(reader))
-                return;
+    PingMessage ping;
 
-            if (!reader.isEnd())
-                return;
+    if (!ping.deserialize(reader))
+      return;
 
-            PacketWriter writer;
+    if (!reader.isEnd())
+      return;
 
-            MessageHeader header;
-            header.setType(MessageType::Pong);
-            header.size = PongMessage::SIZE;
+    PacketWriter writer;
 
-            if (!header.serialize(writer))
-                return;
+    MessageHeader header;
+    header.setType(MessageType::Pong);
+    header.size = PongMessage::SIZE;
 
-            PongMessage pong;
-            pong.timestamp = ping.timestamp;
+    if (!header.serialize(writer))
+      return;
 
-            if (!pong.serialize(writer))
-                return;
+    PongMessage pong;
+    pong.timestamp = ping.timestamp;
 
-            doSend(
-                connectionId,
-                writer.getData()
-            );
+    if (!pong.serialize(writer))
+      return;
 
-            break;
-        }
+    doSend(connectionId, writer.getData());
 
-        case MessageType::Disconnect:
-            std::cout << "DISCONNECT from " << connectionId << std::endl;
-            break;
+    break;
+  }
 
-        default:
-            break;
-    }
+  case MessageType::Disconnect:
+    disconnectClient(connectionId);
+    break;
+
+  default:
+    if (_onMessage)
+      _onMessage(connectionId, message.type, message.payload);
+    break;
+  }
+}
+
+void NetworkServer::setOnClientConnected(ConnectionCallback callback) {
+  _onClientConnected = std::move(callback);
+}
+
+void NetworkServer::setOnClientDisconnected(ConnectionCallback callback) {
+  _onClientDisconnected = std::move(callback);
+}
+
+void NetworkServer::setOnMessage(MessageCallback callback) {
+  _onMessage = std::move(callback);
 }
