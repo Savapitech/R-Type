@@ -6,6 +6,7 @@
 #include "systems/RenderSystem.hpp"
 #include "systems/ColliderSystem.hpp"
 #include "systems/DebugCollisionSystem.hpp"
+#include "systems/AnimationSystem.hpp"
 
 namespace rtype::client
 {
@@ -16,11 +17,14 @@ namespace rtype::client
         context.registry.register_component<component::Transform>();
         context.registry.register_component<rtk::ecs::concepts::SpriteData>();
         context.registry.register_component<component::AABBCollider>();
-
+        context.registry.register_component<component::Animation>();
+        
+        context.scheduler.add<rtk::systems::AnimationSystem>(rtk::ecs::Order::Update);
         context.scheduler.add<rtk::systems::InputSystem<RtkWindowAdapter>>(rtk::ecs::Order::Input, std::ref(_adapter), _inputState);
         context.scheduler.add<rtk::systems::RenderSystem<RtkWindowAdapter>>(rtk::ecs::Order::Render, std::ref(_adapter));
         context.scheduler.add<rtk::systems::DebugCollisionSystem>(rtk::ecs::Order::Physics, _collisionBuffer, _window, _inputState);
         context.scheduler.add<rtk::systems::ColliderSystem>(rtk::ecs::Order::Physics, _collisionBuffer, 64.f);
+
 
         _sceneManager.start(context);
     }

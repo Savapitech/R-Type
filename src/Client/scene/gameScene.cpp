@@ -2,6 +2,7 @@
 #include "components/Transform.hpp"
 #include "components/AABBCollider.hpp"
 #include "systems/RenderConcept.hpp"
+#include "systems/AnimationSystem.hpp"
 
 namespace rtype::client
 {
@@ -43,9 +44,27 @@ namespace rtype::client
             collider.mask = (collider.layer & Collider::CollisionLayer::Player) ? Collider::CollisionLayer::Enemy | Collider::CollisionLayer::EnemyProjectile
                 :Collider::CollisionLayer::Player | Collider::CollisionLayer::PlayerProjectile | Collider::CollisionLayer::Enemy ;
 
+            component::Animation animation{};
+            animation.frameDuration = 0.15f;
+            animation.currentFrame = 0;
+
+            animation.totalFrames = 4*5;
+            animation.frameWidth = 32;
+            animation.frameHeight = 17;
+            animation.startX = 0;
+            animation.startY = 0;
+            animation.loop = true;
+            animation.playing = true;
+
+            animation.columns = 5;
+            animation.paddingX = 0;
+            animation.paddingY = 0;
+
             context.registry.get_components<component::Transform>().insert_at(entity, transform);
             context.registry.get_components<rtk::ecs::concepts::SpriteData>().insert_at(entity, sprite);
             context.registry.get_components<component::AABBCollider>().insert_at(entity, collider);
+
+            context.registry.get_components<component::Animation>().insert_at(entity, animation);
 
             _entities.push_back(entity);
         }
