@@ -22,5 +22,5 @@ struct HandshakeHeader {
   static constexpr std::size_t HEADER_SIZE = 6;
 
   bool serialize(PacketWriter &writer) const;
-  bool deserialize(PacketReader&reader);
+  bool deserialize(PacketReader &reader);
 };

@@ -2,8 +2,8 @@
 #include <cstdint>
 
 bool HandshakeHeader::serialize(PacketWriter &writer) const {
- return writer.writeUInt32(magic) && writer.writeUInt8(version) &&
-   writer.writeUInt8(static_cast<uint8_t>(type));
+  return writer.writeUInt32(magic) && writer.writeUInt8(version) &&
+         writer.writeUInt8(static_cast<uint8_t>(type));
 }
 
 bool HandshakeHeader::deserialize(PacketReader &reader) {
@@ -14,9 +14,8 @@ bool HandshakeHeader::deserialize(PacketReader &reader) {
   std::uint8_t readVersion;
   std::uint8_t readType;
 
-  if (!reader.readUInt32(readMagic) ||
-    !reader.readUInt8(readVersion) ||
-    !reader.readUInt8(readType)) {
+  if (!reader.readUInt32(readMagic) || !reader.readUInt8(readVersion) ||
+      !reader.readUInt8(readType)) {
     return false;
   }
 

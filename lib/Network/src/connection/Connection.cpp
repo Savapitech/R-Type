@@ -1,12 +1,10 @@
 #include "Connection.hpp"
 
-Connection::Connection(std::uint32_t id, const asio::ip::udp::endpoint &endpoint) :
-  _id(id), _endpoint(endpoint)
-{}
+Connection::Connection(std::uint32_t id,
+                       const asio::ip::udp::endpoint &endpoint)
+    : _id(id), _endpoint(endpoint) {}
 
-std::uint32_t Connection::getId() const {
-  return _id;
-}
+std::uint32_t Connection::getId() const { return _id; }
 
 const asio::ip::udp::endpoint &Connection::getEndpoint() const {
   return _endpoint;

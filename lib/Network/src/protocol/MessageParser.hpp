@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 
 #include "MessageHeader.hpp"
 #include "PacketReader.hpp"
@@ -12,6 +12,6 @@ struct ParsedMessage {
 };
 
 class MessageParser {
-  public:
-    static bool parse(PacketReader &reader, std::vector<ParsedMessage> &messages);
+public:
+  static bool parse(PacketReader &reader, std::vector<ParsedMessage> &messages);
 };

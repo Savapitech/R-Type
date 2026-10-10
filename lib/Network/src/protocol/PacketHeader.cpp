@@ -1,9 +1,8 @@
 #include "PacketHeader.hpp"
 
-
 bool PacketHeader::serialize(PacketWriter &writer) const {
- return writer.writeUInt32(connectionId) && writer.writeUInt32(sequence) &&
-   writer.writeUInt32(ack) && writer.writeUInt32(ackBits);
+  return writer.writeUInt32(connectionId) && writer.writeUInt32(sequence) &&
+         writer.writeUInt32(ack) && writer.writeUInt32(ackBits);
 }
 
 bool PacketHeader::deserialize(PacketReader &reader) {
@@ -15,8 +14,9 @@ bool PacketHeader::deserialize(PacketReader &reader) {
   std::uint32_t readAck;
   std::uint32_t readAckBits;
 
-  if (!reader.readUInt32(readConnectionId) || !reader.readUInt32(readSequence) ||
-    !reader.readUInt32(readAck) || !reader.readUInt32(readAckBits)) {
+  if (!reader.readUInt32(readConnectionId) ||
+      !reader.readUInt32(readSequence) || !reader.readUInt32(readAck) ||
+      !reader.readUInt32(readAckBits)) {
     return false;
   }
 

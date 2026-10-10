@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 
 #include "PacketReader.hpp"
 #include "PacketWriter.hpp"

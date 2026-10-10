@@ -3,8 +3,8 @@
 #include <graphical/renderWindow.hpp>
 
 #include "GameEngine.hpp"
-#include "inputAction/InputAction.hpp"
 #include "collision/collisionBuffer.hpp"
+#include "inputAction/InputAction.hpp"
 #include "sceneManager/sceneManager.hpp"
 
 #include "rtkWindowAdapter.hpp"
@@ -12,31 +12,25 @@
 #include "scene/gameScene.hpp"
 #include "scene/menuScene.hpp"
 
+namespace rtype::client {
+class Game {
+public:
+  Game();
+  ~Game() = default;
 
-namespace rtype::client
-{
-    class Game
-    {
-        public:
-            Game();
-            ~Game() = default;
+  void onLoad(rtk::EngineContext &context);
+  bool shouldContinue() const;
+  void onUpdate(rtk::EngineContext &context, float dt);
+  void onUnload(rtk::EngineContext &context);
 
-            void onLoad(rtk::EngineContext& context);
-            bool shouldContinue() const;
-            void onUpdate(rtk::EngineContext& context, float dt);
-            void onUnload(rtk::EngineContext& context);
+private:
+  rtk::RenderWindow _window;
+  RtkWindowAdapter _adapter;
+  rtk::InputState _inputState{};
+  rtk::collision::CollisionBuffer _collisionBuffer;
 
-        private:
-            rtk::RenderWindow _window;
-            RtkWindowAdapter _adapter;
-            rtk::InputState _inputState{};
-            rtk::collision::CollisionBuffer _collisionBuffer;
-
-            rtk::SceneManager<
-                SceneType,
-                rtk::RenderWindow,
-                rtk::InputState,
-                MenuScene,
-                GameScene > _sceneManager;
-    };
-}
+  rtk::SceneManager<SceneType, rtk::RenderWindow, rtk::InputState, MenuScene,
+                    GameScene>
+      _sceneManager;
+};
+} // namespace rtype::client
