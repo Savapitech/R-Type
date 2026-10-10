@@ -13,42 +13,40 @@ public:
     RtkWindowAdapter(rtk::RenderWindow& window) : _window(window) {}
 
     bool pollEvents(rtk::ecs::concepts::Event& engineEvent) {
-        rtk::Event rtkEvent;
-        bool isOpen = _window.pollEvents(rtkEvent);
+        bool isOpen = _window.pollEvents(_rtkEventCache);
 
-        for (int i = 0; i < 256; ++i) {
-            engineEvent.keyPressed[i] = rtkEvent.isKeyPressed(static_cast<rtk::Key>(i));
-            engineEvent.keyReleased[i] = rtkEvent.isKeyReleased(static_cast<rtk::Key>(i));
-        }
+        engineEvent.userData = this;
 
-        for (int i = 0; i < static_cast<int>(rtk::MouseButton::ButtonCount); ++i) {
-            engineEvent.mouseButtonPressed[i] = rtkEvent.isMouseButtonPressed(static_cast<rtk::MouseButton>(i));
-            engineEvent.mouseButtonReleased[i] = rtkEvent.isMouseButtonReleased(static_cast<rtk::MouseButton>(i));
-        }
-        engineEvent.mouseX = rtkEvent.getMouseX();
-        engineEvent.mouseY = rtkEvent.getMouseY();
-
-        for (int joy = 0; joy < 4; ++joy) {
-            engineEvent.gamepadConnected[joy] = rtkEvent.isGamepadConnected(joy);
-
-            if (engineEvent.gamepadConnected[joy]) {
-                for (int b = 0; b < static_cast<int>(rtk::GamepadButton::ButtonCount); ++b) {
-                    engineEvent.gamepadButtonPressed[joy][b] = rtkEvent.isGamepadButtonPressed(joy, static_cast<rtk::GamepadButton>(b));
-                    engineEvent.gamepadButtonReleased[joy][b] = rtkEvent.isGamepadButtonReleased(joy, static_cast<rtk::GamepadButton>(b));
-                }
-                for (int a = 0; a < static_cast<int>(rtk::GamepadAxis::AxisCount); ++a) {
-                    engineEvent.gamepadAxis[joy][a] = rtkEvent.getGamepadAxis(joy, static_cast<rtk::GamepadAxis>(a));
-                }
-            } else {
-                for (int b = 0; b < static_cast<int>(rtk::GamepadButton::ButtonCount); ++b) {
-                    engineEvent.gamepadButtonPressed[joy][b] = false;
-                    engineEvent.gamepadButtonReleased[joy][b] = false;
-                }
-                for (int a = 0; a < static_cast<int>(rtk::GamepadAxis::AxisCount); ++a) {
-                    engineEvent.gamepadAxis[joy][a] = 0.0f;
-                }
-            }
-        }
+        engineEvent._isKeyPressed = [](void* ctx, rtk::ecs::concepts::Key k) {
+            return static_cast<RtkWindowAdapter*>(ctx)->_rtkEventCache.isKeyPressed(static_cast<rtk::Key>(k));
+        };
+        engineEvent._isKeyReleased = [](void* ctx, rtk::ecs::concepts::Key k) {
+            return static_cast<RtkWindowAdapter*>(ctx)->_rtkEventCache.isKeyReleased(static_cast<rtk::Key>(k));
+        };
+        engineEvent._isMouseButtonPressed = [](void* ctx, rtk::ecs::concepts::MouseButton b) {
+            return static_cast<RtkWindowAdapter*>(ctx)->_rtkEventCache.isMouseButtonPressed(static_cast<rtk::MouseButton>(b));
+        };
+        engineEvent._isMouseButtonReleased = [](void* ctx, rtk::ecs::concepts::MouseButton b) {
+            return static_cast<RtkWindowAdapter*>(ctx)->_rtkEventCache.isMouseButtonReleased(static_cast<rtk::MouseButton>(b));
+        };
+        engineEvent._getMouseX = [](void* ctx) {
+            return static_cast<RtkWindowAdapter*>(ctx)->_rtkEventCache.getMouseX();
+        };
+        engineEvent._getMouseY = [](void* ctx) {
+            return static_cast<RtkWindowAdapter*>(ctx)->_rtkEventCache.getMouseY();
+        };
+        engineEvent._isGamepadButtonPressed = [](void* ctx, int j, rtk::ecs::concepts::GamepadButton b) {
+            return static_cast<RtkWindowAdapter*>(ctx)->_rtkEventCache.isGamepadButtonPressed(j, static_cast<rtk::GamepadButton>(b));
+        };
+        engineEvent._isGamepadButtonReleased = [](void* ctx, int j, rtk::ecs::concepts::GamepadButton b) {
+            return static_cast<RtkWindowAdapter*>(ctx)->_rtkEventCache.isGamepadButtonReleased(j, static_cast<rtk::GamepadButton>(b));
+        };
+        engineEvent._getGamepadAxis = [](void* ctx, int j, rtk::ecs::concepts::GamepadAxis a) {
+            return static_cast<RtkWindowAdapter*>(ctx)->_rtkEventCache.getGamepadAxis(j, static_cast<rtk::GamepadAxis>(a));
+        };
+        engineEvent._isGamepadConnected = [](void* ctx, int j) {
+            return static_cast<RtkWindowAdapter*>(ctx)->_rtkEventCache.isGamepadConnected(j);
+        };
 
         return isOpen;
     }
@@ -75,6 +73,7 @@ public:
 
 private:
     rtk::RenderWindow& _window;
+    rtk::Event _rtkEventCache;
 
     std::vector<rtk::SpriteData> _rtkSpritesCache;
 };

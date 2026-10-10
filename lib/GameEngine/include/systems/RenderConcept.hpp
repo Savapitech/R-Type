@@ -2,6 +2,7 @@
 #include <concepts>
 #include <span>
 #include <cstdint>
+#include <bitset>
 
 #include "../utils/vec2.hpp"
 
@@ -32,58 +33,56 @@ namespace rtk::ecs::concepts
 
     class Event {
     public:
-        bool keyPressed[static_cast<std::size_t>(Key::KeyCount)]{};
-        bool keyReleased[static_cast<std::size_t>(Key::KeyCount)]{};
-
-        bool mouseButtonPressed[3]{};
-        bool mouseButtonReleased[3]{};
-        int mouseX{0};
-        int mouseY{0};
-
-        bool gamepadButtonPressed[4][static_cast<std::size_t>(GamepadButton::ButtonCount)]{};
-        bool gamepadButtonReleased[4][static_cast<std::size_t>(GamepadButton::ButtonCount)]{};
-        float gamepadAxis[4][static_cast<std::size_t>(GamepadAxis::AxisCount)]{};
-        bool gamepadConnected[4]{};
+        void* userData{nullptr};
+        bool (*_isKeyPressed)(void*, Key){nullptr};
+        bool (*_isKeyReleased)(void*, Key){nullptr};
+        bool (*_isMouseButtonPressed)(void*, MouseButton){nullptr};
+        bool (*_isMouseButtonReleased)(void*, MouseButton){nullptr};
+        int (*_getMouseX)(void*){nullptr};
+        int (*_getMouseY)(void*){nullptr};
+        bool (*_isGamepadButtonPressed)(void*, int, GamepadButton){nullptr};
+        bool (*_isGamepadButtonReleased)(void*, int, GamepadButton){nullptr};
+        float (*_getGamepadAxis)(void*, int, GamepadAxis){nullptr};
+        bool (*_isGamepadConnected)(void*, int){nullptr};
 
         [[nodiscard]] bool isKeyPressed(Key key) const {
-            if (key == Key::Unknown) return false;
-            return keyPressed[static_cast<std::size_t>(key)];
+            return _isKeyPressed ? _isKeyPressed(userData, key) : false;
         }
 
         [[nodiscard]] bool isKeyReleased(Key key) const {
-            if (key == Key::Unknown) return false;
-            return keyReleased[static_cast<std::size_t>(key)];
+            return _isKeyReleased ? _isKeyReleased(userData, key) : false;
         }
 
         [[nodiscard]] bool isMouseButtonPressed(MouseButton button) const {
-            return mouseButtonPressed[static_cast<std::size_t>(button)];
+            return _isMouseButtonPressed ? _isMouseButtonPressed(userData, button) : false;
         }
 
         [[nodiscard]] bool isMouseButtonReleased(MouseButton button) const {
-            return mouseButtonReleased[static_cast<std::size_t>(button)];
+            return _isMouseButtonReleased ? _isMouseButtonReleased(userData, button) : false;
         }
 
-        [[nodiscard]] int getMouseX() const { return mouseX; }
-        [[nodiscard]] int getMouseY() const { return mouseY; }
+        [[nodiscard]] int getMouseX() const {
+            return _getMouseX ? _getMouseX(userData) : 0;
+        }
+
+        [[nodiscard]] int getMouseY() const {
+            return _getMouseY ? _getMouseY(userData) : 0;
+        }
 
         [[nodiscard]] bool isGamepadButtonPressed(int joystickId, GamepadButton button) const {
-            if (joystickId < 0 || joystickId >= 4 || button == GamepadButton::Unknown) return false;
-            return gamepadButtonPressed[joystickId][static_cast<std::size_t>(button)];
+            return _isGamepadButtonPressed ? _isGamepadButtonPressed(userData, joystickId, button) : false;
         }
 
         [[nodiscard]] bool isGamepadButtonReleased(int joystickId, GamepadButton button) const {
-            if (joystickId < 0 || joystickId >= 4 || button == GamepadButton::Unknown) return false;
-            return gamepadButtonReleased[joystickId][static_cast<std::size_t>(button)];
+            return _isGamepadButtonReleased ? _isGamepadButtonReleased(userData, joystickId, button) : false;
         }
 
         [[nodiscard]] float getGamepadAxis(int joystickId, GamepadAxis axis) const {
-            if (joystickId < 0 || joystickId >= 4) return 0.0f;
-            return gamepadAxis[joystickId][static_cast<std::size_t>(axis)];
+            return _getGamepadAxis ? _getGamepadAxis(userData, joystickId, axis) : 0.0f;
         }
 
         [[nodiscard]] bool isGamepadConnected(int joystickId) const {
-            if (joystickId < 0 || joystickId >= 4) return false;
-            return gamepadConnected[joystickId];
+            return _isGamepadConnected ? _isGamepadConnected(userData, joystickId) : false;
         }
     };
 

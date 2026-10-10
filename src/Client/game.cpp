@@ -17,7 +17,7 @@ namespace rtype::client
         context.registry.register_component<rtk::ecs::concepts::SpriteData>();
         context.registry.register_component<component::AABBCollider>();
 
-        context.scheduler.add<rtk::systems::InputSystem>(rtk::ecs::Order::Input, _window, _inputState);
+        context.scheduler.add<rtk::systems::InputSystem<RtkWindowAdapter>>(rtk::ecs::Order::Input, std::ref(_adapter), _inputState);
         context.scheduler.add<rtk::systems::RenderSystem<RtkWindowAdapter>>(rtk::ecs::Order::Render, std::ref(_adapter));
         context.scheduler.add<rtk::systems::DebugCollisionSystem>(rtk::ecs::Order::Physics, _collisionBuffer, _window, _inputState);
         context.scheduler.add<rtk::systems::ColliderSystem>(rtk::ecs::Order::Physics, _collisionBuffer, 64.f);
