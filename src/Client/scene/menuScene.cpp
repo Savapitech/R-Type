@@ -1,7 +1,8 @@
-#include "menuScene.hpp"
-
 #include "components/Transform.hpp"
-#include "sprite/spriteData.hpp"
+#include "systems/RenderConcept.hpp"
+
+
+#include "menuScene.hpp"
 
 namespace rtype::client
 {
@@ -18,7 +19,7 @@ namespace rtype::client
         transform.rotation = 0.f;
         transform.scale = {1.f, 1.f};
 
-        rtk::SpriteData sprite{};
+        rtk::ecs::concepts::SpriteData sprite{};
         sprite.size = {1280.f, 720.f};
         sprite.origin = {0.f, 0.f};
         sprite.textureRect = {0, 0, 1280, 720};
@@ -26,7 +27,7 @@ namespace rtype::client
         sprite.textureId = _textureId;
 
         context.registry.get_components<component::Transform>().insert_at(entity, transform);
-        context.registry.get_components<rtk::SpriteData>().insert_at(entity, sprite);
+        context.registry.get_components<rtk::ecs::concepts::SpriteData>().insert_at(entity, sprite);
 
         _entities.push_back(entity);
     }

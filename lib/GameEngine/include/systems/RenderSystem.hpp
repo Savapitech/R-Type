@@ -5,19 +5,19 @@
 #include <vector>
 
 #include <ISystem.hpp>
-
+#include <Logger/Logger.hpp>
 #include "components/Transform.hpp"
-#include "sprite/spriteData.hpp"
-#include "graphical/renderWindow.hpp"
+
+#include "systems/RenderConcept.hpp"
+
 
 namespace rtk::systems
 {
+    template <rtk::ecs::concepts::IsRenderWindow WindowType>
     class RenderSystem final : public rtk::ecs::ISystem
     {
         public:
-            // Scheduler::add forwards its arguments as rvalues, so the window is
-            // passed wrapped in a std::ref to avoid being moved
-            RenderSystem(std::reference_wrapper<rtk::RenderWindow> window)
+            RenderSystem(std::reference_wrapper<WindowType> window)
                 : _window(window.get())
             {}
 
@@ -32,19 +32,19 @@ namespace rtk::systems
             {
                 _spritesToDraw.clear();
 
-                auto view = reg.view<component::Transform, rtk::SpriteData>();
+                auto view = reg.view<component::Transform, rtk::ecs::concepts::SpriteData>();
 
                 auto& transforms = reg.get_components<component::Transform>();
-                auto& sprites = reg.get_components<rtk::SpriteData>();
+                auto& sprites = reg.get_components<rtk::ecs::concepts::SpriteData>();
 
                 for (auto entity : view) {
                     const auto* transform = transforms.get(entity);
                     const auto* sourceSprite = sprites.get(entity);
 
-                    if (!transform || !sourceSprite)
-                        continue;
+                    if (!transform || !sourceSprite) continue;
 
-                    auto sprite = *sourceSprite;
+                    rtk::ecs::concepts::SpriteData sprite = *sourceSprite;
+
                     sprite.position = transform->position;
                     sprite.rotation = transform->rotation;
                     sprite.scale = transform->scale;
@@ -52,7 +52,7 @@ namespace rtk::systems
                     _spritesToDraw.push_back(std::move(sprite));
                 }
 
-                if (!_window.beginFrame(rtk::RGB {}))
+                if (!_window.beginFrame(rtk::ecs::concepts::ColorRGBA8{0, 0, 0, 255}))
                     return;
 
                 _window.draw(_spritesToDraw);
@@ -64,7 +64,7 @@ namespace rtk::systems
             }
 
         private:
-            rtk::RenderWindow& _window;
-            std::vector<rtk::SpriteData> _spritesToDraw;
+            WindowType& _window;
+            std::vector<rtk::ecs::concepts::SpriteData> _spritesToDraw;
     };
 }

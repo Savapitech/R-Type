@@ -1,10 +1,13 @@
 #pragma once
 
+#include <graphical/renderWindow.hpp>
+
 #include "GameEngine.hpp"
-#include "graphical/renderWindow.hpp"
 #include "inputAction/InputAction.hpp"
 #include "collision/collisionBuffer.hpp"
 #include "sceneManager/sceneManager.hpp"
+
+#include "rtkWindowAdapter.hpp"
 
 #include "scene/gameScene.hpp"
 #include "scene/menuScene.hpp"
@@ -25,6 +28,7 @@ namespace rtype::client
 
         private:
             rtk::RenderWindow _window;
+            RtkWindowAdapter _adapter;
             rtk::InputState _inputState{};
             rtk::collision::CollisionBuffer _collisionBuffer;
 
