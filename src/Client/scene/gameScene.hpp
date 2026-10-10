@@ -26,12 +26,20 @@ namespace rtype::client
 
         private:
             void updatePlayer(rtk::EngineContext& context, const rtk::InputState& inputState, float dt);
+            void updateBullet(rtk::EngineContext& context, const rtk::InputState& inputState, float dt);
+            void launchBullet(rtk::EngineContext& context);
+
+
 
             rtk::RenderWindow& _window;
 
             std::vector<std::size_t> _entities;
             std::optional<std::size_t> _playerEntity;
 
+            std::vector<std::size_t> bullets;
+
             std::uint32_t _textureId = 0;
+
+            std::uint16_t _bulletPressedByTick = 0;
     };
 }

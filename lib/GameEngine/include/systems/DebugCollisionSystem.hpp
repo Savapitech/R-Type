@@ -12,7 +12,6 @@
 
 #include "components/AABBCollider.hpp"
 #include "components/Transform.hpp"
-#include "sprite/spriteData.hpp"
 
 namespace rtk::systems
 {
@@ -116,7 +115,7 @@ namespace rtk::systems
             const auto entity = registry.spawn_entity();
 
             registry.get_components<component::Transform>().insert_at(entity, component::Transform{});
-            registry.get_components<rtk::SpriteData>().insert_at(entity, rtk::SpriteData{});
+            registry.get_components<ecs::concepts::SpriteData>().insert_at(entity, ecs::concepts::SpriteData{});
 
             _debugEntities.push_back(entity);
         }
@@ -130,7 +129,7 @@ namespace rtk::systems
     void updateDebugLine(rtk::ecs::Registry& registry, std::size_t entity, const DebugLine& line)
     {
         auto* transform = registry.get_components<component::Transform>().get(entity);
-        auto* sprite = registry.get_components<rtk::SpriteData>().get(entity);
+        auto* sprite = registry.get_components<ecs::concepts::SpriteData>().get(entity);
 
         if (!transform || !sprite)
             return;
@@ -145,7 +144,7 @@ namespace rtk::systems
             sprite->size = {line.width, line.height};
         sprite->origin = {0.f, 0.f};
         sprite->textureRect = {0, 0, 1, 1};
-        sprite->color = line.colliding ? rtk::ColorRGBA8{255, 0, 0, 255} : rtk::ColorRGBA8{0, 255, 0, 255};
+        sprite->color = line.colliding ? ecs::concepts::ColorRGBA8{255, 0, 0, 255} : ecs::concepts::ColorRGBA8{0, 255, 0, 255};
         sprite->textureId = _debugTextureId;
     }
 

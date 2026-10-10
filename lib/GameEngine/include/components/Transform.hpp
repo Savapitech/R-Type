@@ -2,14 +2,14 @@
 
 #include <cstdint>
 
-#include "utils/vec2.hpp"
+#include "../utils/vec2.hpp"
 
 namespace component
 {
     struct Transform
     {
         float rotation;
-        rtk::vec2 position;
-        rtk::vec2 scale;
+        utils::vec2 position;
+        utils::vec2 scale;
     };
 }
