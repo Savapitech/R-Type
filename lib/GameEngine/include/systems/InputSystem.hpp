@@ -32,21 +32,42 @@ public:
 
     const auto& bindings = _mapping.getBindings();
 
-    for (uint8_t i = 0; i < 32; ++i) {
-        ecs::concepts::Key boundKey = bindings[i];
+    for (uint8_t bit = 0; bit < rtk::Input::InputMapping::MAX_ACTIONS; ++bit) {
 
-        if (boundKey != ecs::concepts::Key::Unknown)
-            if (_event.isKeyPressed(boundKey))
-                _inputState.actionMask |= (1 << i);
+        size_t startIndex = bit * rtk::Input::InputMapping::BINDINGS_PER_ACTION;
+
+        for (size_t slot = 0; slot < rtk::Input::InputMapping::BINDINGS_PER_ACTION; ++slot) {
+            const auto& b = bindings[startIndex + slot];
+
+            if (b.type == rtk::Input::InputBinding::Type::NoneAction)
+              continue;
+
+            bool isPressed = false;
+
+            if (b.type == rtk::Input::InputBinding::Type::Keyboard)
+                isPressed = _event.isKeyPressed(b.key);
+            else if (b.type == rtk::Input::InputBinding::Type::GamepadButton)
+                isPressed = _event.isGamepadButtonPressed(0, b.button);
+            else if (b.type == rtk::Input::InputBinding::Type::Mouse)
+                isPressed = _event.isMouseButtonPressed(b.mouse);
+            else if (b.type == rtk::Input::InputBinding::Type::GamepadAxis)
+            {
+              float pression = _event.getGamepadAxis(0, b.axisData.axis);
+              isPressed = (b.axisData.validationPression < 0) ? (pression <= b.axisData.validationPression) : (pression >= b.axisData.validationPression);
+            }
+
+            if (isPressed) {
+                _inputState.actionMask |= (1 << bit);
+                break;
+            }
+        }
     }
 
-    if (_event.isKeyPressed(ecs::concepts::Key::Escape)) {
+    if (_event.isKeyPressed(ecs::concepts::Key::Escape))
         _inputState.closeRequested = true;
-    }
 
-    if (_event.isKeyPressed(ecs::concepts::Key::F3) && _event.isKeyReleased(ecs::concepts::Key::B)) {
+    if (_event.isKeyPressed(ecs::concepts::Key::F3) && _event.isKeyReleased(ecs::concepts::Key::B))
         _inputState.debug = !_inputState.debug;
-    }
   }
 
 private:
