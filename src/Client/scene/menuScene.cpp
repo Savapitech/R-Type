@@ -3,6 +3,8 @@
 
 #include "menuScene.hpp"
 
+#include "../input/action.hpp"
+
 namespace rtype::client {
 MenuScene::MenuScene(rtk::RenderWindow &window) : _window(window) {}
 
@@ -34,7 +36,7 @@ void MenuScene::onEnter(rtk::EngineContext &context) {
 std::optional<SceneType> MenuScene::onUpdate(rtk::EngineContext &,
                                              const rtk::InputState &inputState,
                                              float) {
-  if (rtk::Input::hasAction(inputState.actions, rtk::InputAction::Confirm))
+  if (rtype::Input::hasAction(inputState.actionMask, rtype::Action::Confirm))
     return SceneType::Game;
 
   return std::nullopt;

@@ -23,16 +23,8 @@ constexpr InputAction &operator|=(InputAction &left, InputAction right) {
   return left;
 }
 
-namespace Input {
-[[nodiscard]]
-constexpr bool hasAction(InputAction actions, InputAction action) {
-  return (static_cast<std::uint8_t>(actions) &
-          static_cast<std::uint8_t>(action)) != 0;
-}
-} // namespace Input
-
 struct InputState {
-  InputAction actions = InputAction::NoneAction;
+  uint32_t actionMask{0};
   bool closeRequested = false;
   bool debug = false;
 };

@@ -19,11 +19,17 @@ void Game::onLoad(rtk::EngineContext &context) {
   context.registry.register_component<component::AABBCollider>();
   context.registry.register_component<component::Animation>();
 
+  _inputMapping.bindKey(0, rtk::ecs::concepts::Key::Up);
+  _inputMapping.bindKey(1, rtk::ecs::concepts::Key::Down);
+  _inputMapping.bindKey(2, rtk::ecs::concepts::Key::Left);
+  _inputMapping.bindKey(3, rtk::ecs::concepts::Key::Right);
+  _inputMapping.bindKey(4, rtk::ecs::concepts::Key::Space);
+  _inputMapping.bindKey(5, rtk::ecs::concepts::Key::Enter);
+
   context.scheduler.add<rtk::systems::AnimationSystem>(rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::InputSystem<RtkWindowAdapter>>(
-      rtk::ecs::Order::Input, std::ref(_adapter), _inputState);
-  context.scheduler.add<rtk::systems::RenderSystem<RtkWindowAdapter>>(
-      rtk::ecs::Order::Render, std::ref(_adapter));
+      rtk::ecs::Order::Input, std::ref(_adapter), _inputState, _inputMapping);
+  context.scheduler.add<rtk::systems::RenderSystem<RtkWindowAdapter>>(rtk::ecs::Order::Render, std::ref(_adapter));
   context.scheduler.add<rtk::systems::DebugCollisionSystem>(
       rtk::ecs::Order::Physics, _collisionBuffer, _window, _inputState);
   context.scheduler.add<rtk::systems::ColliderSystem>(rtk::ecs::Order::Physics,

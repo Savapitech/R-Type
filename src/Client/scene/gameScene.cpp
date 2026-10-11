@@ -4,6 +4,8 @@
 #include "systems/AnimationSystem.hpp"
 #include "systems/RenderConcept.hpp"
 
+#include "../input/action.hpp"
+
 namespace rtype::client {
 GameScene::GameScene(rtk::RenderWindow &window) : _window(window) {}
 
@@ -108,23 +110,23 @@ void GameScene::updatePlayer(rtk::EngineContext &context,
 
   constexpr float speed = 300.f;
 
-  if (rtk::Input::hasAction(inputState.actions, rtk::InputAction::Up))
+  if (rtype::Input::hasAction(inputState.actionMask, rtype::Action::Up))
     transform->position.y -= speed * dt;
 
-  if (rtk::Input::hasAction(inputState.actions, rtk::InputAction::Down))
+  if (rtype::Input::hasAction(inputState.actionMask, rtype::Action::Down))
     transform->position.y += speed * dt;
 
-  if (rtk::Input::hasAction(inputState.actions, rtk::InputAction::Left))
+  if (rtype::Input::hasAction(inputState.actionMask, rtype::Action::Left))
     transform->position.x -= speed * dt;
 
-  if (rtk::Input::hasAction(inputState.actions, rtk::InputAction::Right))
+  if (rtype::Input::hasAction(inputState.actionMask, rtype::Action::Right))
     transform->position.x += speed * dt;
 }
 
 void GameScene::updateBullet(rtk::EngineContext &context,
                              const rtk::InputState &inputState, float dt) {
 
-  if (rtk::Input::hasAction(inputState.actions, rtk::InputAction::Shoot))
+  if (rtype::Input::hasAction(inputState.actionMask, rtype::Action::Shoot))
     _bulletPressedByTick++;
   else if (_bulletPressedByTick > 0) {
     launchBullet(context);
