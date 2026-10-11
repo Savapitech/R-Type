@@ -54,7 +54,7 @@ void Game::onLoad(rtk::EngineContext &context) {
   context.scheduler.add<rtk::systems::DebugCollisionSystem>(
       rtk::ecs::Order::Physics, _collisionBuffer, _window, _inputState);
   context.scheduler.add<rtk::systems::ColliderSystem>(rtk::ecs::Order::Physics,
-                                                      _collisionBuffer, 64.f);
+                                                      _collisionBuffer, 64.f, context.eventBus);
 
   _sceneManager.start(context);
 }
