@@ -7,6 +7,7 @@
 
 #include "EngineContext.hpp"
 #include "Game.hpp"
+#include "events/busEvents.hpp"
 
 namespace rtk {
 class GameEngine {
@@ -20,12 +21,15 @@ public:
 
   ecs::Scheduler &scheduler() { return _scheduler; }
 
+  busEvent &eventBus() { return _eventBus; }
+
   void stop() { _running = false; }
 
   template <Game TGame> int run(TGame &game) {
     EngineContext context{
         .registry = _registry,
         .scheduler = _scheduler,
+        .eventBus = _eventBus,
     };
 
     game.onLoad(context);
@@ -90,6 +94,7 @@ private:
 
   ecs::Registry _registry;
   ecs::Scheduler _scheduler;
+  busEvent _eventBus;
 
   Clock::time_point _previousTime;
 

@@ -10,5 +10,6 @@ namespace rtk {
 struct EngineContext {
   ecs::Registry &registry;
   ecs::Scheduler &scheduler;
+  busEvent& eventBus;
 };
 } // namespace rtk
