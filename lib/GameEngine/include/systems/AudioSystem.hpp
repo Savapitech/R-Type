@@ -22,18 +22,6 @@ public:
 
     void update(rtk::ecs::Registry &reg, float) override {
         _audioManager.update();
-
-        auto view = reg.view<component::SoundRequest>();
-        auto& soundRequests = reg.get_components<component::SoundRequest>();
-
-        for (auto entity : view) {
-            auto *request = soundRequests.get(entity);
-
-            if (request) {
-                _audioManager.playSound(request->soundId);
-                soundRequests.erase(entity);
-            }
-        }
     }
 
     void onStop(rtk::ecs::Registry &) override {}

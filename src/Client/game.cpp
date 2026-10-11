@@ -10,9 +10,13 @@
 #include "systems/MovementSystem.hpp"
 
 #include "components/Controllable.hpp"
+#include "components/EnemyEvent.hpp"
+#include "components/Enemy.hpp"
 #include "systems/PlayerSystem.hpp"
 #include "systems/BulletSystem.hpp"
 #include "systems/AudioSystem.hpp"
+#include "systems/EnemyGarbageCollectorSystem.hpp"
+#include "systems/EnemySpawnerSystem.hpp"
 
 namespace rtype::client {
 Game::Game()
@@ -23,9 +27,17 @@ void Game::onLoad(rtk::EngineContext &context)
 {
   uint32_t _shootSoundId = _adapterAudioManager.addSound("assets/shoot.wav");
   uint32_t _bulletTexture = _window.loadTexture("assets/bullet.png").getHandle();
+  uint32_t _enemyTexture = _window.loadTexture("assets/enemy.png").getHandle();
+
 
   context.eventBus.subscribe<rtype::events::PlayerShotEvent>(
         [this, _shootSoundId](const rtype::events::PlayerShotEvent&) {
+            _adapterAudioManager.playSound(_shootSoundId);
+        }
+    );
+
+  context.eventBus.subscribe<rtype::events::EnemyEscapedEvent>(
+        [this, _shootSoundId](const rtype::events::EnemyEscapedEvent&) {
             _adapterAudioManager.playSound(_shootSoundId);
         }
     );
@@ -37,8 +49,7 @@ void Game::onLoad(rtk::EngineContext &context)
   context.registry.register_component<component::Controllable>();
   context.registry.register_component<component::Velocity>();
   context.registry.register_component<component::Bullet>();
-
-
+  context.registry.register_component<component::Enemy>();
 
   _inputMapping.bindKey(0, rtk::ecs::concepts::Key::Up);
   _inputMapping.bindGamepad(0, rtk::ecs::concepts::GamepadButton::DpadUp);
@@ -62,6 +73,8 @@ void Game::onLoad(rtk::EngineContext &context)
   context.scheduler.add<rtk::systems::AnimationSystem>(rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::PlayerSystem>(rtk::ecs::Order::Update, std::ref(_inputState), std::ref(context.eventBus), _bulletTexture);
   context.scheduler.add<rtk::systems::BulletSystem>(rtk::ecs::Order::Update);
+  context.scheduler.add<rtk::systems::EnemySpawnerSystem >(rtk::ecs::Order::Update, _enemyTexture);
+  context.scheduler.add<rtk::systems::EnemyGCSystem>(rtk::ecs::Order::SndUpdate, context.eventBus);
   context.scheduler.add<rtk::systems::InputSystem<RtkWindowAdapter>>(
       rtk::ecs::Order::Input, std::ref(_adapter), _inputState, _inputMapping);
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);

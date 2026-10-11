@@ -34,8 +34,6 @@ public:
   void onExit(rtk::EngineContext &context);
 
 private:
-  void launchBullet(rtk::EngineContext &context);
-
   void createEnemy(rtk::EngineContext &context);
 
   void createPlayer(rtk::EngineContext &context) {
