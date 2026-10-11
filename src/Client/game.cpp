@@ -12,6 +12,7 @@
 #include "components/Controllable.hpp"
 #include "systems/PlayerSystem.hpp"
 #include "systems/BulletSystem.hpp"
+#include "systems/AudioSystem.hpp"
 
 namespace rtype::client {
 Game::Game()
@@ -20,7 +21,14 @@ Game::Game()
 
 void Game::onLoad(rtk::EngineContext &context)
 {
+  uint32_t _shootSoundId = _adapterAudioManager.addSound("assets/shoot.wav");
   uint32_t _bulletTexture = _window.loadTexture("assets/bullet.png").getHandle();
+
+  context.eventBus.subscribe<rtype::events::PlayerShotEvent>(
+        [this, _shootSoundId](const rtype::events::PlayerShotEvent&) {
+            _adapterAudioManager.playSound(_shootSoundId);
+        }
+    );
 
   context.registry.register_component<component::Transform>();
   context.registry.register_component<rtk::ecs::concepts::SpriteData>();
@@ -52,7 +60,7 @@ void Game::onLoad(rtk::EngineContext &context)
   _inputMapping.bindGamepad(6, rtk::ecs::concepts::GamepadButton::Select);
 
   context.scheduler.add<rtk::systems::AnimationSystem>(rtk::ecs::Order::Update);
-  context.scheduler.add<rtk::systems::PlayerSystem>(rtk::ecs::Order::Update, std::ref(_inputState), _bulletTexture);
+  context.scheduler.add<rtk::systems::PlayerSystem>(rtk::ecs::Order::Update, std::ref(_inputState), std::ref(context.eventBus), _bulletTexture);
   context.scheduler.add<rtk::systems::BulletSystem>(rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::InputSystem<RtkWindowAdapter>>(
       rtk::ecs::Order::Input, std::ref(_adapter), _inputState, _inputMapping);
@@ -62,6 +70,8 @@ void Game::onLoad(rtk::EngineContext &context)
       rtk::ecs::Order::Physics, _collisionBuffer, _window, _inputState);
   context.scheduler.add<rtk::systems::ColliderSystem>(rtk::ecs::Order::Physics,
                                                       _collisionBuffer, 64.f, context.eventBus);
+
+  context.scheduler.add<rtk::systems::AudioSystem<RtkAudioAdapter>>(rtk::ecs::Order::Update, std::ref(_adapterAudioManager));
 
   _sceneManager.start(context);
 }

@@ -15,12 +15,13 @@ namespace rtk::systems {
 class PlayerSystem final : public rtk::ecs::ISystem {
 private:
   rtk::InputState &_inputState;
+  busEvent &_eventBus;
   uint32_t _bulletTextureId;
   static constexpr float SQUARE_2_DIVIDE_BY_2 = 0.7071f;
 
 public:
-  PlayerSystem(rtk::InputState &inputState, uint32_t bulletTextureId)
-      : _inputState(inputState), _bulletTextureId(bulletTextureId) {}
+  PlayerSystem(rtk::InputState &inputState, busEvent &eventBus, uint32_t bulletTextureId)
+      : _inputState(inputState), _eventBus(eventBus), _bulletTextureId(bulletTextureId) {}
 
   ~PlayerSystem() override = default;
 
@@ -79,6 +80,7 @@ public:
           spawnTransform.scale = {1.f, 1.f};
 
           bulletsToSpawn.push_back(spawnTransform);
+          _eventBus.publish(rtype::events::PlayerShotEvent{});
       }
     }
 
