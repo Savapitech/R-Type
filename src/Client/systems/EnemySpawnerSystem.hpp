@@ -24,7 +24,7 @@ public:
         : _enemyTextureId(enemyTextureId),
           _rng(std::random_device{}()),
           _distX(1920.0f, 2920.0f),
-          _distY(200.0f, 900.0f) {}
+          _distY(200.0f, 400.0f) {}
 
     void onStart(rtk::ecs::Registry &) override {
         LOG_INFO("Load Enemy Spawner System");
@@ -46,7 +46,7 @@ public:
             component::Velocity velocity{-200.0f, 0.0f};
 
             rtk::ecs::concepts::SpriteData sprite{};
-            sprite.size = {64.f, 64.f}; 
+            sprite.size = {64.f, 64.f};
             sprite.origin = {0.f, 0.f};
             sprite.textureRect = {0, 0, 64, 64};
             sprite.color = {255, 255, 255, 255};
