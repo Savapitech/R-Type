@@ -8,10 +8,12 @@
 #include "systems/RenderConcept.hpp"
 #include "systems/RenderSystem.hpp"
 #include "systems/MovementSystem.hpp"
+#include "systems/DeadSystem.hpp"
 
 #include "components/Controllable.hpp"
 #include "components/EnemyEvent.hpp"
 #include "components/Enemy.hpp"
+#include "components/Dead.hpp"
 #include "systems/PlayerSystem.hpp"
 #include "systems/BulletSystem.hpp"
 #include "systems/AudioSystem.hpp"
@@ -42,6 +44,27 @@ void Game::onLoad(rtk::EngineContext &context)
         }
     );
 
+  context.eventBus.subscribe<rtk::collision::Collision>(
+    [&context](const rtk::collision::Collision& event) {
+        auto &colliders = context.registry.get_components<component::AABBCollider>();
+        auto *colA = colliders.get(event.firstEntity);
+        auto *colB = colliders.get(event.secondEntity);
+
+        if (!colA || !colB) return;
+
+        std::uint32_t collisionPair = colA->layer | colB->layer;
+
+        std::uint32_t bulletVsEnemy = Collider::CollisionLayer::PlayerProjectile | Collider::CollisionLayer::Enemy;
+
+        if (collisionPair == bulletVsEnemy) {
+            auto &deads = context.registry.get_components<component::Dead>();
+
+            deads.insert_at(event.firstEntity, {});
+            deads.insert_at(event.secondEntity, {});
+        }
+    }
+);
+
   context.registry.register_component<component::Transform>();
   context.registry.register_component<rtk::ecs::concepts::SpriteData>();
   context.registry.register_component<component::AABBCollider>();
@@ -50,6 +73,8 @@ void Game::onLoad(rtk::EngineContext &context)
   context.registry.register_component<component::Velocity>();
   context.registry.register_component<component::Bullet>();
   context.registry.register_component<component::Enemy>();
+  context.registry.register_component<component::Dead>();
+
 
   _inputMapping.bindKey(0, rtk::ecs::concepts::Key::Up);
   _inputMapping.bindGamepad(0, rtk::ecs::concepts::GamepadButton::DpadUp);
@@ -70,7 +95,8 @@ void Game::onLoad(rtk::EngineContext &context)
   _inputMapping.bindKey(6, rtk::ecs::concepts::Key::F3);
   _inputMapping.bindGamepad(6, rtk::ecs::concepts::GamepadButton::Select);
 
-  context.scheduler.add<rtk::systems::AnimationSystem>(rtk::ecs::Order::Update);
+  context.scheduler.add<rtk::systems::AnimationSystem>(rtk::ecs::Order::Render);
+  context.scheduler.add<rtk::systems::DeathSystem>(rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::PlayerSystem>(rtk::ecs::Order::Update, std::ref(_inputState), std::ref(context.eventBus), _bulletTexture);
   context.scheduler.add<rtk::systems::BulletSystem>(rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::EnemySpawnerSystem >(rtk::ecs::Order::Update, _enemyTexture);

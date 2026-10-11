@@ -144,6 +144,7 @@ public:
             continue;
 
           _collisionBuffer.push({firstEntity, secondEntity});
+          _eventBus.publish(rtk::collision::Collision{firstEntity, secondEntity});
         }
       }
     }
