@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <chrono>
 #include <string>
+#include <thread>
 
 #include "EngineContext.hpp"
 #include "Game.hpp"
@@ -24,6 +25,10 @@ public:
   busEvent &eventBus() { return _eventBus; }
 
   void stop() { _running = false; }
+
+  void setFPS(uint32_t fps) {
+      _targetFps = fps;
+  }
 
   template <Game TGame> int run(TGame &game) {
     EngineContext context{
@@ -57,6 +62,12 @@ public:
         }
 
         _scheduler.run(_registry, dt);
+
+        if (_targetFps > 0) {
+            const auto targetDuration = std::chrono::nanoseconds(1000000000 / _targetFps);
+            const auto nextFrameTime = _previousTime + targetDuration;
+            std::this_thread::sleep_until(nextFrameTime);
+        }
       }
     } catch (...) {
       _scheduler.stop(_registry);
@@ -99,6 +110,8 @@ private:
   Clock::time_point _previousTime;
 
   bool _running = false;
+
+  uint32_t _targetFps = 0;
 
   float _fpsTimer = 0.0f;
   int _fpsFrames = 0;
