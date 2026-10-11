@@ -1,8 +1,12 @@
 #include "gameScene.hpp"
 #include "components/AABBCollider.hpp"
 #include "components/Transform.hpp"
+#include "components/Controllable.hpp"
+#include "components/Velocity.hpp"
+
 #include "systems/AnimationSystem.hpp"
 #include "systems/RenderConcept.hpp"
+
 
 #include "../input/action.hpp"
 
@@ -40,7 +44,7 @@ void GameScene::onEnter(rtk::EngineContext &context) {
     collider.offsetY = 0.f;
     collider.width = 64.f;
     collider.height = 32.f;
-    collider.layer = (i == 0) ? Collider::CollisionLayer::Player
+    collider.layer = (i == 0 || i == 1) ? Collider::CollisionLayer::Player
                               : Collider::CollisionLayer::Enemy;
     collider.mask = (collider.layer & Collider::CollisionLayer::Player)
                         ? Collider::CollisionLayer::Enemy |
@@ -75,6 +79,11 @@ void GameScene::onEnter(rtk::EngineContext &context) {
     context.registry.get_components<component::Animation>().insert_at(
         entity, animation);
 
+    context.registry.get_components<component::Controllable>().insert_at(
+      entity, {});
+    context.registry.get_components<component::Velocity>().insert_at(
+      entity, {});
+
     _entities.push_back(entity);
   }
 }
@@ -82,7 +91,6 @@ void GameScene::onEnter(rtk::EngineContext &context) {
 std::optional<SceneType> GameScene::onUpdate(rtk::EngineContext &context,
                                              const rtk::InputState &inputState,
                                              float dt) {
-  updatePlayer(context, inputState, dt);
   updateBullet(context, inputState, dt);
   return std::nullopt;
 }
@@ -95,32 +103,6 @@ void GameScene::onExit(rtk::EngineContext &context) {
 
   _entities.clear();
   _playerEntity.reset();
-}
-
-void GameScene::updatePlayer(rtk::EngineContext &context,
-                             const rtk::InputState &inputState, float dt) {
-  if (!_playerEntity.has_value())
-    return;
-
-  auto &transforms = context.registry.get_components<component::Transform>();
-  auto *transform = transforms.get(*_playerEntity);
-
-  if (!transform)
-    return;
-
-  constexpr float speed = 300.f;
-
-  if (rtype::Input::hasAction(inputState.actionMask, rtype::Action::Up))
-    transform->position.y -= speed * dt;
-
-  if (rtype::Input::hasAction(inputState.actionMask, rtype::Action::Down))
-    transform->position.y += speed * dt;
-
-  if (rtype::Input::hasAction(inputState.actionMask, rtype::Action::Left))
-    transform->position.x -= speed * dt;
-
-  if (rtype::Input::hasAction(inputState.actionMask, rtype::Action::Right))
-    transform->position.x += speed * dt;
 }
 
 void GameScene::updateBullet(rtk::EngineContext &context,

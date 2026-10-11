@@ -7,6 +7,10 @@
 #include "systems/InputSystem.hpp"
 #include "systems/RenderConcept.hpp"
 #include "systems/RenderSystem.hpp"
+#include "systems/MovementSystem.hpp"
+
+#include "components/Controllable.hpp"
+#include "systems/PlayerSystem.hpp"
 
 namespace rtype::client {
 Game::Game()
@@ -18,6 +22,9 @@ void Game::onLoad(rtk::EngineContext &context) {
   context.registry.register_component<rtk::ecs::concepts::SpriteData>();
   context.registry.register_component<component::AABBCollider>();
   context.registry.register_component<component::Animation>();
+  context.registry.register_component<component::Controllable>();
+  context.registry.register_component<component::Velocity>();
+
 
   _inputMapping.bindKey(0, rtk::ecs::concepts::Key::Up);
   _inputMapping.bindGamepad(0, rtk::ecs::concepts::GamepadButton::DpadUp);
@@ -39,8 +46,10 @@ void Game::onLoad(rtk::EngineContext &context) {
   _inputMapping.bindGamepad(6, rtk::ecs::concepts::GamepadButton::Select);
 
   context.scheduler.add<rtk::systems::AnimationSystem>(rtk::ecs::Order::Update);
+  context.scheduler.add<rtk::systems::PlayerSystem>(rtk::ecs::Order::Update, std::ref(_inputState));
   context.scheduler.add<rtk::systems::InputSystem<RtkWindowAdapter>>(
       rtk::ecs::Order::Input, std::ref(_adapter), _inputState, _inputMapping);
+  context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
   context.scheduler.add<rtk::systems::RenderSystem<RtkWindowAdapter>>(rtk::ecs::Order::Render, std::ref(_adapter));
   context.scheduler.add<rtk::systems::DebugCollisionSystem>(
       rtk::ecs::Order::Physics, _collisionBuffer, _window, _inputState);
