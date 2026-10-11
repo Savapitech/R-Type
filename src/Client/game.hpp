@@ -39,8 +39,5 @@ private:
   rtk::SceneManager<SceneType, rtk::RenderWindow, rtk::InputState, MenuScene,
                     GameScene>
       _sceneManager;
-
-  uint32_t _bulletTexture;
-  uint32_t _shootSoundId;
 };
 } // namespace rtype::client
