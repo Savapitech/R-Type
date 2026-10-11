@@ -36,6 +36,55 @@ public:
 private:
   void createEnemy(rtk::EngineContext &context);
 
+  void createMediumGround(rtk::EngineContext &context) {
+    const auto groundEntity = context.registry.spawn_entity();
+    _backgroundTextureId = _window.loadTexture("stage1.png").getHandle();
+
+    component::Transform groundTransform{};
+    groundTransform.position = {0.0f, 656.0f};
+    groundTransform.rotation = 0.0f;
+    groundTransform.scale = {2.0f, 2.0f};
+
+    rtk::ecs::concepts::SpriteData groundSprite{};
+    groundSprite.size = {64.f, 32.f};
+    groundSprite.origin = {0.0f, 0.0f};
+    groundSprite.textureRect = {0, 208, 64, 32};
+    groundSprite.color = {255, 255, 255, 255};
+    groundSprite.textureId = _backgroundTextureId;
+    groundSprite.layer = -1;
+
+    component::AABBCollider groundCollider{};
+    groundCollider.offsetX = 0.0f;
+    groundCollider.offsetY = 0.0f;
+    groundCollider.width = 64.0f;
+    groundCollider.height = 32.0f;
+
+    groundCollider.layer = Collider::CollisionLayer::Environment;
+    groundCollider.mask = Collider::CollisionLayer::Player |
+                          Collider::CollisionLayer::Enemy |
+                          Collider::CollisionLayer::PlayerProjectile |
+                          Collider::CollisionLayer::EnemyProjectile;
+
+    component::Velocity groundVelocity{};
+    groundVelocity.x = -0.f;
+    groundVelocity.y = 0.f;
+
+    context.registry.get_components<component::Transform>().insert_at(
+        groundEntity, groundTransform);
+    context.registry.get_components<rtk::ecs::concepts::SpriteData>().insert_at(
+        groundEntity, groundSprite);
+    context.registry.get_components<component::AABBCollider>().insert_at(
+        groundEntity, groundCollider);
+    context.registry.get_components<component::Velocity>().insert_at(
+        groundEntity, groundVelocity);
+
+    _entities.push_back(groundEntity);
+  }
+
+  void createBackground(rtk::EngineContext &context) {
+    createMediumGround((context));
+  }
+
   void createPlayer(rtk::EngineContext &context) {
     const auto entity = context.registry.spawn_entity();
     _textureId = _window.loadTexture("sprite.png").getHandle();
@@ -59,7 +108,8 @@ private:
     collider.height = 32.f;
     collider.layer = Collider::CollisionLayer::Player;
     collider.mask = Collider::CollisionLayer::Enemy |
-                    Collider::CollisionLayer::EnemyProjectile;
+                    Collider::CollisionLayer::EnemyProjectile |
+                    Collider::CollisionLayer::Environment;
 
     component::Animation animation{};
     animation.frameDuration = 0.15f;

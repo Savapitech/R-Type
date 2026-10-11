@@ -9,13 +9,13 @@
 #include "systems/RenderConcept.hpp"
 
 #include "../input/action.hpp"
-#include <X11/X.h>
 
 namespace rtype::client {
 GameScene::GameScene(rtk::RenderWindow &window) : _window(window) {}
 
 void GameScene::onEnter(rtk::EngineContext &context) {
   createPlayer(context);
+  createBackground(context);
 }
 
 std::optional<SceneType> GameScene::onUpdate(rtk::EngineContext &context,
