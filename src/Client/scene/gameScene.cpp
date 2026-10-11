@@ -1,14 +1,15 @@
 #include "gameScene.hpp"
+#include "EngineContext.hpp"
 #include "components/AABBCollider.hpp"
-#include "components/Transform.hpp"
 #include "components/Controllable.hpp"
+#include "components/Transform.hpp"
 #include "components/Velocity.hpp"
 
 #include "systems/AnimationSystem.hpp"
 #include "systems/RenderConcept.hpp"
 
-
 #include "../input/action.hpp"
+#include <X11/X.h>
 
 namespace rtype::client {
 GameScene::GameScene(rtk::RenderWindow &window) : _window(window) {}
@@ -18,74 +19,7 @@ void GameScene::onEnter(rtk::EngineContext &context) {
 
   for (int i = 0; i < 200; i++)
     bullets.push_back(0);
-
-  _textureId = _window.loadTexture("sprite.png").getHandle();
-
-  for (int i = 0; i < 3; ++i) {
-    const auto entity = context.registry.spawn_entity();
-
-    if (i == 0)
-      _playerEntity = entity;
-
-    component::Transform transform{};
-    transform.position = {150.f + static_cast<float>(i) * 250.f, 250.f};
-    transform.rotation = 0.f;
-    transform.scale = {1.f, 1.f};
-
-    rtk::ecs::concepts::SpriteData sprite{};
-    sprite.size = {64.f, 32.f};
-    sprite.origin = {0.f, 0.f};
-    sprite.textureRect = {0, 0, 32, 16};
-    sprite.color = {255, 255, 255, 255};
-    sprite.textureId = _textureId;
-
-    component::AABBCollider collider{};
-    collider.offsetX = 0.f;
-    collider.offsetY = 0.f;
-    collider.width = 64.f;
-    collider.height = 32.f;
-    collider.layer = (i == 0 || i == 1) ? Collider::CollisionLayer::Player
-                              : Collider::CollisionLayer::Enemy;
-    collider.mask = (collider.layer & Collider::CollisionLayer::Player)
-                        ? Collider::CollisionLayer::Enemy |
-                              Collider::CollisionLayer::EnemyProjectile
-                        : Collider::CollisionLayer::Player |
-                              Collider::CollisionLayer::PlayerProjectile |
-                              Collider::CollisionLayer::Enemy;
-
-    component::Animation animation{};
-    animation.frameDuration = 0.15f;
-    animation.currentFrame = 0;
-
-    animation.totalFrames = 4 * 5;
-    animation.frameWidth = 32;
-    animation.frameHeight = 17;
-    animation.startX = 0;
-    animation.startY = 0;
-    animation.loop = true;
-    animation.playing = true;
-
-    animation.columns = 5;
-    animation.paddingX = 0;
-    animation.paddingY = 0;
-
-    context.registry.get_components<component::Transform>().insert_at(
-        entity, transform);
-    context.registry.get_components<rtk::ecs::concepts::SpriteData>().insert_at(
-        entity, sprite);
-    context.registry.get_components<component::AABBCollider>().insert_at(
-        entity, collider);
-
-    context.registry.get_components<component::Animation>().insert_at(
-        entity, animation);
-
-    context.registry.get_components<component::Controllable>().insert_at(
-      entity, {});
-    context.registry.get_components<component::Velocity>().insert_at(
-      entity, {});
-
-    _entities.push_back(entity);
-  }
+  createPlayer(context);
 }
 
 std::optional<SceneType> GameScene::onUpdate(rtk::EngineContext &context,
