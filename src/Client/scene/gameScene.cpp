@@ -91,7 +91,7 @@ void GameScene::onEnter(rtk::EngineContext &context) {
 std::optional<SceneType> GameScene::onUpdate(rtk::EngineContext &context,
                                              const rtk::InputState &inputState,
                                              float dt) {
-  updateBullet(context, inputState, dt);
+
   return std::nullopt;
 }
 
@@ -103,35 +103,6 @@ void GameScene::onExit(rtk::EngineContext &context) {
 
   _entities.clear();
   _playerEntity.reset();
-}
-
-void GameScene::updateBullet(rtk::EngineContext &context,
-                             const rtk::InputState &inputState, float dt) {
-
-  if (rtype::Input::hasAction(inputState.actionMask, rtype::Action::Shoot))
-    _bulletPressedByTick++;
-  else if (_bulletPressedByTick > 0) {
-    launchBullet(context);
-    _bulletPressedByTick = 0;
-  }
-
-  rtk::ecs::SparseArray<component::Transform> &TransformSparseArray =
-      context.registry.get_components<component::Transform>();
-
-  for (auto &bullet : bullets) {
-    if (bullet == 0) {
-      continue;
-    }
-
-    component::Transform *transformBullet = TransformSparseArray.get(bullet);
-
-    if (transformBullet->position.x > 1920) {
-      bullet = 0;
-      continue;
-    }
-
-    transformBullet->position.x++;
-  }
 }
 
 void GameScene::launchBullet(rtk::EngineContext &context) {

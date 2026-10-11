@@ -25,10 +25,6 @@ public:
   void onExit(rtk::EngineContext &context);
 
 private:
-  void updatePlayer(rtk::EngineContext &context,
-                    const rtk::InputState &inputState, float dt);
-  void updateBullet(rtk::EngineContext &context,
-                    const rtk::InputState &inputState, float dt);
   void launchBullet(rtk::EngineContext &context);
 
   rtk::RenderWindow &_window;

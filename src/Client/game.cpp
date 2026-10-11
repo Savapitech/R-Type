@@ -11,19 +11,25 @@
 
 #include "components/Controllable.hpp"
 #include "systems/PlayerSystem.hpp"
+#include "systems/BulletSystem.hpp"
 
 namespace rtype::client {
 Game::Game()
     : _window({1280.f, 720.f}, "R-Type"), _adapter(_window),
       _sceneManager(_window, std::in_place_type<MenuScene>) {}
 
-void Game::onLoad(rtk::EngineContext &context) {
+void Game::onLoad(rtk::EngineContext &context)
+{
+  uint32_t _bulletTexture = _window.loadTexture("assets/bullet.png").getHandle();
+
   context.registry.register_component<component::Transform>();
   context.registry.register_component<rtk::ecs::concepts::SpriteData>();
   context.registry.register_component<component::AABBCollider>();
   context.registry.register_component<component::Animation>();
   context.registry.register_component<component::Controllable>();
   context.registry.register_component<component::Velocity>();
+  context.registry.register_component<component::Bullet>();
+
 
 
   _inputMapping.bindKey(0, rtk::ecs::concepts::Key::Up);
@@ -46,7 +52,8 @@ void Game::onLoad(rtk::EngineContext &context) {
   _inputMapping.bindGamepad(6, rtk::ecs::concepts::GamepadButton::Select);
 
   context.scheduler.add<rtk::systems::AnimationSystem>(rtk::ecs::Order::Update);
-  context.scheduler.add<rtk::systems::PlayerSystem>(rtk::ecs::Order::Update, std::ref(_inputState));
+  context.scheduler.add<rtk::systems::PlayerSystem>(rtk::ecs::Order::Update, std::ref(_inputState), _bulletTexture);
+  context.scheduler.add<rtk::systems::BulletSystem>(rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::InputSystem<RtkWindowAdapter>>(
       rtk::ecs::Order::Input, std::ref(_adapter), _inputState, _inputMapping);
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
