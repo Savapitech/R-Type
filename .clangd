@@ -1,0 +1,10 @@
+CompileFlags:
+  Add:
+    - -I/home/xeskos/Epitech/Tek3/R-Type/External/ECSLib/include
+    - -I/home/xeskos/Epitech/Tek3/R-Type/lib/GameEngine/include
+    - -I/home/xeskos/Epitech/Tek3/R-Type/lib/Network/src
+    - -I/home/xeskos/Epitech/Tek3/R-Type/src/Client
+    - -I/home/xeskos/Epitech/Tek3/R-Type/src/Common
+    - -isystem/home/xeskos/Epitech/Tek3/R-Type/build/vcpkg_installed/x64-linux/include
+    - -isystem/home/xeskos/Epitech/Tek3/R-Type/External/GraphicLib/include
+    - -std=c++20
