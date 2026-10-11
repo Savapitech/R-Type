@@ -35,7 +35,9 @@ public:
 
 private:
   void launchBullet(rtk::EngineContext &context);
-  void createBackground() {}
+
+  void createEnemy(rtk::EngineContext &context);
+
   void createPlayer(rtk::EngineContext &context) {
     const auto entity = context.registry.spawn_entity();
     _textureId = _window.loadTexture("sprite.png").getHandle();
@@ -102,6 +104,7 @@ private:
   std::vector<std::size_t> bullets;
 
   std::uint32_t _textureId = 0;
+  std::uint32_t _backgroundTextureId = 0;
 
   std::uint16_t _bulletPressedByTick = 0;
 };
