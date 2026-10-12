@@ -1,7 +1,7 @@
 {
   "components": {
     "transform": { "position": { "x": 0.0, "y": 526.0 }, "scale": { "x": 2.0, "y": 2.0 }, "rotation": 0.0 },
-    "sprite": { "texture": "stage1.png", "size": { "w": 113.0, "h": 97.0 }, "textureRect": { "x": 1552, "y": 144, "w": 113, "h": 97 }, "origin": { "x": 0.0, "y": 0.0 }, "color": { "r": 255, "g": 255, "b": 255, "a": 255 }, "layer": -1 },
+    "sprite": { "texture": "assets/stage1.png", "size": { "w": 113.0, "h": 97.0 }, "textureRect": { "x": 1552, "y": 144, "w": 113, "h": 97 }, "origin": { "x": 0.0, "y": 0.0 }, "color": { "r": 255, "g": 255, "b": 255, "a": 255 }, "layer": -1 },
     "collider": { "width": 113.0, "height": 97.0, "layer": "Environment", "mask": ["Player", "Enemy", "PlayerProjectile", "EnemyProjectile"] },
     "velocity": { "x": -50.0, "y": 0.0 }
   }

@@ -6,10 +6,10 @@
       "scale": { "x": 1.0, "y": 1.0 }
     },
     "sprite": {
-      "texture": "sprite.png",
-      "size": { "w": 64.0, "h": 32.0 },
+      "texture": "assets/sprite.png",
+      "size": { "w": 66.0, "h": 34.0 },
       "origin": { "x": 0.0, "y": 0.0 },
-      "textureRect": { "x": 0, "y": 0, "w": 32, "h": 16 },
+      "textureRect": { "x": 66, "y": 0, "w": 33, "h": 17 },
       "color": { "r": 255, "g": 255, "b": 255, "a": 255 }
     },
     "collider": {
@@ -21,20 +21,34 @@
       "mask": ["Enemy", "EnemyProjectile", "Environment"]
     },
     "animation": {
-      "frameDuration": 0.15,
+      "frameDuration": 0.1,
       "currentFrame": 0,
-      "totalFrames": 20,
-      "frameWidth": 32,
+      "totalFrames": 1,
+      "frameWidth": 33,
       "frameHeight": 17,
-      "startX": 0,
+      "startX": 66,
       "startY": 0,
-      "loop": true,
+      "loop": false,
       "playing": true,
-      "columns": 5,
+      "reverse": false,
+      "columns": 0,
       "paddingX": 0,
       "paddingY": 0
     },
-    "controllable": {},
-    "velocity": { "x": 0.0, "y": 0.0 }
+    "animator": {
+      "currentState": "IDLE",
+      "clips": {
+        "IDLE": { "startX": 66, "startY": 0, "totalFrames": 1, "frameDuration": 0.1, "loop": false, "reverse": false },
+        "UP": { "startX": 99, "startY": 0, "totalFrames": 2, "frameDuration": 0.1, "loop": false, "reverse": false },
+        "DOWN": { "startX": 0, "startY": 0, "totalFrames": 2, "frameDuration": 0.1, "loop": false, "reverse": true }
+      }
+    },
+    "controllable": {
+      "speed": 300.0
+    },
+    "velocity": {
+      "x": 0.0,
+      "y": 0.0
+    }
   }
 }

@@ -1,10 +1,10 @@
 #include "game.hpp"
 
-#include "components/Animator.hpp"
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
 #include "components/AABBCollider.hpp"
 #include "components/Animation.hpp"
+#include "systems/AnimatorSystem.hpp"
 #include "components/Controllable.hpp"
 #include "components/EnemyEvent.hpp"
 #include "components/Enemy.hpp"
@@ -108,6 +108,10 @@ void Game::registerBuilders(rtk::EngineContext &context) {
     context._entityFactory.registerBuilder("EnemyEvent", component::enemyEventFromJson);
     context._entityFactory.registerBuilder("enemyEscapedEvent", rtype::events::enemyEscapedEventFromJson);
     context._entityFactory.registerBuilder("EnemyEscapedEvent", rtype::events::enemyEscapedEventFromJson);
+    context._entityFactory.registerBuilder("Animator", component::animatorFromJson);
+    context._entityFactory.registerBuilder("animator", component::animatorFromJson);
+
+
 
     context._entityFactory.registerBuilder("sprite", [this](rtk::ecs::Registry& reg, std::size_t entity, const nlohmann::json& data) {
         rtk::ecs::concepts::SpriteData sprite{};
@@ -142,6 +146,7 @@ void Game::registerComponents(rtk::EngineContext &context) {
     context.registry.register_component<component::Dead>();
     context.registry.register_component<component::NetworkEntity>();
     context.registry.register_component<component::SoundRequest>();
+     context.registry.register_component<component::animator>();
     context.registry.register_component<rtype::events::EnemyEscapedEvent>();
 }
 
@@ -224,6 +229,7 @@ void Game::addSystems(rtk::EngineContext &context) {
     context.scheduler.add<rtk::systems::DebugCollisionSystem>(rtk::ecs::Order::Physics, _collisionBuffer, _window, _inputState);
     context.scheduler.add<rtk::systems::ColliderSystem>(rtk::ecs::Order::Physics, _collisionBuffer, 64.f, context.eventBus);
     context.scheduler.add<rtk::systems::AudioSystem<RtkAudioAdapter>>(rtk::ecs::Order::Update, std::ref(_adapterAudioManager));
+    context.scheduler.add<rtk::systems::AnimatorSystem>(rtk::ecs::Order::Update);
 }
 
 bool Game::shouldContinue() const { return !_inputState.closeRequested; }

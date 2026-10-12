@@ -21,14 +21,27 @@ public:
       auto *anim = animations.get(entity);
       auto *animator = animators.get(entity);
 
-      if (animator->currentState != animator->previousState) {
-        const auto &currentClip =
-            animator->clips[static_cast<std::size_t>(animator->currentState)];
+      if (!anim || !animator)
+        continue;
 
+      auto stateIdx = static_cast<std::size_t>(animator->currentState);
+      if (stateIdx < animator->clips.size() && animator->currentState != animator->previousState) {
+        const auto &currentClip = animator->clips[stateIdx];
+
+        anim->startX = currentClip.startX;
         anim->startY = currentClip.startY;
         anim->totalFrames = currentClip.totalFrames;
+        anim->frameDuration = currentClip.frameDuration;
         anim->loop = currentClip.loop;
+        anim->reverse = currentClip.reverse;
+        if (currentClip.frameWidth > 0) {
+          anim->frameWidth = currentClip.frameWidth;
+        }
+        if (currentClip.frameHeight > 0) {
+          anim->frameHeight = currentClip.frameHeight;
+        }
         anim->currentFrame = 0;
+        anim->elapsedTime = 0.0f;
         anim->playing = true;
         animator->previousState = animator->currentState;
       }

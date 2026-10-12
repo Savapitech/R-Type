@@ -25,6 +25,7 @@ struct Animation {
 
   bool loop{true};
   bool playing{true};
+  bool reverse{false};
 };
 
 inline void animationFromJson(rtk::ecs::Registry& reg, std::size_t entity, const nlohmann::json& data) {
@@ -42,6 +43,7 @@ inline void animationFromJson(rtk::ecs::Registry& reg, std::size_t entity, const
     animation.paddingY = data.value("paddingY", static_cast<std::uint16_t>(0));
     animation.loop = data.value("loop", true);
     animation.playing = data.value("playing", true);
+    animation.reverse = data.value("reverse", false);
 
     reg.get_components<component::Animation>().insert_at(entity, animation);
 }

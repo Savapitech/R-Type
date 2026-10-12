@@ -33,8 +33,7 @@ public:
   }
 
   void update(rtk::ecs::Registry &reg, float) override {
-    auto view = reg.view<component::Velocity, component::Controllable,
-                         component::Transform>();
+    auto view = reg.view<component::Velocity, component::Controllable, component::Transform, component::animator>();
 
     auto &velocities = reg.get_components<component::Velocity>();
     auto &controllables = reg.get_components<component::Controllable>();
@@ -49,7 +48,7 @@ public:
       auto *playerTransform = transforms.get(entity);
       auto *animator = animators.get((entity));
 
-      if (!velocity || !controllable || !playerTransform)
+      if (!velocity || !controllable || !playerTransform || !animator)
         continue;
 
       velocity->x = 0.0f;
