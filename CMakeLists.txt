@@ -175,3 +175,90 @@ if(WIN32)
         )
     endforeach()
 endif()
+
+#Test LIB NETWORK
+include(CTest)
+
+if(BUILD_TESTING)
+
+    add_executable(test_tracking
+        tests/network/testTracking.cpp
+    )
+    target_link_libraries(test_tracking PRIVATE Network)
+
+    add_executable(test_connection
+        tests/network/testConnection.cpp
+    )
+    target_link_libraries(test_connection PRIVATE Network)
+
+    add_executable(test_message_header
+        tests/network/testMessageHeader.cpp
+    )
+    target_link_libraries(test_message_header PRIVATE Network)
+
+    add_executable(test_message_parser
+        tests/network/testMessageParser.cpp
+    )
+    target_link_libraries(test_message_parser PRIVATE Network)
+
+    add_executable(test_server_handshake
+        tests/network/testServerHandshake.cpp
+    )
+    target_link_libraries(test_server_handshake PRIVATE Network)
+
+    add_executable(test_connected_packet
+        tests/network/testConnectedPacket.cpp
+    )
+    target_link_libraries(test_connected_packet PRIVATE Network)
+
+
+    add_test(
+        NAME PacketTracking
+        COMMAND test_tracking
+    )
+
+    add_test(
+        NAME Connection
+        COMMAND test_connection
+    )
+
+    add_test(
+        NAME MessageHeader
+        COMMAND test_message_header
+    )
+
+    add_test(
+        NAME MessageParser
+        COMMAND test_message_parser
+    )
+
+    add_test(
+        NAME ServerHandshake
+        COMMAND test_server_handshake
+    )
+
+    add_test(
+        NAME ConnectedPacket
+        COMMAND test_connected_packet
+    )
+
+
+    set_tests_properties(
+        ServerHandshake
+        ConnectedPacket
+        PROPERTIES
+            RUN_SERIAL TRUE
+    )
+
+    function(enable_test_assertions target)
+      target_compile_options(${target} PRIVATE -UNDEBUG)
+    endfunction()
+
+    enable_test_assertions(test_tracking)
+    enable_test_assertions(test_connection)
+    enable_test_assertions(test_message_header)
+    enable_test_assertions(test_message_parser)
+    enable_test_assertions(test_server_handshake)
+    enable_test_assertions(test_connected_packet)
+
+endif()
