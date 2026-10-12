@@ -11,7 +11,9 @@
 #include "rtkAudiManagerAdapter.hpp"
 
 #include "scene/gameScene.hpp"
+#include "scene/networkConnectionScene.hpp"
 #include "scene/menuScene.hpp"
+#include "NetworkClient.hpp"
 
 namespace rtype::events {
     struct PlayerShotEvent {};
@@ -35,8 +37,9 @@ private:
   rtk::InputState _inputState{};
   rtk::collision::CollisionBuffer _collisionBuffer;
   rtk::Input::InputMapping _inputMapping;
+  rtype::client::NetworkClient _networkClient;
 
-  rtk::SceneManager<SceneType, rtk::RenderWindow, rtk::InputState, MenuScene,
+  rtk::SceneManager<SceneType, rtk::RenderWindow, rtk::InputState, MenuScene, NetworkConnectionScene,
                     GameScene>
       _sceneManager;
 };

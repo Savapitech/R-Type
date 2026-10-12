@@ -34,8 +34,6 @@ public:
   void onExit(rtk::EngineContext &context);
 
 private:
-  void createEnemy(rtk::EngineContext &context);
-
   void createPlayer(rtk::EngineContext &context) {
     const auto entity = context.registry.spawn_entity();
     _textureId = _window.loadTexture("sprite.png").getHandle();
