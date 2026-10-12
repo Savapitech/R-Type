@@ -1,5 +1,6 @@
 #include "game.hpp"
 
+#include "components/Animator.hpp"
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
 #include "components/AABBCollider.hpp"
@@ -13,18 +14,29 @@
 #include "components/Bullet.hpp"
 
 #include "systems/AnimationSystem.hpp"
+#include "systems/AnimatorSystem.hpp"
 #include "systems/ColliderSystem.hpp"
+#include "systems/DeadSystem.hpp"
 #include "systems/DebugCollisionSystem.hpp"
 #include "systems/InputSystem.hpp"
+#include "systems/MovementSystem.hpp"
 #include "systems/RenderConcept.hpp"
 #include "systems/RenderSystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/DeadSystem.hpp"
 #include "systems/PlayerSystem.hpp"
 #include "systems/BulletSystem.hpp"
+
+#include "components/Controllable.hpp"
+#include "components/Dead.hpp"
+#include "components/Enemy.hpp"
+#include "components/EnemyEvent.hpp"
+#include "components/NetworkEntity.hpp"
 #include "systems/AudioSystem.hpp"
+#include "systems/BulletSystem.hpp"
 #include "systems/EnemyGarbageCollectorSystem.hpp"
 #include "systems/EnemySpawnerSystem.hpp"
+#include "systems/PlayerSystem.hpp"
 
 #include "factoryDataDriven/factoryDataDriven.hpp"
 

@@ -6,10 +6,11 @@
 
 #include "input/action.hpp"
 
-#include "components/Velocity.hpp"
+#include "components/Animator.hpp"
+#include "components/Bullet.hpp"
 #include "components/Controllable.hpp"
 #include "components/Transform.hpp"
-#include "components/Bullet.hpp"
+#include "components/Velocity.hpp"
 
 #include "factoryDataDriven/factoryDataDriven.hpp"
 
@@ -31,12 +32,14 @@ public:
     LOG_INFO("Load Player System");
   }
 
-  void update(rtk::ecs::Registry &reg, float ) override {
-    auto view = reg.view<component::Velocity, component::Controllable, component::Transform>();
+  void update(rtk::ecs::Registry &reg, float) override {
+    auto view = reg.view<component::Velocity, component::Controllable,
+                         component::Transform>();
 
     auto &velocities = reg.get_components<component::Velocity>();
     auto &controllables = reg.get_components<component::Controllable>();
     auto &transforms = reg.get_components<component::Transform>();
+    auto &animators = reg.get_components<component::animator>();
 
     std::vector<component::Transform> bulletsToSpawn;
 
@@ -44,45 +47,59 @@ public:
       auto *velocity = velocities.get(entity);
       auto *controllable = controllables.get(entity);
       auto *playerTransform = transforms.get(entity);
+      auto *animator = animators.get((entity));
 
-      if (!velocity || !controllable || !playerTransform) continue;
+      if (!velocity || !controllable || !playerTransform)
+        continue;
 
       velocity->x = 0.0f;
       velocity->y = 0.0f;
 
       if (rtype::Input::hasAction(_inputState.actionMask, rtype::Action::Up)) {
-          velocity->y = -controllable->speed;
+        velocity->y = -controllable->speed;
       }
-      if (rtype::Input::hasAction(_inputState.actionMask, rtype::Action::Down)) {
-          velocity->y = controllable->speed;
+      if (rtype::Input::hasAction(_inputState.actionMask,
+                                  rtype::Action::Down)) {
+        velocity->y = controllable->speed;
       }
-      if (rtype::Input::hasAction(_inputState.actionMask, rtype::Action::Left)) {
-          velocity->x = -controllable->speed;
+      if (rtype::Input::hasAction(_inputState.actionMask,
+                                  rtype::Action::Left)) {
+        velocity->x = -controllable->speed;
       }
-      if (rtype::Input::hasAction(_inputState.actionMask, rtype::Action::Right)) {
-          velocity->x = controllable->speed;
+      if (rtype::Input::hasAction(_inputState.actionMask,
+                                  rtype::Action::Right)) {
+        velocity->x = controllable->speed;
       }
 
       if (velocity->x != 0.0f && velocity->y != 0.0f) {
-          velocity->x *= SQUARE_2_DIVIDE_BY_2;
-          velocity->y *= SQUARE_2_DIVIDE_BY_2;
+        velocity->x *= SQUARE_2_DIVIDE_BY_2;
+        velocity->y *= SQUARE_2_DIVIDE_BY_2;
       }
 
-      bool isShootPressed = rtype::Input::hasAction(_inputState.actionMask, rtype::Action::Shoot);
+      if (velocity->y < 0.0f) {
+        animator->currentState = component::animState::UP;
+      } else if (velocity->y > 0.0f) {
+        animator->currentState = component::animState::DOWN;
+      } else {
+        animator->currentState = component::animState::IDLE;
+      }
+
+      bool isShootPressed =
+          rtype::Input::hasAction(_inputState.actionMask, rtype::Action::Shoot);
 
       if (isShootPressed) {
-          controllable->isChargingShoot = true;
-      }
-      else if (controllable->isChargingShoot) {
-          controllable->isChargingShoot = false;
+        controllable->isChargingShoot = true;
+      } else if (controllable->isChargingShoot) {
+        controllable->isChargingShoot = false;
 
-          component::Transform spawnTransform = {};
-          spawnTransform.position = {playerTransform->position.x + 50.0f, playerTransform->position.y};
-          spawnTransform.rotation = 0.f;
-          spawnTransform.scale = {1.f, 1.f};
+        component::Transform spawnTransform = {};
+        spawnTransform.position = {playerTransform->position.x + 50.0f,
+                                   playerTransform->position.y};
+        spawnTransform.rotation = 0.f;
+        spawnTransform.scale = {1.f, 1.f};
 
-          bulletsToSpawn.push_back(spawnTransform);
-          _eventBus.publish(rtype::events::PlayerShotEvent{});
+        bulletsToSpawn.push_back(spawnTransform);
+        _eventBus.publish(rtype::events::PlayerShotEvent{});
       }
     }
 

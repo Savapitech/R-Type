@@ -15,6 +15,7 @@
 #include "components/Velocity.hpp"
 
 #include "systems/AnimationSystem.hpp"
+#include "systems/AnimatorSystem.hpp"
 #include "systems/RenderConcept.hpp"
 
 #include "sceneType.hpp"
