@@ -14,6 +14,7 @@
 #include "components/Dead.hpp"
 #include "components/Enemy.hpp"
 #include "components/EnemyEvent.hpp"
+#include "components/NetworkEntity.hpp"
 #include "systems/AudioSystem.hpp"
 #include "systems/BulletSystem.hpp"
 #include "systems/EnemyGarbageCollectorSystem.hpp"
@@ -26,10 +27,19 @@ Game::Game()
       _sceneManager(_window, std::in_place_type<MenuScene>) {}
 
 void Game::onLoad(rtk::EngineContext &context) {
+
+  _networkClient.setEventBus(context.eventBus);
+  _networkClient.connect("127.0.0.1", "4242");
+
   uint32_t _shootSoundId = _adapterAudioManager.addSound("assets/shoot.wav");
   uint32_t _bulletTexture =
       _window.loadTexture("assets/bullet.png").getHandle();
   uint32_t _enemyTexture = _window.loadTexture("assets/enemy.png").getHandle();
+
+  context.eventBus.subscribe<rtype::events::SendPacketEvent>(
+      [this](const rtype::events::SendPacketEvent &event) {
+        _networkClient.send(event.data);
+      });
 
   context.eventBus.subscribe<rtype::events::PlayerShotEvent>(
       [this, _shootSoundId](const rtype::events::PlayerShotEvent &) {
@@ -74,8 +84,10 @@ void Game::onLoad(rtk::EngineContext &context) {
   context.registry.register_component<component::Bullet>();
   context.registry.register_component<component::Enemy>();
   context.registry.register_component<component::Dead>();
+  context.registry
+      .register_component<component::NetworkEntity>()
 
-  _inputMapping.bindKey(0, rtk::ecs::concepts::Key::Up);
+          _inputMapping.bindKey(0, rtk::ecs::concepts::Key::Up);
   _inputMapping.bindGamepad(0, rtk::ecs::concepts::GamepadButton::DpadUp);
   _inputMapping.bindGamepadAxis(0, rtk::ecs::concepts::GamepadAxis::LeftY,
                                 -0.30f);

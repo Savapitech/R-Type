@@ -37,7 +37,7 @@ std::optional<SceneType> MenuScene::onUpdate(rtk::EngineContext &,
                                              const rtk::InputState &inputState,
                                              float) {
   if (rtype::Input::hasAction(inputState.actionMask, rtype::Action::Confirm))
-    return SceneType::Game;
+    return SceneType::Connection;
 
   return std::nullopt;
 }
