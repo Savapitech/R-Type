@@ -9,6 +9,7 @@
 #include "collision/collisionBuffer.hpp"
 #include "components/AABBCollider.hpp"
 #include "components/Transform.hpp"
+#include "../events/busEvents.hpp"
 
 namespace rtk::systems {
 class ColliderSystem final : public rtk::ecs::ISystem {
@@ -37,7 +38,7 @@ private:
     float right;
     float bottom;
   };
-
+  busEvent &_eventBus;
   WorldAABB getWorldAABB(const component::Transform &transform,
                          const component::AABBCollider &collider) const {
     const float firstX =
@@ -64,12 +65,12 @@ private:
 
 public:
   ColliderSystem(rtk::collision::CollisionBuffer &collisionBuffer,
-                 float cellSize)
-      : _collisionBuffer(collisionBuffer), _cellSize(cellSize) {}
+                 float cellSize, busEvent &eventBus )
+      : _collisionBuffer(collisionBuffer), _cellSize(cellSize), _eventBus(eventBus) {}
 
-  void onStart(rtk::ecs::Registry &) { LOG_INFO("Load Collider System"); }
+  void onStart(rtk::ecs::Registry &) override { LOG_INFO("Load Collider System"); }
 
-  void update(rtk::ecs::Registry &registry, float) {
+  void update(rtk::ecs::Registry &registry, float) override {
     _grid.clear();
     _collisionBuffer.clear();
 
@@ -143,12 +144,13 @@ public:
             continue;
 
           _collisionBuffer.push({firstEntity, secondEntity});
+          _eventBus.publish(rtk::collision::Collision{firstEntity, secondEntity});
         }
       }
     }
   }
 
-  void onStop(rtk::ecs::Registry &) {
+  void onStop(rtk::ecs::Registry &) override {
     _grid.clear();
     _collisionBuffer.clear();
   }

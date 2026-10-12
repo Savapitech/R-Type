@@ -21,6 +21,7 @@ enum CollisionLayer : std::uint32_t {
   Player = 1 << 0,
   Enemy = 1 << 1,
   PlayerProjectile = 1 << 2,
-  EnemyProjectile = 1 << 3
+  EnemyProjectile = 1 << 3,
+  Environment = 1 << 4
 };
 }

@@ -9,4 +9,7 @@ build
 bin
 
 .vscode
+.clangd
+.cache
+compile_command.json
 vcpkg_installed

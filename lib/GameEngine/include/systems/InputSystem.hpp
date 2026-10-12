@@ -1,20 +1,19 @@
 #pragma once
-
 #include <functional>
 #include <stdexcept>
-
 #include <ISystem.hpp>
-
-#include "inputAction/InputAction.hpp"
+#include "inputAction/inputMapping.hpp"
 #include "systems/RenderConcept.hpp"
 
 namespace rtk::systems {
+
 template <ecs::concepts::IsRenderWindow WindowType>
 class InputSystem final : public rtk::ecs::ISystem {
 public:
   InputSystem(std::reference_wrapper<WindowType> window,
-              rtk::InputState &inputState)
-      : _window(window.get()), _inputState(inputState) {};
+              rtk::InputState &inputState,
+              const rtk::Input::InputMapping& mapping)
+      : _window(window.get()), _inputState(inputState), _mapping(mapping) {};
 
   ~InputSystem() override = default;
 
@@ -22,59 +21,60 @@ public:
     LOG_DEBUG("Load Input System");
   }
 
+  void onStop(rtk::ecs::Registry &) override {}
+
   void update([[maybe_unused]] rtk::ecs::Registry &reg, float) override {
-    _inputState.actions = InputAction::NoneAction;
+    _inputState.actionMask = 0;
+    _inputState.closeRequested = false;
 
     if (!_window.pollEvents(_event))
       _inputState.closeRequested = true;
 
-    if (_event.isKeyPressed(ecs::concepts::Key::Up) ||
-        _event.getGamepadAxis(0, ecs::concepts::GamepadAxis::LeftY) < -0.30f) {
-      _inputState.actions |= InputAction::Up;
-      LOG_DEBUG("Key [Up] pressed.");
-    }
-    if (_event.isKeyPressed(ecs::concepts::Key::Down) ||
-        _event.getGamepadAxis(0, ecs::concepts::GamepadAxis::LeftY) > 0.30f) {
-      LOG_DEBUG("Key [Down] pressed.");
-      _inputState.actions |= InputAction::Down;
-    }
-    if (_event.isKeyPressed(ecs::concepts::Key::Left) ||
-        _event.getGamepadAxis(0, ecs::concepts::GamepadAxis::LeftX) < -0.30f) {
-      LOG_DEBUG("Key [Left] pressed.");
-      _inputState.actions |= InputAction::Left;
-    }
-    if (_event.isKeyPressed(ecs::concepts::Key::Right) ||
-        _event.getGamepadAxis(0, ecs::concepts::GamepadAxis::LeftX) > 0.30f) {
-      LOG_DEBUG("Key [Right] pressed.");
-      _inputState.actions |= InputAction::Right;
-    }
-    if (_event.isKeyPressed(ecs::concepts::Key::Space) ||
-        _event.isGamepadButtonPressed(0, ecs::concepts::GamepadButton::R2)) {
-      LOG_DEBUG("Key [Shoot] pressed.");
-      _inputState.actions |= InputAction::Shoot;
-    }
-    if (_event.isKeyPressed(ecs::concepts::Key::Escape)) {
-      LOG_DEBUG("Key [Close] pressed.");
-      _inputState.closeRequested = true;
-    }
-    if (_event.isKeyPressed(ecs::concepts::Key::Enter) ||
-        _event.isGamepadButtonPressed(0, ecs::concepts::GamepadButton::Cross)) {
-      LOG_DEBUG("Key [Confirm] pressed.");
-      _inputState.actions |= rtk::InputAction::Confirm;
-    }
-    if ((_event.isKeyPressed(ecs::concepts::Key::F3) &&
-         _event.isKeyReleased(ecs::concepts::Key::B)) ||
-        _event.isGamepadButtonPressed(0, ecs::concepts::GamepadButton::Cross)) {
-      LOG_DEBUG("Key [Debug] pressed.");
-      _inputState.debug = !_inputState.debug;
-    }
-  }
+    const auto& bindings = _mapping.getBindings();
 
-  void onStop(rtk::ecs::Registry &) override {}
+    for (uint8_t bit = 0; bit < rtk::Input::InputMapping::MAX_ACTIONS; ++bit) {
+
+        size_t startIndex = bit * rtk::Input::InputMapping::BINDINGS_PER_ACTION;
+
+        for (size_t slot = 0; slot < rtk::Input::InputMapping::BINDINGS_PER_ACTION; ++slot) {
+            const auto& b = bindings[startIndex + slot];
+
+            if (b.type == rtk::Input::InputBinding::Type::NoneAction)
+              continue;
+
+            bool isPressed = false;
+
+            if (b.type == rtk::Input::InputBinding::Type::Keyboard)
+                isPressed = _event.isKeyPressed(b.key);
+            else if (b.type == rtk::Input::InputBinding::Type::GamepadButton)
+                isPressed = _event.isGamepadButtonPressed(0, b.button);
+            else if (b.type == rtk::Input::InputBinding::Type::Mouse)
+                isPressed = _event.isMouseButtonPressed(b.mouse);
+            else if (b.type == rtk::Input::InputBinding::Type::GamepadAxis)
+            {
+              float pression = _event.getGamepadAxis(0, b.axisData.axis);
+              isPressed = (b.axisData.validationPression < 0) ? (pression <= b.axisData.validationPression) : (pression >= b.axisData.validationPression);
+            }
+
+            if (isPressed) {
+                _inputState.actionMask |= (1 << bit);
+                break;
+            }
+        }
+    }
+
+    if (_event.isKeyPressed(ecs::concepts::Key::Escape))
+        _inputState.closeRequested = true;
+
+    if (_event.isKeyPressed(ecs::concepts::Key::F3) && _event.isKeyReleased(ecs::concepts::Key::B))
+        _inputState.debug = !_inputState.debug;
+  }
 
 private:
   ecs::concepts::Event _event;
   WindowType &_window;
   rtk::InputState &_inputState;
+  const rtk::Input::InputMapping& _mapping;
 };
+
 } // namespace rtk::systems

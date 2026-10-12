@@ -17,6 +17,8 @@ int main() {
     rtype::client::Game game;
     rtk::GameEngine engine;
 
+    engine.setFPS(60);
+
     return engine.run(game);
   } catch (const std::exception &error) {
     std::cerr << "CLIENT: " << error.what() << '\n';

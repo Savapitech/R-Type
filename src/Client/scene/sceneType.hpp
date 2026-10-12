@@ -1,5 +1,5 @@
 #pragma once
 
 namespace rtype::client {
-enum class SceneType { Menu, Game };
+enum class SceneType { Menu, Connection, Game };
 }

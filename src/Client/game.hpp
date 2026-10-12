@@ -1,16 +1,23 @@
 #pragma once
 
-#include <graphical/renderWindow.hpp>
-
 #include "GameEngine.hpp"
 #include "collision/collisionBuffer.hpp"
 #include "inputAction/InputAction.hpp"
+#include "inputAction/inputMapping.hpp"
+
 #include "sceneManager/sceneManager.hpp"
 
 #include "rtkWindowAdapter.hpp"
+#include "rtkAudiManagerAdapter.hpp"
 
 #include "scene/gameScene.hpp"
+#include "scene/networkConnectionScene.hpp"
 #include "scene/menuScene.hpp"
+#include "NetworkClient.hpp"
+
+namespace rtype::events {
+    struct PlayerShotEvent {};
+}
 
 namespace rtype::client {
 class Game {
@@ -26,10 +33,13 @@ public:
 private:
   rtk::RenderWindow _window;
   RtkWindowAdapter _adapter;
+  RtkAudioAdapter _adapterAudioManager;
   rtk::InputState _inputState{};
   rtk::collision::CollisionBuffer _collisionBuffer;
+  rtk::Input::InputMapping _inputMapping;
+  rtype::client::NetworkClient _networkClient;
 
-  rtk::SceneManager<SceneType, rtk::RenderWindow, rtk::InputState, MenuScene,
+  rtk::SceneManager<SceneType, rtk::RenderWindow, rtk::InputState, MenuScene, NetworkConnectionScene,
                     GameScene>
       _sceneManager;
 };
