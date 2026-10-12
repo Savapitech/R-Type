@@ -27,6 +27,14 @@ struct AABBCollider {
 
   bool trigger = true;
 };
+inline std::uint32_t stringToLayer(const std::string& name) {
+    if (name == "Player") return Collider::CollisionLayer::Player;
+    if (name == "Enemy") return Collider::CollisionLayer::Enemy;
+    if (name == "PlayerProjectile") return Collider::CollisionLayer::PlayerProjectile;
+    if (name == "EnemyProjectile") return Collider::CollisionLayer::EnemyProjectile;
+    if (name == "Environment") return Collider::CollisionLayer::Environment;
+    return 0;
+}
 
 inline std::uint32_t stringToLayer(const std::string& name) {
     if (name == "Player") return Collider::CollisionLayer::Player;
