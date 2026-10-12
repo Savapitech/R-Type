@@ -84,10 +84,9 @@ void Game::onLoad(rtk::EngineContext &context) {
   context.registry.register_component<component::Bullet>();
   context.registry.register_component<component::Enemy>();
   context.registry.register_component<component::Dead>();
-  context.registry
-      .register_component<component::NetworkEntity>()
+  context.registry.register_component<component::NetworkEntity>();
 
-          _inputMapping.bindKey(0, rtk::ecs::concepts::Key::Up);
+  _inputMapping.bindKey(0, rtk::ecs::concepts::Key::Up);
   _inputMapping.bindGamepad(0, rtk::ecs::concepts::GamepadButton::DpadUp);
   _inputMapping.bindGamepadAxis(0, rtk::ecs::concepts::GamepadAxis::LeftY,
                                 -0.30f);
