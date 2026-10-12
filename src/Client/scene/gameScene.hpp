@@ -36,12 +36,102 @@ public:
 private:
   void createEnemy(rtk::EngineContext &context);
 
-  void createMediumGround(rtk::EngineContext &context) {
+  float createHighGround(rtk::EngineContext &context, float startX) {
+    const auto highGroundEntity = context.registry.spawn_entity();
+    _backgroundTextureId = _window.loadTexture("stage1.png").getHandle();
+
+    component::Transform highGroundTransform{};
+    highGroundTransform.position = {startX, 624.0f};
+    highGroundTransform.rotation = 0.0f;
+    highGroundTransform.scale = {2.0f, 2.0f};
+
+    rtk::ecs::concepts::SpriteData highGroundSprite{};
+    highGroundSprite.size = {64.f, 48.f};
+    highGroundSprite.origin = {0.f, 0.0f};
+    highGroundSprite.textureRect = {320, 192, 64, 48};
+    highGroundSprite.color = {255, 255, 255, 255};
+    highGroundSprite.textureId = _backgroundTextureId;
+    highGroundSprite.layer = -1;
+
+    component::AABBCollider highGroundCollider{};
+    highGroundCollider.offsetX = 0.0f;
+    highGroundCollider.offsetY = 0.0f;
+    highGroundCollider.width = 64.0f;
+    highGroundCollider.height = 48.0f;
+    highGroundCollider.layer = Collider::CollisionLayer::Environment;
+    highGroundCollider.mask = Collider::CollisionLayer::Player |
+                              Collider::CollisionLayer::Enemy |
+                              Collider::CollisionLayer::PlayerProjectile |
+                              Collider::CollisionLayer::EnemyProjectile;
+
+    component::Velocity highGroundVelocity{};
+    highGroundVelocity.x = -50.0f;
+    highGroundVelocity.y = 0.f;
+
+    context.registry.get_components<component::Transform>().insert_at(
+        highGroundEntity, highGroundTransform);
+    context.registry.get_components<rtk::ecs::concepts::SpriteData>().insert_at(
+        highGroundEntity, highGroundSprite);
+    context.registry.get_components<component::AABBCollider>().insert_at(
+        highGroundEntity, highGroundCollider);
+    context.registry.get_components<component::Velocity>().insert_at(
+        highGroundEntity, highGroundVelocity);
+
+    _entities.push_back(highGroundEntity);
+    return startX + (64.0f * 2.0f);
+  }
+
+  float createLowGround(rtk::EngineContext &context, float startX) {
+    const auto lowGroundEntity = context.registry.spawn_entity();
+    _backgroundTextureId = _window.loadTexture("stage1.png").getHandle();
+
+    component::Transform lowGroundTransform{};
+    lowGroundTransform.position = {startX, 688.0f};
+    lowGroundTransform.rotation = 0.0f;
+    lowGroundTransform.scale = {2.0f, 2.0f};
+
+    rtk::ecs::concepts::SpriteData lowGroundSprite{};
+    lowGroundSprite.size = {256.0f, 16.0f};
+    lowGroundSprite.origin = {0.0f, 0.0f};
+    lowGroundSprite.textureRect = {64, 224, 256, 16};
+    lowGroundSprite.color = {255, 255, 255, 255};
+    lowGroundSprite.textureId = _backgroundTextureId;
+    lowGroundSprite.layer = -1;
+
+    component::AABBCollider lowGroundCollider{};
+    lowGroundCollider.offsetX = 0.0f;
+    lowGroundCollider.offsetY = 0.0f;
+    lowGroundCollider.width = 256.0f;
+    lowGroundCollider.height = 16.0f;
+    lowGroundCollider.layer = Collider::CollisionLayer::Environment;
+    lowGroundCollider.mask = Collider::CollisionLayer::Player |
+                             Collider::CollisionLayer::Enemy |
+                             Collider::CollisionLayer::PlayerProjectile |
+                             Collider::CollisionLayer::EnemyProjectile;
+
+    component::Velocity lowGroundVelocity{};
+    lowGroundVelocity.x = -50.0f;
+    lowGroundVelocity.y = 0.0f;
+
+    context.registry.get_components<component::Transform>().insert_at(
+        lowGroundEntity, lowGroundTransform);
+    context.registry.get_components<rtk::ecs::concepts::SpriteData>().insert_at(
+        lowGroundEntity, lowGroundSprite);
+    context.registry.get_components<component::AABBCollider>().insert_at(
+        lowGroundEntity, lowGroundCollider);
+    context.registry.get_components<component::Velocity>().insert_at(
+        lowGroundEntity, lowGroundVelocity);
+
+    _entities.push_back(lowGroundEntity);
+    return startX + (256.0f * 2.0f);
+  }
+
+  float createMediumGround(rtk::EngineContext &context, float startX) {
     const auto groundEntity = context.registry.spawn_entity();
     _backgroundTextureId = _window.loadTexture("stage1.png").getHandle();
 
     component::Transform groundTransform{};
-    groundTransform.position = {0.0f, 656.0f};
+    groundTransform.position = {startX, 656.0f};
     groundTransform.rotation = 0.0f;
     groundTransform.scale = {2.0f, 2.0f};
 
@@ -66,7 +156,7 @@ private:
                           Collider::CollisionLayer::EnemyProjectile;
 
     component::Velocity groundVelocity{};
-    groundVelocity.x = -0.f;
+    groundVelocity.x = -50.0f;
     groundVelocity.y = 0.f;
 
     context.registry.get_components<component::Transform>().insert_at(
@@ -79,10 +169,21 @@ private:
         groundEntity, groundVelocity);
 
     _entities.push_back(groundEntity);
+    return startX + (64.0f * 2.0f);
   }
 
   void createBackground(rtk::EngineContext &context) {
-    createMediumGround((context));
+    float currentX = 0.0f;
+    currentX = createMediumGround((context), currentX);
+    currentX = createLowGround((context), currentX);
+    currentX = createHighGround((context), currentX);
+    currentX = createMediumGround((context), currentX);
+    currentX = createLowGround((context), currentX);
+    currentX = createHighGround((context), currentX);
+    currentX = createHighGround((context), currentX);
+    currentX = createMediumGround((context), currentX);
+    currentX = createLowGround((context), currentX);
+    currentX = createMediumGround((context), currentX);
   }
 
   void createPlayer(rtk::EngineContext &context) {
