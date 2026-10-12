@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <nlohmann/json.hpp>
 #include <fstream>
+#include <Registry.hpp>
 
 namespace rtk::factory {
 

@@ -1,6 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <nlohmann/json.hpp>
+
+#include <Registry.hpp>
 
 namespace component {
 struct AABBCollider {
@@ -14,6 +17,20 @@ struct AABBCollider {
 
   bool trigger = true;
 };
+
+inline void aabbColliderFromJson(rtk::ecs::Registry& reg, std::size_t entity, const nlohmann::json& data) {
+    component::AABBCollider collider{};
+    collider.offsetX = data.value("offsetX", data.value("offset_x", 0.0f));
+    collider.offsetY = data.value("offsetY", data.value("offset_y", 0.0f));
+    collider.width = data.value("width", 0.0f);
+    collider.height = data.value("height", 0.0f);
+    collider.layer = data.value("layer", 1u);
+    collider.mask = data.value("mask", 0xFFFFFFFFu);
+    collider.trigger = data.value("trigger", true);
+
+    reg.get_components<component::AABBCollider>().insert_at(entity, collider);
+}
+
 } // namespace component
 
 namespace Collider {
