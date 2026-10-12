@@ -21,6 +21,8 @@
 #include "systems/EnemyGarbageCollectorSystem.hpp"
 #include "systems/EnemySpawnerSystem.hpp"
 
+#include "factoryDataDriven/factoryDataDriven.hpp"
+
 namespace rtype::client {
 Game::Game()
     : _window({1280.f, 720.f}, "R-Type"), _adapter(_window),
@@ -28,6 +30,9 @@ Game::Game()
 
 void Game::onLoad(rtk::EngineContext &context)
 {
+  rtk::factory::EntityFactory entityFactory;
+
+  entityFactory.registerBuilder("transform", component::transformFromJson);
 
   _networkClient.setEventBus(context.eventBus);
   _networkClient.connect("127.0.0.1", "4242");

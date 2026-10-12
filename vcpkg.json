@@ -8,6 +8,7 @@
     "stb",
     "vulkan-headers",
     "asio",
+    "nlohmann-json",
     {
       "name": "vulkan-loader",
       "platform": "linux",

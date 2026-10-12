@@ -140,8 +140,12 @@ target_link_libraries(Network
         asio::asio
 )
 
+#JSON LOADER
+find_package(nlohmann_json CONFIG REQUIRED)
+
 #Game Engine Lib
 add_library(GameEngine INTERFACE)
+target_link_libraries(GameEngine INTERFACE nlohmann_json::nlohmann_json)
 target_include_directories(GameEngine INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/lib/GameEngine/include")
 
 add_library(CommonProtocole INTERFACE)
