@@ -1,0 +1,43 @@
+{
+  "components": {
+    "transform": {
+      "position": { "x": 150.0, "y": 250.0 },
+      "rotation": 0.0,
+      "scale": { "x": 1.0, "y": 1.0 }
+    },
+    "sprite": {
+      "texture": "sprite.png",
+      "size": { "w": 64.0, "h": 32.0 },
+      "origin": { "x": 0.0, "y": 0.0 },
+      "textureRect": { "x": 0, "y": 0, "w": 32, "h": 16 },
+      "color": { "r": 255, "g": 255, "b": 255, "a": 255 }
+    },
+    "collider": {
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "width": 64.0,
+      "height": 32.0,
+      "layer": 1,
+      "mask": 14
+    },
+    "animation": {
+      "frameDuration": 0.15,
+      "currentFrame": 0,
+      "totalFrames": 20,
+      "frameWidth": 32,
+      "frameHeight": 17,
+      "startX": 0,
+      "startY": 0,
+      "loop": true,
+      "playing": true,
+      "columns": 5,
+      "paddingX": 0,
+      "paddingY": 0
+    },
+    "controllable": {},
+    "velocity": {
+      "x": 0.0,
+      "y": 0.0
+    }
+  }
+}

@@ -170,7 +170,7 @@ endif()
 file(GLOB_RECURSE SERVER_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Server/*.cpp")
 
 add_executable(r-type_server ${SERVER_SOURCES})
-target_include_directories(r-type_client PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/Client")
+target_include_directories(r-type_server PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/Server")
 
 target_link_libraries(r-type_server PRIVATE ECSLib GameEngine Network CommonProtocole)
 

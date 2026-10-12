@@ -207,6 +207,8 @@ int main()
 
 
 
+    MessageHeader messageHeader{};
+
     messageHeader.setType(
         MessageType::Ping
     );
