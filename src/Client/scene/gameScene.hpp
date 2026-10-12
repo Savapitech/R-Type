@@ -34,7 +34,6 @@ public:
   void onExit(rtk::EngineContext &context);
 
 private:
-  void createEnemy(rtk::EngineContext &context);
 
   float createGate(rtk::EngineContext &context, float startX, bool symmetric) {
     auto gateEntity = context._entityFactory.createFromBlueprint(context.registry, "gate");

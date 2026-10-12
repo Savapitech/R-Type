@@ -19,4 +19,4 @@ inline void velocityFromJson(rtk::ecs::Registry& reg, std::size_t entity, const 
     reg.get_components<component::Velocity>().insert_at(entity, velocity);
 }
 
-} // namespace component
+} // namespace component

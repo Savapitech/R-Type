@@ -61,6 +61,7 @@ void Game::loadEntityBluePrint(rtk::EngineContext &context)
     context._entityFactory.loadBlueprintFromPath("high_ground", "assets/descriptionEntity/high_ground.json");
     context._entityFactory.loadBlueprintFromPath("low_ground", "assets/descriptionEntity/low_ground.json");
     context._entityFactory.loadBlueprintFromPath("medium_ground", "assets/descriptionEntity/medium_ground.json");
+    context._entityFactory.loadBlueprintFromPath("bullet", "assets/descriptionEntity/bullet.json");
 }
 
 
@@ -197,7 +198,7 @@ void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
 void Game::addSystems(rtk::EngineContext &context, uint32_t bulletTexture, uint32_t enemyTexture) {
     context.scheduler.add<rtk::systems::AnimationSystem>(rtk::ecs::Order::Render);
     context.scheduler.add<rtk::systems::DeathSystem>(rtk::ecs::Order::Update);
-    context.scheduler.add<rtk::systems::PlayerSystem>(rtk::ecs::Order::Update, std::ref(_inputState), std::ref(context.eventBus), bulletTexture);
+    context.scheduler.add<rtk::systems::PlayerSystem>(rtk::ecs::Order::Update, std::ref(_inputState), std::ref(context.eventBus), std::ref(context._entityFactory));
     context.scheduler.add<rtk::systems::BulletSystem>(rtk::ecs::Order::Update);
     context.scheduler.add<rtk::systems::EnemySpawnerSystem>(rtk::ecs::Order::Update, enemyTexture);
     context.scheduler.add<rtk::systems::EnemyGCSystem>(rtk::ecs::Order::SndUpdate, context.eventBus);

@@ -11,17 +11,19 @@
 #include "components/Transform.hpp"
 #include "components/Bullet.hpp"
 
+#include "factoryDataDriven/factoryDataDriven.hpp"
+
 namespace rtk::systems {
 class PlayerSystem final : public rtk::ecs::ISystem {
 private:
   rtk::InputState &_inputState;
   busEvent &_eventBus;
-  uint32_t _bulletTextureId;
+  rtk::factory::EntityFactory &_entityFactory;
   static constexpr float SQUARE_2_DIVIDE_BY_2 = 0.7071f;
 
 public:
-  PlayerSystem(rtk::InputState &inputState, busEvent &eventBus, uint32_t bulletTextureId)
-      : _inputState(inputState), _eventBus(eventBus), _bulletTextureId(bulletTextureId) {}
+  PlayerSystem(rtk::InputState &inputState, busEvent &eventBus, rtk::factory::EntityFactory &entityFactory)
+      : _inputState(inputState), _eventBus(eventBus), _entityFactory(entityFactory) {}
 
   ~PlayerSystem() override = default;
 
@@ -85,31 +87,15 @@ public:
     }
 
     for (const auto& spawnTransform : bulletsToSpawn) {
-        const auto bulletEntity = reg.spawn_entity();
+        auto bulletEntity = _entityFactory.createFromBlueprint(reg, "bullet");
 
-        rtk::ecs::concepts::SpriteData sprite{};
-        sprite.size = {32.f, 16.f};
-        sprite.origin = {0.f, 0.f};
-        sprite.textureRect = {0, 0, 32, 16};
-        sprite.color = {255, 255, 255, 255};
-        sprite.textureId = _bulletTextureId; 
+        auto* transform = reg.get_components<component::Transform>().get(bulletEntity);
 
-        component::AABBCollider collider{};
-        collider.offsetX = 0.f;
-        collider.offsetY = 0.f;
-        collider.width = 32.f;
-        collider.height = 16.f;
-        collider.layer = Collider::CollisionLayer::PlayerProjectile;
-        collider.mask = Collider::CollisionLayer::EnemyProjectile |
-                        Collider::CollisionLayer::Enemy;
-
-        reg.get_components<component::Transform>().insert_at(bulletEntity, spawnTransform);
-        reg.get_components<rtk::ecs::concepts::SpriteData>().insert_at(bulletEntity, sprite);
-        reg.get_components<component::AABBCollider>().insert_at(bulletEntity, collider);
-        reg.get_components<component::Velocity>().insert_at(bulletEntity, {800.0f, 0.0f});
-        reg.get_components<component::Bullet>().insert_at(bulletEntity, {10.0f});
+        if (transform) {
+            transform->position = spawnTransform.position;
+        }
     }
-  }
+    }
 
   void onStop(rtk::ecs::Registry &) override {}
 };
