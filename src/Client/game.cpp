@@ -55,6 +55,12 @@ void Game::onLoad(rtk::EngineContext &context) {
 void Game::loadEntityBluePrint(rtk::EngineContext &context)
 {
     context._entityFactory.loadBlueprintFromPath("player", "assets/descriptionEntity/player.json");
+    context._entityFactory.loadBlueprintFromPath("gate", "assets/descriptionEntity/gate.json");
+    context._entityFactory.loadBlueprintFromPath("ramp", "assets/descriptionEntity/ramp.json");
+    context._entityFactory.loadBlueprintFromPath("reactor", "assets/descriptionEntity/reactor.json");
+    context._entityFactory.loadBlueprintFromPath("high_ground", "assets/descriptionEntity/high_ground.json");
+    context._entityFactory.loadBlueprintFromPath("low_ground", "assets/descriptionEntity/low_ground.json");
+    context._entityFactory.loadBlueprintFromPath("medium_ground", "assets/descriptionEntity/medium_ground.json");
 }
 
 
@@ -100,6 +106,8 @@ void Game::registerBuilders(rtk::EngineContext &context) {
             data["textureRect"].value<uint16_t>("h", 0)
         };
         sprite.color = {255, 255, 255, 255};
+        sprite.layer = data.value("layer", -1);
+        sprite.flags = data.value("flags", 0);
 
         reg.get_components<rtk::ecs::concepts::SpriteData>().insert_at(entity, sprite);
     });

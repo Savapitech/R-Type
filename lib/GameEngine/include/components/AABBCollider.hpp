@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 #include <nlohmann/json.hpp>
-
 #include <Registry.hpp>
 
 namespace Collider {
@@ -14,7 +14,6 @@ enum CollisionLayer : std::uint32_t {
   Environment = 1 << 4
 };
 }
-
 
 namespace component {
 struct AABBCollider {
@@ -28,6 +27,7 @@ struct AABBCollider {
 
   bool trigger = true;
 };
+
 inline std::uint32_t stringToLayer(const std::string& name) {
     if (name == "Player") return Collider::CollisionLayer::Player;
     if (name == "Enemy") return Collider::CollisionLayer::Enemy;
@@ -45,13 +45,13 @@ inline void aabbColliderFromJson(rtk::ecs::Registry& reg, std::size_t entity, co
     collider.height = data.value("height", 0.0f);
     collider.trigger = data.value("trigger", true);
 
-    if (data["layer"].is_string()) {
+    if (data.contains("layer") && data["layer"].is_string()) {
         collider.layer = stringToLayer(data["layer"].get<std::string>());
     } else {
         collider.layer = data.value("layer", 1u);
     }
 
-    if (data["mask"].is_array()) {
+    if (data.contains("mask") && data["mask"].is_array()) {
         collider.mask = 0;
         for (const auto& maskStr : data["mask"]) {
             collider.mask |= stringToLayer(maskStr.get<std::string>());
@@ -64,4 +64,3 @@ inline void aabbColliderFromJson(rtk::ecs::Registry& reg, std::size_t entity, co
 }
 
 } // namespace component
-

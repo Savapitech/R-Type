@@ -17,8 +17,8 @@
       "offsetY": 0.0,
       "width": 64.0,
       "height": 32.0,
-      "layer": 1,
-      "mask": 14
+      "layer": "Player",
+      "mask": ["Enemy", "EnemyProjectile", "Environment"]
     },
     "animation": {
       "frameDuration": 0.15,
@@ -35,9 +35,6 @@
       "paddingY": 0
     },
     "controllable": {},
-    "velocity": {
-      "x": 0.0,
-      "y": 0.0
-    }
+    "velocity": { "x": 0.0, "y": 0.0 }
   }
 }
