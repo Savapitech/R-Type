@@ -36,7 +36,216 @@ public:
 private:
   void createEnemy(rtk::EngineContext &context);
 
-  float createHighGround(rtk::EngineContext &context, float startX) {
+  float createGate(rtk::EngineContext &context, float startX, bool symmetric) {
+    const auto gateEntity = context.registry.spawn_entity();
+    _backgroundTextureId = _window.loadTexture("stage1.png").getHandle();
+
+    component::Transform gateTransform{};
+    gateTransform.position = {startX, 528.0f};
+    gateTransform.rotation = 0.0f;
+    gateTransform.scale = {2.0f, 2.0f};
+
+    rtk::ecs::concepts::SpriteData gateSprite{};
+    gateSprite.size = {192.0f, 96.0f};
+    gateSprite.origin = {0.0f, 0.0f};
+    gateSprite.textureRect = {3008, 144, 192, 96};
+    gateSprite.color = {255, 255, 255, 255};
+    gateSprite.textureId = _backgroundTextureId;
+    gateSprite.layer = -1;
+
+    component::AABBCollider gateCollider{};
+    gateCollider.offsetX = 0.0f;
+    gateCollider.offsetY = 0.0f;
+    gateCollider.width = 192.0f;
+    gateCollider.height = 96.0f;
+    gateCollider.layer = Collider::CollisionLayer::Environment;
+    gateCollider.mask = Collider::CollisionLayer::Player |
+                        Collider::CollisionLayer::Enemy |
+                        Collider::CollisionLayer::PlayerProjectile |
+                        Collider::CollisionLayer::EnemyProjectile;
+
+    component::Velocity gateVelocity{};
+    gateVelocity.x = -50.0f;
+    gateVelocity.y = 0.0f;
+
+    context.registry.get_components<component::Transform>().insert_at(
+        gateEntity, gateTransform);
+    context.registry.get_components<rtk::ecs::concepts::SpriteData>().insert_at(
+        gateEntity, gateSprite);
+    context.registry.get_components<component::AABBCollider>().insert_at(
+        gateEntity, gateCollider);
+    context.registry.get_components<component::Velocity>().insert_at(
+        gateEntity, gateVelocity);
+
+    _entities.push_back(gateEntity);
+
+    if (symmetric) {
+      const auto ceilingEntity = context.registry.spawn_entity();
+      component::Transform ceilingTransform{};
+      ceilingTransform.position = {startX, 0.0f};
+      ceilingTransform.rotation = 0.0f;
+      ceilingTransform.scale = {2.0f, 2.0f};
+      rtk::ecs::concepts::SpriteData ceilingSprite = gateSprite;
+      ceilingSprite.flags = 1 << 1;
+
+      component::AABBCollider ceilingCollider = gateCollider;
+
+      component::Velocity ceilingVelocity = gateVelocity;
+
+      context.registry.get_components<component::Transform>().insert_at(
+          ceilingEntity, ceilingTransform);
+      context.registry.get_components<rtk::ecs::concepts::SpriteData>()
+          .insert_at(ceilingEntity, ceilingSprite);
+      context.registry.get_components<component::AABBCollider>().insert_at(
+          ceilingEntity, ceilingCollider);
+      context.registry.get_components<component::Velocity>().insert_at(
+          ceilingEntity, ceilingVelocity);
+
+      _entities.push_back(ceilingEntity);
+    }
+    return startX + (192.0f * 2.0f);
+  }
+  float createRamp(rtk::EngineContext &context, float startX, bool symmetric) {
+    const auto rampEntity = context.registry.spawn_entity();
+    _backgroundTextureId = _window.loadTexture("stage1.png").getHandle();
+
+    component::Transform rampTransform{};
+    rampTransform.position = {startX, 640.0f};
+    rampTransform.rotation = 0.0f;
+    rampTransform.scale = {2.0f, 2.0f};
+
+    rtk::ecs::concepts::SpriteData rampSprite{};
+    rampSprite.size = {192.0f, 40.0f};
+    rampSprite.origin = {0.0f, 0.0f};
+    rampSprite.textureRect = {2240, 200, 192, 40};
+    rampSprite.color = {255, 255, 255, 255};
+    rampSprite.textureId = _backgroundTextureId;
+    rampSprite.layer = -1;
+
+    component::AABBCollider rampCollider{};
+    rampCollider.offsetX = 0.0f;
+    rampCollider.offsetY = 0.0f;
+    rampCollider.width = 192.0f;
+    rampCollider.height = 40.0f;
+    rampCollider.layer = Collider::CollisionLayer::Environment;
+    rampCollider.mask = Collider::CollisionLayer::Player |
+                        Collider::CollisionLayer::Enemy |
+                        Collider::CollisionLayer::PlayerProjectile |
+                        Collider::CollisionLayer::EnemyProjectile;
+
+    component::Velocity rampVelocity{};
+    rampVelocity.x = -50.0f;
+    rampVelocity.y = 0.0f;
+
+    context.registry.get_components<component::Transform>().insert_at(
+        rampEntity, rampTransform);
+    context.registry.get_components<rtk::ecs::concepts::SpriteData>().insert_at(
+        rampEntity, rampSprite);
+    context.registry.get_components<component::AABBCollider>().insert_at(
+        rampEntity, rampCollider);
+    context.registry.get_components<component::Velocity>().insert_at(
+        rampEntity, rampVelocity);
+
+    _entities.push_back(rampEntity);
+
+    if (symmetric) {
+      const auto ceilingEntity = context.registry.spawn_entity();
+      component::Transform ceilingTransform{};
+      ceilingTransform.position = {startX, 0.0f};
+      ceilingTransform.rotation = 0.0f;
+      ceilingTransform.scale = {2.0f, 2.0f};
+      rtk::ecs::concepts::SpriteData ceilingSprite = rampSprite;
+      ceilingSprite.flags = 1 << 1;
+
+      component::AABBCollider ceilingCollider = rampCollider;
+
+      component::Velocity ceilingVelocity = rampVelocity;
+
+      context.registry.get_components<component::Transform>().insert_at(
+          ceilingEntity, ceilingTransform);
+      context.registry.get_components<rtk::ecs::concepts::SpriteData>()
+          .insert_at(ceilingEntity, ceilingSprite);
+      context.registry.get_components<component::AABBCollider>().insert_at(
+          ceilingEntity, ceilingCollider);
+      context.registry.get_components<component::Velocity>().insert_at(
+          ceilingEntity, ceilingVelocity);
+
+      _entities.push_back(ceilingEntity);
+    }
+    return startX + (192.0f * 2.0f);
+  }
+  float createReactor(rtk::EngineContext &context, float startX,
+                      bool symmetric) {
+    const auto reactorEntity = context.registry.spawn_entity();
+    _backgroundTextureId = _window.loadTexture("stage1.png").getHandle();
+
+    component::Transform reactorTransform{};
+    reactorTransform.position = {startX, 526.0f};
+    reactorTransform.rotation = 0.0f;
+    reactorTransform.scale = {2.0f, 2.0f};
+
+    rtk::ecs::concepts::SpriteData reactorSprite{};
+    reactorSprite.size = {113.0f, 97.0f};
+    reactorSprite.origin = {0.0f, 0.0f};
+    reactorSprite.textureRect = {1552, 144, 113, 97};
+    reactorSprite.color = {255, 255, 255, 255};
+    reactorSprite.textureId = _backgroundTextureId;
+    reactorSprite.layer = -1;
+
+    component::AABBCollider reactorCollider{};
+    reactorCollider.offsetX = 0.0f;
+    reactorCollider.offsetY = 0.0f;
+    reactorCollider.width = 113.0f;
+    reactorCollider.height = 97.0f;
+    reactorCollider.layer = Collider::CollisionLayer::Environment;
+    reactorCollider.mask = Collider::CollisionLayer::Player |
+                           Collider::CollisionLayer::Enemy |
+                           Collider::CollisionLayer::PlayerProjectile |
+                           Collider::CollisionLayer::EnemyProjectile;
+
+    component::Velocity reactorVelocity{};
+    reactorVelocity.x = -50.0f;
+    reactorVelocity.y = 0.0f;
+
+    context.registry.get_components<component::Transform>().insert_at(
+        reactorEntity, reactorTransform);
+    context.registry.get_components<rtk::ecs::concepts::SpriteData>().insert_at(
+        reactorEntity, reactorSprite);
+    context.registry.get_components<component::AABBCollider>().insert_at(
+        reactorEntity, reactorCollider);
+    context.registry.get_components<component::Velocity>().insert_at(
+        reactorEntity, reactorVelocity);
+
+    _entities.push_back(reactorEntity);
+    if (symmetric) {
+      const auto ceilingEntity = context.registry.spawn_entity();
+      component::Transform ceilingTransform{};
+      ceilingTransform.position = {startX, 0.0f};
+      ceilingTransform.rotation = 0.0f;
+      ceilingTransform.scale = {2.0f, 2.0f};
+      rtk::ecs::concepts::SpriteData ceilingSprite = reactorSprite;
+      ceilingSprite.flags = 1 << 1;
+
+      component::AABBCollider ceilingCollider = reactorCollider;
+
+      component::Velocity ceilingVelocity = reactorVelocity;
+
+      context.registry.get_components<component::Transform>().insert_at(
+          ceilingEntity, ceilingTransform);
+      context.registry.get_components<rtk::ecs::concepts::SpriteData>()
+          .insert_at(ceilingEntity, ceilingSprite);
+      context.registry.get_components<component::AABBCollider>().insert_at(
+          ceilingEntity, ceilingCollider);
+      context.registry.get_components<component::Velocity>().insert_at(
+          ceilingEntity, ceilingVelocity);
+
+      _entities.push_back(ceilingEntity);
+    }
+    return startX + (113.0f * 2.0f);
+  }
+
+  float createHighGround(rtk::EngineContext &context, float startX,
+                         bool symmetric) {
     const auto highGroundEntity = context.registry.spawn_entity();
     _backgroundTextureId = _window.loadTexture("stage1.png").getHandle();
 
@@ -78,10 +287,35 @@ private:
         highGroundEntity, highGroundVelocity);
 
     _entities.push_back(highGroundEntity);
+    if (symmetric) {
+      const auto ceilingEntity = context.registry.spawn_entity();
+      component::Transform ceilingTransform{};
+      ceilingTransform.position = {startX, 0.0f};
+      ceilingTransform.rotation = 0.0f;
+      ceilingTransform.scale = {2.0f, 2.0f};
+      rtk::ecs::concepts::SpriteData ceilingSprite = highGroundSprite;
+      ceilingSprite.flags = 1 << 1;
+
+      component::AABBCollider ceilingCollider = highGroundCollider;
+
+      component::Velocity ceilingVelocity = highGroundVelocity;
+
+      context.registry.get_components<component::Transform>().insert_at(
+          ceilingEntity, ceilingTransform);
+      context.registry.get_components<rtk::ecs::concepts::SpriteData>()
+          .insert_at(ceilingEntity, ceilingSprite);
+      context.registry.get_components<component::AABBCollider>().insert_at(
+          ceilingEntity, ceilingCollider);
+      context.registry.get_components<component::Velocity>().insert_at(
+          ceilingEntity, ceilingVelocity);
+
+      _entities.push_back(ceilingEntity);
+    }
     return startX + (64.0f * 2.0f);
   }
 
-  float createLowGround(rtk::EngineContext &context, float startX) {
+  float createLowGround(rtk::EngineContext &context, float startX,
+                        bool symmetric) {
     const auto lowGroundEntity = context.registry.spawn_entity();
     _backgroundTextureId = _window.loadTexture("stage1.png").getHandle();
 
@@ -123,10 +357,37 @@ private:
         lowGroundEntity, lowGroundVelocity);
 
     _entities.push_back(lowGroundEntity);
+
+    if (symmetric) {
+      const auto ceilingEntity = context.registry.spawn_entity();
+      component::Transform ceilingTransform{};
+      ceilingTransform.position = {startX, 0.0f};
+      ceilingTransform.rotation = 0.0f;
+      ceilingTransform.scale = {2.0f, 2.0f};
+      rtk::ecs::concepts::SpriteData ceilingSprite = lowGroundSprite;
+      ceilingSprite.flags = 1 << 1;
+
+      component::AABBCollider ceilingCollider = lowGroundCollider;
+
+      component::Velocity ceilingVelocity = lowGroundVelocity;
+
+      context.registry.get_components<component::Transform>().insert_at(
+          ceilingEntity, ceilingTransform);
+      context.registry.get_components<rtk::ecs::concepts::SpriteData>()
+          .insert_at(ceilingEntity, ceilingSprite);
+      context.registry.get_components<component::AABBCollider>().insert_at(
+          ceilingEntity, ceilingCollider);
+      context.registry.get_components<component::Velocity>().insert_at(
+          ceilingEntity, ceilingVelocity);
+
+      _entities.push_back(ceilingEntity);
+    }
+
     return startX + (256.0f * 2.0f);
   }
 
-  float createMediumGround(rtk::EngineContext &context, float startX) {
+  float createMediumGround(rtk::EngineContext &context, float startX,
+                           bool symmetric) {
     const auto groundEntity = context.registry.spawn_entity();
     _backgroundTextureId = _window.loadTexture("stage1.png").getHandle();
 
@@ -169,21 +430,61 @@ private:
         groundEntity, groundVelocity);
 
     _entities.push_back(groundEntity);
+
+    if (symmetric) {
+      const auto ceilingEntity = context.registry.spawn_entity();
+      component::Transform ceilingTransform{};
+      ceilingTransform.position = {startX, 0.0f};
+      ceilingTransform.rotation = 0.0f;
+      ceilingTransform.scale = {2.0f, 2.0f};
+      rtk::ecs::concepts::SpriteData ceilingSprite = groundSprite;
+      ceilingSprite.flags = 1 << 1;
+
+      component::AABBCollider ceilingCollider = groundCollider;
+
+      component::Velocity ceilingVelocity = groundVelocity;
+
+      context.registry.get_components<component::Transform>().insert_at(
+          ceilingEntity, ceilingTransform);
+      context.registry.get_components<rtk::ecs::concepts::SpriteData>()
+          .insert_at(ceilingEntity, ceilingSprite);
+      context.registry.get_components<component::AABBCollider>().insert_at(
+          ceilingEntity, ceilingCollider);
+      context.registry.get_components<component::Velocity>().insert_at(
+          ceilingEntity, ceilingVelocity);
+
+      _entities.push_back(ceilingEntity);
+    }
+
     return startX + (64.0f * 2.0f);
   }
 
   void createBackground(rtk::EngineContext &context) {
     float currentX = 0.0f;
-    currentX = createMediumGround((context), currentX);
-    currentX = createLowGround((context), currentX);
-    currentX = createHighGround((context), currentX);
-    currentX = createMediumGround((context), currentX);
-    currentX = createLowGround((context), currentX);
-    currentX = createHighGround((context), currentX);
-    currentX = createHighGround((context), currentX);
-    currentX = createMediumGround((context), currentX);
-    currentX = createLowGround((context), currentX);
-    currentX = createMediumGround((context), currentX);
+    currentX = createMediumGround((context), currentX, false);
+    currentX = createLowGround((context), currentX, false);
+    currentX = createHighGround((context), currentX, false);
+    currentX = createMediumGround((context), currentX, false);
+    currentX = createLowGround((context), currentX, false);
+    currentX = createHighGround((context), currentX, false);
+    currentX = createHighGround((context), currentX, false);
+    currentX = createMediumGround((context), currentX, false);
+    currentX = createLowGround((context), currentX, false);
+    currentX = createMediumGround((context), currentX, false);
+    currentX = createReactor(context, currentX, true);
+    currentX = createLowGround((context), currentX, true);
+    currentX = createMediumGround((context), currentX, true);
+    currentX = createHighGround((context), currentX, true);
+    currentX = createLowGround((context), currentX, true);
+    currentX = createRamp((context), currentX, true);
+    currentX = createMediumGround((context), currentX, true);
+    currentX = createMediumGround((context), currentX, true);
+    currentX = createMediumGround((context), currentX, true);
+    currentX = createHighGround((context), currentX, true);
+    currentX = createGate((context), currentX, true);
+    currentX = createLowGround((context), currentX, true);
+    currentX = createMediumGround((context), currentX, true);
+    currentX = createHighGround((context), currentX, true);
   }
 
   void createPlayer(rtk::EngineContext &context) {
