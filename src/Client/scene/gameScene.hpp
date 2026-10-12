@@ -15,6 +15,7 @@
 #include "components/Velocity.hpp"
 
 #include "systems/AnimationSystem.hpp"
+#include "systems/AnimatorSystem.hpp"
 #include "systems/RenderConcept.hpp"
 
 #include "sceneType.hpp"
@@ -38,7 +39,7 @@ private:
 
   float createGate(rtk::EngineContext &context, float startX, bool symmetric) {
     const auto gateEntity = context.registry.spawn_entity();
-    _backgroundTextureId = _window.loadTexture("stage1.png").getHandle();
+    _backgroundTextureId = _window.loadTexture("assets/stage1.png").getHandle();
 
     component::Transform gateTransform{};
     gateTransform.position = {startX, 528.0f};
@@ -107,7 +108,7 @@ private:
   }
   float createRamp(rtk::EngineContext &context, float startX, bool symmetric) {
     const auto rampEntity = context.registry.spawn_entity();
-    _backgroundTextureId = _window.loadTexture("stage1.png").getHandle();
+    _backgroundTextureId = _window.loadTexture("assets/stage1.png").getHandle();
 
     component::Transform rampTransform{};
     rampTransform.position = {startX, 640.0f};
@@ -177,7 +178,7 @@ private:
   float createReactor(rtk::EngineContext &context, float startX,
                       bool symmetric) {
     const auto reactorEntity = context.registry.spawn_entity();
-    _backgroundTextureId = _window.loadTexture("stage1.png").getHandle();
+    _backgroundTextureId = _window.loadTexture("assets/stage1.png").getHandle();
 
     component::Transform reactorTransform{};
     reactorTransform.position = {startX, 526.0f};
@@ -247,7 +248,7 @@ private:
   float createHighGround(rtk::EngineContext &context, float startX,
                          bool symmetric) {
     const auto highGroundEntity = context.registry.spawn_entity();
-    _backgroundTextureId = _window.loadTexture("stage1.png").getHandle();
+    _backgroundTextureId = _window.loadTexture("assets/stage1.png").getHandle();
 
     component::Transform highGroundTransform{};
     highGroundTransform.position = {startX, 624.0f};
@@ -317,7 +318,7 @@ private:
   float createLowGround(rtk::EngineContext &context, float startX,
                         bool symmetric) {
     const auto lowGroundEntity = context.registry.spawn_entity();
-    _backgroundTextureId = _window.loadTexture("stage1.png").getHandle();
+    _backgroundTextureId = _window.loadTexture("assets/stage1.png").getHandle();
 
     component::Transform lowGroundTransform{};
     lowGroundTransform.position = {startX, 688.0f};
@@ -389,7 +390,7 @@ private:
   float createMediumGround(rtk::EngineContext &context, float startX,
                            bool symmetric) {
     const auto groundEntity = context.registry.spawn_entity();
-    _backgroundTextureId = _window.loadTexture("stage1.png").getHandle();
+    _backgroundTextureId = _window.loadTexture("assets/stage1.png").getHandle();
 
     component::Transform groundTransform{};
     groundTransform.position = {startX, 656.0f};
@@ -489,7 +490,7 @@ private:
 
   void createPlayer(rtk::EngineContext &context) {
     const auto entity = context.registry.spawn_entity();
-    _textureId = _window.loadTexture("sprite.png").getHandle();
+    _textureId = _window.loadTexture("assets/sprite.png").getHandle();
 
     component::Transform transform{};
     transform.position = {150.f, 250.f};
@@ -529,6 +530,17 @@ private:
     animation.paddingX = 0;
     animation.paddingY = 0;
 
+    component::animator animator{};
+    animator.currentState = component::animState::IDLE;
+    animator.previousState = component::animState::UP;
+
+    animator.clips[static_cast<size_t>(component::animState::IDLE)] = {0, 4,
+                                                                       true};
+    animator.clips[static_cast<size_t>(component::animState::UP)] = {17, 3,
+                                                                     false};
+    animator.clips[static_cast<size_t>(component::animState::DOWN)] = {34, 3,
+                                                                       false};
+
     context.registry.get_components<component::Transform>().insert_at(
         entity, transform);
     context.registry.get_components<rtk::ecs::concepts::SpriteData>().insert_at(
@@ -538,7 +550,8 @@ private:
 
     context.registry.get_components<component::Animation>().insert_at(
         entity, animation);
-
+    context.registry.get_components<component::animator>().insert_at(entity,
+                                                                     animator);
     context.registry.get_components<component::Controllable>().insert_at(entity,
                                                                          {});
     context.registry.get_components<component::Velocity>().insert_at(entity,
