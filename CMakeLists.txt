@@ -140,6 +140,27 @@ target_link_libraries(Network
         asio::asio
 )
 
+#NetworkClient
+add_library(NetworkClientLib STATIC
+    src/Client/NetworkClient.cpp
+)
+
+target_include_directories(NetworkClientLib
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Client
+)
+
+target_compile_features(NetworkClientLib
+    PUBLIC
+        cxx_std_20
+)
+
+target_link_libraries(NetworkClientLib
+    PUBLIC
+        Network
+        CommonProtocole
+)
+
 #Game Engine Lib
 add_library(GameEngine INTERFACE)
 target_include_directories(GameEngine INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/lib/GameEngine/include")
@@ -150,11 +171,13 @@ target_link_libraries(CommonProtocole INTERFACE Network)
 
 #CLIENT
 file(GLOB_RECURSE CLIENT_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Client/*.cpp")
-
+list(REMOVE_ITEM CLIENT_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Client/NetworkClient.cpp"
+)
 add_executable(r-type_client ${CLIENT_SOURCES})
 target_include_directories(r-type_client PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/Client")
 
-target_link_libraries(r-type_client PRIVATE GraphicLib ECSLib GameEngine Vulkan::Vulkan Network CommonProtocole)
+target_link_libraries(r-type_client PRIVATE GraphicLib ECSLib GameEngine Vulkan::Vulkan Network CommonProtocole  NetworkClientLib)
 
 if (APPLE)
     set_property(TARGET r-type_client APPEND PROPERTY
@@ -253,6 +276,47 @@ if(BUILD_TESTING)
         PROPERTIES
             RUN_SERIAL TRUE
     )
+
+add_executable(test_network_client
+    tests/network/testNetworkClient.cpp
+    src/Server/Server.cpp
+)
+
+target_include_directories(test_network_client
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Server
+)
+
+target_compile_features(test_network_client
+    PRIVATE
+        cxx_std_20
+)
+
+target_link_libraries(test_network_client
+    PRIVATE
+        NetworkClientLib
+        Network
+        CommonProtocole
+)
+
+add_test(
+    NAME NetworkClientIntegration
+    COMMAND test_network_client
+)
+
+set_tests_properties(
+    NetworkClientIntegration
+    PROPERTIES
+        RUN_SERIAL TRUE
+        TIMEOUT 15
+)
+
+set_target_properties(
+    test_network_client
+    PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY
+            "${CMAKE_BINARY_DIR}/tests"
+)
 
     function(enable_test_assertions target)
       target_compile_options(${target} PRIVATE -UNDEBUG)
