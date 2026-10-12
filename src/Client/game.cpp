@@ -85,7 +85,7 @@ void Game::onLoad(rtk::EngineContext &context)
   context.registry.register_component<component::Bullet>();
   context.registry.register_component<component::Enemy>();
   context.registry.register_component<component::Dead>();
-  context.registry.register_component<component::NetworkEntity>()
+  context.registry.register_component<component::NetworkEntity>();
 
 
   _inputMapping.bindKey(0, rtk::ecs::concepts::Key::Up);
