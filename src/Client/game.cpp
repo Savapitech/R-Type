@@ -43,11 +43,9 @@ void Game::onLoad(rtk::EngineContext &context) {
     _networkClient.connect("127.0.0.1", "4242");
 
     uint32_t shootSoundId = _adapterAudioManager.addSound("assets/shoot.wav");
-    uint32_t bulletTexture = _window.loadTexture("assets/bullet.png").getHandle();
-    uint32_t enemyTexture = _window.loadTexture("assets/enemy.png").getHandle();
 
     subscribeEvents(context, shootSoundId);
-    addSystems(context, bulletTexture, enemyTexture);
+    addSystems(context);
 
     _sceneManager.start(context);
 }
@@ -62,6 +60,8 @@ void Game::loadEntityBluePrint(rtk::EngineContext &context)
     context._entityFactory.loadBlueprintFromPath("low_ground", "assets/descriptionEntity/low_ground.json");
     context._entityFactory.loadBlueprintFromPath("medium_ground", "assets/descriptionEntity/medium_ground.json");
     context._entityFactory.loadBlueprintFromPath("bullet", "assets/descriptionEntity/bullet.json");
+    context._entityFactory.loadBlueprintFromPath("enemyBidos", "assets/descriptionEntity/enemyBidos.json");
+
 }
 
 
@@ -195,12 +195,12 @@ void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
     );
 }
 
-void Game::addSystems(rtk::EngineContext &context, uint32_t bulletTexture, uint32_t enemyTexture) {
+void Game::addSystems(rtk::EngineContext &context) {
     context.scheduler.add<rtk::systems::AnimationSystem>(rtk::ecs::Order::Render);
     context.scheduler.add<rtk::systems::DeathSystem>(rtk::ecs::Order::Update);
     context.scheduler.add<rtk::systems::PlayerSystem>(rtk::ecs::Order::Update, std::ref(_inputState), std::ref(context.eventBus), std::ref(context._entityFactory));
     context.scheduler.add<rtk::systems::BulletSystem>(rtk::ecs::Order::Update);
-    context.scheduler.add<rtk::systems::EnemySpawnerSystem>(rtk::ecs::Order::Update, enemyTexture);
+    context.scheduler.add<rtk::systems::EnemySpawnerSystem>(rtk::ecs::Order::Update, std::ref(context._entityFactory));
     context.scheduler.add<rtk::systems::EnemyGCSystem>(rtk::ecs::Order::SndUpdate, context.eventBus);
     context.scheduler.add<rtk::systems::InputSystem<RtkWindowAdapter>>(rtk::ecs::Order::Input, std::ref(_adapter), _inputState, _inputMapping);
     context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);

@@ -3,15 +3,12 @@
 #include <random>
 #include "Logger/Logger.hpp"
 #include "components/Transform.hpp"
-#include "components/Velocity.hpp"
-#include "components/Enemy.hpp"
-#include "components/AABBCollider.hpp"
-#include "systems/RenderConcept.hpp"
+#include "factoryDataDriven/factoryDataDriven.hpp"
 
 namespace rtk::systems {
 class EnemySpawnerSystem final : public rtk::ecs::ISystem {
 private:
-    uint32_t _enemyTextureId;
+    rtk::factory::EntityFactory& _factory;
     float _spawnTimer{0.0f};
     float _spawnInterval{1.5f};
 
@@ -20,8 +17,8 @@ private:
     std::uniform_real_distribution<float> _distY;
 
 public:
-    EnemySpawnerSystem(uint32_t enemyTextureId)
-        : _enemyTextureId(enemyTextureId),
+    EnemySpawnerSystem(rtk::factory::EntityFactory& factory)
+        : _factory(factory),
           _rng(std::random_device{}()),
           _distX(1920.0f, 2920.0f),
           _distY(200.0f, 400.0f) {}
@@ -36,35 +33,14 @@ public:
         if (_spawnTimer >= _spawnInterval) {
             _spawnTimer = 0.0f;
 
-            auto enemyEntity = reg.spawn_entity();
+            auto enemyEntity = _factory.createFromBlueprint(reg, "enemyBidos");
 
-            component::Transform transform{};
-            transform.position = {_distX(_rng), _distY(_rng)};
-            transform.rotation = 0.f;
-            transform.scale = {1.f, 1.f};
+            auto* transform = reg.get_components<component::Transform>().get(enemyEntity);
 
-            component::Velocity velocity{-200.0f, 0.0f};
-
-            rtk::ecs::concepts::SpriteData sprite{};
-            sprite.size = {64.f, 64.f};
-            sprite.origin = {0.f, 0.f};
-            sprite.textureRect = {0, 0, 64, 64};
-            sprite.color = {255, 255, 255, 255};
-            sprite.textureId = _enemyTextureId;
-
-            component::AABBCollider collider{};
-            collider.offsetX = 0.f;
-            collider.offsetY = 0.f;
-            collider.width = 64.f;
-            collider.height = 64.f;
-            collider.layer = Collider::CollisionLayer::Enemy;
-            collider.mask = Collider::CollisionLayer::PlayerProjectile | Collider::CollisionLayer::Player;
-
-            reg.get_components<component::Transform>().insert_at(enemyEntity, transform);
-            reg.get_components<component::Velocity>().insert_at(enemyEntity, velocity);
-            reg.get_components<rtk::ecs::concepts::SpriteData>().insert_at(enemyEntity, sprite);
-            reg.get_components<component::AABBCollider>().insert_at(enemyEntity, collider);
-            reg.get_components<component::Enemy>().insert_at(enemyEntity, {});
+            if (transform) {
+                transform->position.x = _distX(_rng);
+                transform->position.y = _distY(_rng);
+            }
         }
     }
 

@@ -36,7 +36,7 @@ private:
   void registerComponents(rtk::EngineContext &context);
   void createBindings();
   void subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId);
-  void addSystems(rtk::EngineContext &context, uint32_t bulletTexture, uint32_t enemyTexture);
+  void addSystems(rtk::EngineContext &context);
   void loadEntityBluePrint(rtk::EngineContext &context);
   
   rtk::RenderWindow _window;
