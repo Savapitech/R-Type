@@ -80,7 +80,7 @@ Actions:
 ```cpp
 enum class InputAction : std::uint8_t
 {
-    None = 0x00,
+    NoneAction = 0x00,
     Up = 0x01,
     Down = 0x02,
     Left = 0x04,
@@ -97,7 +97,7 @@ Example:
 Up + Right + Shoot = 0x19
 ```
 
-The client also sends `None` when no key is pressed.
+The client also sends `NoneAction` when no key is pressed.
 
 The server ignores inputs with a sequence older than the last processed input.
 

@@ -55,7 +55,6 @@ void Game::onLoad(rtk::EngineContext &context) {
     registerBuilders(context);
     loadEntityBluePrint(context);
 
-    _networkClient.setEventBus(context.eventBus);
     _networkClient.connect("127.0.0.1", "4242");
 
     uint32_t shootSoundId = _adapterAudioManager.addSound("assets/shoot.wav");
@@ -235,6 +234,14 @@ void Game::addSystems(rtk::EngineContext &context) {
 bool Game::shouldContinue() const { return !_inputState.closeRequested; }
 
 void Game::onUpdate(rtk::EngineContext &context, float dt) {
+  NetworkEvent netEvent;
+  while (_networkClient.pollEvent(netEvent)) {
+    if (netEvent.type == NetworkEventType::Connected) {
+      context.eventBus.publish(rtype::events::ConnectedToServerEvent{});
+    } else if (netEvent.type == NetworkEventType::Rejected) {
+      context.eventBus.publish(rtype::events::ConnectionRejectedEvent{});
+    }
+  }
   _sceneManager.update(context, _inputState, dt);
 }
 

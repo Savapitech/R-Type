@@ -4,6 +4,7 @@
 #include <nlohmann/json.hpp>
 
 #include <Registry.hpp>
+#include <cstdint>
 
 namespace component {
     struct NetworkEntity {

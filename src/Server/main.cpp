@@ -1,26 +1,26 @@
-#include <chrono>
-#include <cstdint>
 #include <cstdlib>
 #include <exception>
 #include <iostream>
-#include <thread>
 
-#include "Server.hpp"
+#include "GameEngine.hpp"
+#include "game.hpp"
 
 #define DEFAULT_PORT 4242
 
-int main() {
+int main(int argc, char *argv[]) {
   try {
-    rtype::server::Server server(DEFAULT_PORT);
+    std::uint16_t port = DEFAULT_PORT;
+    if (argc > 1) {
+      port = static_cast<std::uint16_t>(std::stoi(argv[1]));
+    }
+    rtype::server::Game game(port);
+    rtk::GameEngine engine;
 
-    server.start();
+    engine.setFPS(60);
 
-    std::cout << "Server started on port " << DEFAULT_PORT << std::endl;
-
-    for (;;)
-      ;
+    return engine.run(game);
   } catch (const std::exception &error) {
-    std::cerr << error.what() << std::endl;
+    std::cerr << "SERVER: " << error.what() << '\n';
     return EXIT_FAILURE;
   }
 }
