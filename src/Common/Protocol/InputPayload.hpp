@@ -6,7 +6,7 @@
 
 namespace rtype::protocol {
 enum class InputAction : std::uint8_t {
-  None = 0x00,
+  NoneAction = 0x00,
   Up = 0x01,
   Down = 0x02,
   Left = 0x04,
@@ -26,7 +26,7 @@ constexpr bool hasAction(InputAction actions, InputAction action) {
 struct InputPayload {
   be32 inputSequence;
   be32 clientTick;
-  InputAction actions = InputAction::None;
+  InputAction actions = InputAction::NoneAction;
 };
 
 static_assert(sizeof(InputPayload) ==
