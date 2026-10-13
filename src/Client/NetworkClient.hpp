@@ -10,8 +10,11 @@
 #include <vector>
 #include <array>
 #include <string>
+#include <variant>
 
 #include "Protocol/MessageType.hpp"
+#include "Protocol/EntityPayload.hpp"
+#include "Protocol/SnapshotPayload.hpp"
 #include "protocol/MessageHeader.hpp"
 #include "tracking/PacketTracker.hpp"
 #include "Protocol/InputPayload.hpp"
@@ -32,6 +35,17 @@ struct NetworkEvent {
   std::vector<std::uint8_t> payload;
 };
 
+using ReplicationPayload = std::variant<
+    protocol::CreateEntityPayload,
+    protocol::DestroyEntityPayload,
+    protocol::SnapshotPayload
+>;
+
+struct ReplicationEvent {
+    std::uint32_t connectionId = 0;
+    ReplicationPayload payload;
+};
+
 class NetworkClient {
 private:
     asio::io_context _ioContext;
@@ -47,11 +61,13 @@ private:
     std::uint32_t _nextInputSequence = 1;
     std::mutex _eventMutex;
     std::queue<NetworkEvent> _events;
+    std::queue<ReplicationEvent> _replicationEvents;
 
     void startReceive();
     void handleDatagram(std::size_t size);
     void handleHandshake(const std::uint8_t *data, std::size_t size);
     void handleConnectedPackets(const std::uint8_t *data, std::size_t size);
+    void handleReplicationMessage(std::uint32_t connectionId, protocol::MessageType type, const std::vector<std::uint8_t> &payload);
     void doSend(std::vector<std::uint8_t> data);
     void pushEvent(NetworkEvent event);
 
@@ -65,6 +81,7 @@ public:
     void sendInput(std::uint32_t clientTick, rtype::protocol::InputAction actions);
     void send(const std::vector<std::uint8_t> &data);
     bool pollEvent(NetworkEvent &event);
+    bool pollReplicationEvent(ReplicationEvent &event);
     bool isConnected() const;
     bool isRunning() const;
     std::uint32_t getConnectionId() const;

@@ -392,6 +392,46 @@ set_tests_properties(
         TIMEOUT 15
 )
 
+add_executable(test_replication_integration
+    tests/network/testReplicationIntegration.cpp
+    src/Server/Server.cpp
+)
+
+target_include_directories(test_replication_integration
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/Server"
+)
+
+target_compile_features(test_replication_integration
+    PRIVATE
+        cxx_std_20
+)
+
+target_link_libraries(test_replication_integration
+    PRIVATE
+        NetworkClientLib
+        Network
+        CommonProtocole
+)
+
+set_target_properties(test_replication_integration
+    PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY
+            "${CMAKE_BINARY_DIR}/tests"
+)
+
+add_test(
+    NAME ReplicationIntegration
+    COMMAND test_replication_integration
+)
+
+set_tests_properties(
+    ReplicationIntegration
+    PROPERTIES
+        RUN_SERIAL TRUE
+        TIMEOUT 15
+)
+
     function(enable_test_assertions target)
       target_compile_options(${target} PRIVATE -UNDEBUG)
     endfunction()
