@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include "NetworkIdGenerator.hpp"
+
 #include "EngineContext.hpp"
 #include "Protocol/EntityPayload.hpp"
 #include "Protocol/SnapshotPayload.hpp"
@@ -173,7 +175,8 @@ void Game::handleConnections(rtk::EngineContext &context) {
       if (_players.contains(connectionId))
         continue;
 
-      const auto entity = context._entityFactory.createNetwork(context.registry, "player", connectionId);
+      const std::uint32_t playerNetId = rtype::server::NetworkIdGenerator::getInstance().getNextId();
+      const auto entity = context._entityFactory.createNetwork(context.registry, "player", playerNetId);
 
       auto *transform = context.registry.get_components<component::Transform>().get(entity);
       if (transform) {
@@ -185,14 +188,17 @@ void Game::handleConnections(rtk::EngineContext &context) {
       sendExistingPlayers(connectionId, context);
       _players[connectionId] = entity;
       broadcastPlayerCreated(connectionId, context);
-      std::cout << "[Server] Player connected: " << connectionId << std::endl;
+      std::cout << "[Server] Player connected: " << connectionId << " (NetworkId: " << playerNetId << ")" << std::endl;
 
     } else if (connEvent.type == Server::ConnectionEvent::Type::Disconnected) {
       std::cout << "[Server] Removing player entity for connection "
                 << connEvent.connectionId << std::endl;
       auto it = _players.find(connEvent.connectionId);
       if (it != _players.end()) {
-        broadcastPlayerDestroyed(connectionId);
+        auto *netEnt = context.registry.get_components<component::NetworkEntity>().get(it->second);
+        if (netEnt) {
+          broadcastPlayerDestroyed(connectionId, netEnt->id);
+        }
         context.registry.kill_entity(it->second);
         _players.erase(it);
       }
@@ -243,7 +249,7 @@ void Game::handleInputs(rtk::EngineContext &context) {
     } else if (controllable->isChargingShoot) {
       controllable->isChargingShoot = false;
 
-      std::uint32_t bulletNetId = _nextBulletId++;
+      std::uint32_t bulletNetId = rtype::server::NetworkIdGenerator::getInstance().getNextId();
 
       auto bulletEntity = context._entityFactory.createNetwork(context.registry, "bullet", bulletNetId);
       auto *bulletTransform = context.registry.get_components<component::Transform>().get(bulletEntity);
@@ -283,14 +289,16 @@ bool Game::shouldContinue() const {
 }
 
 float Game::createGate(rtk::EngineContext &context, float startX, bool symmetric) {
-  auto gateEntity = context._entityFactory.createFromBlueprint(context.registry, "gate");
+  auto gateEntity = context._entityFactory.createNetwork(
+      context.registry, "gate", rtype::server::NetworkIdGenerator::getInstance().getNextId());
   auto *transform = context.registry.get_components<component::Transform>().get(gateEntity);
   if (transform) {
     transform->position.x = startX;
   }
 
   if (symmetric) {
-    auto ceilingEntity = context._entityFactory.createFromBlueprint(context.registry, "gate");
+    auto ceilingEntity = context._entityFactory.createNetwork(
+        context.registry, "gate", rtype::server::NetworkIdGenerator::getInstance().getNextId());
     auto *ceilTransform = context.registry.get_components<component::Transform>().get(ceilingEntity);
     if (ceilTransform) {
       ceilTransform->position.x = startX;
@@ -301,14 +309,16 @@ float Game::createGate(rtk::EngineContext &context, float startX, bool symmetric
 }
 
 float Game::createRamp(rtk::EngineContext &context, float startX, bool symmetric) {
-  auto rampEntity = context._entityFactory.createFromBlueprint(context.registry, "ramp");
+  auto rampEntity = context._entityFactory.createNetwork(
+      context.registry, "ramp", rtype::server::NetworkIdGenerator::getInstance().getNextId());
   auto *transform = context.registry.get_components<component::Transform>().get(rampEntity);
   if (transform) {
     transform->position.x = startX;
   }
 
   if (symmetric) {
-    auto ceilingEntity = context._entityFactory.createFromBlueprint(context.registry, "ramp");
+    auto ceilingEntity = context._entityFactory.createNetwork(
+        context.registry, "ramp", rtype::server::NetworkIdGenerator::getInstance().getNextId());
     auto *ceilTransform = context.registry.get_components<component::Transform>().get(ceilingEntity);
     if (ceilTransform) {
       ceilTransform->position.x = startX;
@@ -319,14 +329,16 @@ float Game::createRamp(rtk::EngineContext &context, float startX, bool symmetric
 }
 
 float Game::createReactor(rtk::EngineContext &context, float startX, bool symmetric) {
-  auto reactorEntity = context._entityFactory.createFromBlueprint(context.registry, "reactor");
+  auto reactorEntity = context._entityFactory.createNetwork(
+      context.registry, "reactor", rtype::server::NetworkIdGenerator::getInstance().getNextId());
   auto *transform = context.registry.get_components<component::Transform>().get(reactorEntity);
   if (transform) {
     transform->position.x = startX;
   }
 
   if (symmetric) {
-    auto ceilingEntity = context._entityFactory.createFromBlueprint(context.registry, "reactor");
+    auto ceilingEntity = context._entityFactory.createNetwork(
+        context.registry, "reactor", rtype::server::NetworkIdGenerator::getInstance().getNextId());
     auto *ceilTransform = context.registry.get_components<component::Transform>().get(ceilingEntity);
     if (ceilTransform) {
       ceilTransform->position.x = startX;
@@ -337,14 +349,16 @@ float Game::createReactor(rtk::EngineContext &context, float startX, bool symmet
 }
 
 float Game::createHighGround(rtk::EngineContext &context, float startX, bool symmetric) {
-  auto highGroundEntity = context._entityFactory.createFromBlueprint(context.registry, "high_ground");
+  auto highGroundEntity = context._entityFactory.createNetwork(
+      context.registry, "high_ground", rtype::server::NetworkIdGenerator::getInstance().getNextId());
   auto *transform = context.registry.get_components<component::Transform>().get(highGroundEntity);
   if (transform) {
     transform->position.x = startX;
   }
 
   if (symmetric) {
-    auto ceilingEntity = context._entityFactory.createFromBlueprint(context.registry, "high_ground");
+    auto ceilingEntity = context._entityFactory.createNetwork(
+        context.registry, "high_ground", rtype::server::NetworkIdGenerator::getInstance().getNextId());
     auto *ceilTransform = context.registry.get_components<component::Transform>().get(ceilingEntity);
     if (ceilTransform) {
       ceilTransform->position.x = startX;
@@ -355,14 +369,16 @@ float Game::createHighGround(rtk::EngineContext &context, float startX, bool sym
 }
 
 float Game::createLowGround(rtk::EngineContext &context, float startX, bool symmetric) {
-  auto lowGroundEntity = context._entityFactory.createFromBlueprint(context.registry, "low_ground");
+  auto lowGroundEntity = context._entityFactory.createNetwork(
+      context.registry, "low_ground", rtype::server::NetworkIdGenerator::getInstance().getNextId());
   auto *transform = context.registry.get_components<component::Transform>().get(lowGroundEntity);
   if (transform) {
     transform->position.x = startX;
   }
 
   if (symmetric) {
-    auto ceilingEntity = context._entityFactory.createFromBlueprint(context.registry, "low_ground");
+    auto ceilingEntity = context._entityFactory.createNetwork(
+        context.registry, "low_ground", rtype::server::NetworkIdGenerator::getInstance().getNextId());
     auto *ceilTransform = context.registry.get_components<component::Transform>().get(ceilingEntity);
     if (ceilTransform) {
       ceilTransform->position.x = startX;
@@ -373,14 +389,16 @@ float Game::createLowGround(rtk::EngineContext &context, float startX, bool symm
 }
 
 float Game::createMediumGround(rtk::EngineContext &context, float startX, bool symmetric) {
-  auto groundEntity = context._entityFactory.createFromBlueprint(context.registry, "medium_ground");
+  auto groundEntity = context._entityFactory.createNetwork(
+      context.registry, "medium_ground", rtype::server::NetworkIdGenerator::getInstance().getNextId());
   auto *transform = context.registry.get_components<component::Transform>().get(groundEntity);
   if (transform) {
     transform->position.x = startX;
   }
 
   if (symmetric) {
-    auto ceilingEntity = context._entityFactory.createFromBlueprint(context.registry, "medium_ground");
+    auto ceilingEntity = context._entityFactory.createNetwork(
+        context.registry, "medium_ground", rtype::server::NetworkIdGenerator::getInstance().getNextId());
     auto *ceilTransform = context.registry.get_components<component::Transform>().get(ceilingEntity);
     if (ceilTransform) {
       ceilTransform->position.x = startX;
@@ -426,15 +444,17 @@ void Game::onUnload(rtk::EngineContext &) {
 
 void Game::sendExistingPlayers(std::uint32_t connectionId, rtk::EngineContext &context) {
   auto &transforms = context.registry.get_components<component::Transform>();
+  auto &networkEntities = context.registry.get_components<component::NetworkEntity>();
 
   for (const auto &[playerId, entity] : _players) {
     const auto *transform = transforms.get(entity);
-    if (!transform)
+    const auto *netEnt = networkEntities.get(entity);
+    if (!transform || !netEnt)
       continue;
 
     protocol::CreateEntityPayload payload;
 
-    payload.entityId = playerId;
+    payload.entityId = netEnt->id;
     payload.blueprintId = context._entityFactory.getArchetypeID("player");
     payload.x = transform->position.x;
     payload.y = transform->position.y;
@@ -448,24 +468,25 @@ void Game::broadcastPlayerCreated(std::uint32_t connectionId, rtk::EngineContext
     return;
 
   const auto *transform = context.registry.get_components<component::Transform>().get(it->second);
-    if (!transform)
-      return;
+  const auto *netEnt = context.registry.get_components<component::NetworkEntity>().get(it->second);
+  if (!transform || !netEnt)
+    return;
 
-    protocol::CreateEntityPayload payload;
+  protocol::CreateEntityPayload payload;
 
-    payload.entityId = connectionId;
-    payload.blueprintId = context._entityFactory.getArchetypeID("player");
-    payload.x = transform->position.x;
-    payload.y = transform->position.y;
-    for (const auto &[playerId, entity] : _players) {
-      (void)entity;
-      _server.sendCreateEntity(playerId, payload);
-    }
+  payload.entityId = netEnt->id;
+  payload.blueprintId = context._entityFactory.getArchetypeID("player");
+  payload.x = transform->position.x;
+  payload.y = transform->position.y;
+  for (const auto &[playerId, entity] : _players) {
+    (void)entity;
+    _server.sendCreateEntity(playerId, payload);
+  }
 }
 
-void Game::broadcastPlayerDestroyed(std::uint32_t connectionId) {
+void Game::broadcastPlayerDestroyed(std::uint32_t connectionId, std::uint32_t networkId) {
   protocol::DestroyEntityPayload payload;
-  payload.entityId = connectionId;
+  payload.entityId = networkId;
 
   for (const auto &[playerId, entity] : _players) {
     (void)entity;

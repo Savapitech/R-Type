@@ -3,6 +3,7 @@
     "transform": { "position": { "x": 0.0, "y": 656.0 }, "scale": { "x": 2.0, "y": 2.0 }, "rotation": 0.0 },
     "sprite": { "texture": "assets/stage1.png", "size": { "w": 64.0, "h": 32.0 }, "textureRect": { "x": 0, "y": 208, "w": 64, "h": 32 }, "origin": { "x": 0.0, "y": 0.0 }, "color": { "r": 255, "g": 255, "b": 255, "a": 255 }, "layer": -1 },
     "collider": { "width": 64.0, "height": 32.0, "layer": "Environment", "mask": ["Player", "Enemy", "PlayerProjectile", "EnemyProjectile"] },
-    "velocity": { "x": -50.0, "y": 0.0 }
+    "velocity": { "x": -50.0, "y": 0.0 },
+    "networkEntity": {}
   }
 }

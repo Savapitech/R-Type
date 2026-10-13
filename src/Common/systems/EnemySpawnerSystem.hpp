@@ -5,6 +5,7 @@
 #include "Logger/Logger.hpp"
 #include "components/Transform.hpp"
 #include "factoryDataDriven/factoryDataDriven.hpp"
+#include "NetworkIdGenerator.hpp"
 
 namespace rtype::events {
     struct EnemySpawnedEvent {
@@ -22,8 +23,6 @@ private:
 
     float _spawnTimer{0.0f};
     float _spawnInterval{1.5f};
-
-    std::uint32_t _nextEnemyNetworkId{10000}; 
 
     std::mt19937 _rng;
     std::uniform_real_distribution<float> _distX;
@@ -47,7 +46,7 @@ public:
         if (_spawnTimer >= _spawnInterval) {
             _spawnTimer = 0.0f;
 
-            std::uint32_t netId = _nextEnemyNetworkId++;
+            std::uint32_t netId = rtype::server::NetworkIdGenerator::getInstance().getNextId();
 
             auto enemyEntity = _factory.createNetwork(reg, "enemyBidos", netId);
             auto* transform = reg.get_components<component::Transform>().get(enemyEntity);

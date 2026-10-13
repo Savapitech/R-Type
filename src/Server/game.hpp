@@ -38,10 +38,9 @@ private:
   float createMediumGround(rtk::EngineContext &context, float startX, bool symmetric);
   void sendExistingPlayers(std::uint32_t connectionId, rtk::EngineContext &context);
   void broadcastPlayerCreated(std::uint32_t connectionId, rtk::EngineContext &context);
-  void broadcastPlayerDestroyed(std::uint32_t connectionId);
+  void broadcastPlayerDestroyed(std::uint32_t connectionId, std::uint32_t networkId);
   void sendSnapshots(rtk::EngineContext &context);
 
-  std::uint32_t _nextBulletId{20000};
   std::uint32_t _serverTick = 0;
   Server _server;
   bool _running{true};
