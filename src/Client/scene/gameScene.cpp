@@ -16,7 +16,6 @@ GameScene::GameScene(rtk::RenderWindow &window) : _window(window) {}
 void GameScene::onEnter(rtk::EngineContext &context) {
   createParallaxBackground(context, "background_stars");
   createParallaxBackground(context, "background_fast_stars");
-  createBackground(context);
 }
 
 std::optional<SceneType> GameScene::onUpdate(rtk::EngineContext &context,

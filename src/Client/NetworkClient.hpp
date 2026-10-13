@@ -79,6 +79,7 @@ public:
     bool connect(const std::string &host, const std::string &port);
     void sendHello();
     void sendInput(std::uint32_t clientTick, rtype::protocol::InputAction actions);
+    void sendQueryEntity(std::uint32_t networkId);
     void send(const std::vector<std::uint8_t> &data);
     bool pollEvent(NetworkEvent &event);
     bool pollReplicationEvent(ReplicationEvent &event);

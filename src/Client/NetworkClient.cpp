@@ -135,6 +135,45 @@ void NetworkClient::sendInput(
         }
     );
 }
+
+void NetworkClient::sendQueryEntity(std::uint32_t networkId) {
+    if (!_running.load() || !_connected.load())
+        return;
+
+    asio::post(
+        _ioContext,
+        [this, networkId]() {
+            if (!_running.load() || !_connected.load())
+                return;
+
+            PacketWriter writer;
+
+            PacketHeader packetHeader;
+            packetHeader.connectionId = _connectionId.load();
+            packetHeader.sequence = _tracker.getNextSequence();
+            packetHeader.ack = _tracker.getAck();
+            packetHeader.ackBits = _tracker.getAckBits();
+
+            if (!packetHeader.serialize(writer))
+                return;
+
+            MessageHeader messageHeader;
+            messageHeader.setType(protocol::toMessageId(protocol::MessageType::QueryEntity));
+            messageHeader.size = static_cast<std::uint16_t>(protocol::QueryEntityPayload::SIZE);
+
+            if (!messageHeader.serialize(writer))
+                return;
+
+            protocol::QueryEntityPayload payload;
+            payload.entityId = networkId;
+            if (!payload.serialize(writer))
+                return;
+
+            doSend(writer.getData());
+        }
+    );
+}
+
 void NetworkClient::send(const std::vector<uint8_t> &data) {
   if (!_running.load())
     return;

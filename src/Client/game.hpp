@@ -7,6 +7,7 @@
 
 #include "sceneManager/sceneManager.hpp"
 #include "factoryDataDriven/factoryDataDriven.hpp"
+#include <unordered_set>
 
 #include "rtkWindowAdapter.hpp"
 #include "rtkAudiManagerAdapter.hpp"
@@ -44,6 +45,7 @@ private:
   void applySnapshot(rtk::EngineContext &context, const protocol::SnapshotPayload &payload);
 
   std::unordered_map<protocol::NetworkEntityId,std::size_t> _networkEntities;
+  std::unordered_set<std::uint32_t> _pendingEntityQueries;
   std::uint32_t _lastServerTick = 0;
   rtk::RenderWindow _window;
   RtkWindowAdapter _adapter;

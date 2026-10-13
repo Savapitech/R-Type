@@ -29,12 +29,18 @@ public:
     std::uint32_t connectionId;
   };
 
+  struct QueryEntityEvent {
+    std::uint32_t connectionId;
+    std::uint32_t networkId;
+  };
+
   void start();
   void stop();
   void send(std::uint32_t connectionId,
             const std::vector<std::uint8_t> &payload);
   bool pollInput(InputEvent &event);
   bool pollConnectionEvent(ConnectionEvent &event);
+  bool pollQueryEntity(QueryEntityEvent &event);
 
   bool sendCreateEntity(std::uint32_t connectionId, const protocol::CreateEntityPayload &payload);
   bool sendDestroyEntity(std::uint32_t connectionId, const protocol::DestroyEntityPayload &payload);
@@ -52,6 +58,9 @@ private:
 
   std::mutex _connectionMutex;
   std::queue<ConnectionEvent> _connectionQueue;
+
+  std::mutex _queryMutex;
+  std::queue<QueryEntityEvent> _queryQueue;
 
   std::function<void(std::uint32_t connectionId)> _onClientConnected;
   std::function<void(std::uint32_t connectionId)> _onClientDisconnected;

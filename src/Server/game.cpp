@@ -185,7 +185,7 @@ void Game::handleConnections(rtk::EngineContext &context) {
             150.0f + static_cast<float>((connEvent.connectionId - 1) % 4) * 100.0f};
       }
 
-      sendExistingPlayers(connectionId, context);
+      sendExistingEntities(connectionId, context);
       _players[connectionId] = entity;
       broadcastPlayerCreated(connectionId, context);
       std::cout << "[Server] Player connected: " << connectionId << " (NetworkId: " << playerNetId << ")" << std::endl;
@@ -274,6 +274,7 @@ void Game::handleInputs(rtk::EngineContext &context) {
 void Game::onUpdate(rtk::EngineContext &context, float) {
   handleConnections(context);
   handleInputs(context);
+  handleEntityQueries(context);
 
   _serverTick++;
 
@@ -442,23 +443,48 @@ void Game::onUnload(rtk::EngineContext &) {
   std::cout << "[Server] Game simulation stopped" << std::endl;
 }
 
-void Game::sendExistingPlayers(std::uint32_t connectionId, rtk::EngineContext &context) {
+void Game::sendExistingEntities(std::uint32_t connectionId, rtk::EngineContext &context) {
+  auto view = context.registry.view<component::NetworkEntity, component::Transform>();
   auto &transforms = context.registry.get_components<component::Transform>();
   auto &networkEntities = context.registry.get_components<component::NetworkEntity>();
 
-  for (const auto &[playerId, entity] : _players) {
+  for (auto entity : view) {
     const auto *transform = transforms.get(entity);
     const auto *netEnt = networkEntities.get(entity);
     if (!transform || !netEnt)
       continue;
 
     protocol::CreateEntityPayload payload;
-
     payload.entityId = netEnt->id;
-    payload.blueprintId = context._entityFactory.getArchetypeID("player");
+    payload.blueprintId = netEnt->archetypeId;
     payload.x = transform->position.x;
     payload.y = transform->position.y;
     _server.sendCreateEntity(connectionId, payload);
+  }
+}
+
+void Game::handleEntityQueries(rtk::EngineContext &context) {
+  Server::QueryEntityEvent queryEvent;
+  while (_server.pollQueryEntity(queryEvent)) {
+    auto view = context.registry.view<component::NetworkEntity, component::Transform>();
+    auto &transforms = context.registry.get_components<component::Transform>();
+    auto &networkEntities = context.registry.get_components<component::NetworkEntity>();
+
+    for (auto entity : view) {
+      const auto *netEnt = networkEntities.get(entity);
+      if (netEnt && netEnt->id == queryEvent.networkId) {
+        const auto *transform = transforms.get(entity);
+        if (transform) {
+          protocol::CreateEntityPayload payload;
+          payload.entityId = netEnt->id;
+          payload.blueprintId = netEnt->archetypeId;
+          payload.x = transform->position.x;
+          payload.y = transform->position.y;
+          _server.sendCreateEntity(queryEvent.connectionId, payload);
+        }
+        break;
+      }
+    }
   }
 }
 

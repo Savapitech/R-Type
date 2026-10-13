@@ -81,6 +81,19 @@ void Server::handleMessage(std::uint32_t connectionId, MessageId type,
     break;
 }
 
+    case protocol::MessageType::QueryEntity: {
+      PacketReader reader(payload);
+      protocol::QueryEntityPayload query;
+      if (!query.deserialize(reader) || !reader.isEnd()) {
+        return;
+      }
+      {
+        std::lock_guard<std::mutex> lock(_queryMutex);
+        _queryQueue.push({connectionId, query.entityId});
+      }
+      break;
+    }
+
   default:
     break;
   }
@@ -105,6 +118,17 @@ bool Server::pollConnectionEvent(ConnectionEvent &event) {
 
     event = _connectionQueue.front();
     _connectionQueue.pop();
+    return true;
+}
+
+bool Server::pollQueryEntity(QueryEntityEvent &event) {
+    std::lock_guard<std::mutex> lock(_queryMutex);
+
+    if (_queryQueue.empty())
+        return false;
+
+    event = _queryQueue.front();
+    _queryQueue.pop();
     return true;
 }
 
@@ -149,9 +173,11 @@ bool Server::sendDestroyEntity(std::uint32_t connectionId, const protocol::Destr
 bool Server::sendSnapshot(std::uint32_t connectionId, const protocol::SnapshotPayload &payload) {
   PacketWriter writer;
 
-  if (!payload.serialize(writer))
+  if (!payload.serialize(writer)){
+    std::cout << "SEND PAYLOAD FAILED\n";
     return false;
-
+  }
+  std::cout << "SEND PAYLOAD\n";
   return sendMessage(connectionId, protocol::MessageType::Snapshot, writer.getData());
 }
 } // namespace rtype::server

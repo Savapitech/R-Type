@@ -238,7 +238,7 @@ void Game::addSystems(rtk::EngineContext &context) {
     //context.scheduler.add<rtk::systems::EnemySpawnerSystem>(rtk::ecs::Order::Update, std::ref(context._entityFactory));
     context.scheduler.add<rtk::systems::EnemyGCSystem>(rtk::ecs::Order::SndUpdate, context.eventBus);
     context.scheduler.add<rtk::systems::InputSystem<RtkWindowAdapter>>(rtk::ecs::Order::Input, std::ref(_adapter), _inputState, _inputMapping);
-    //context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
+    context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
     context.scheduler.add<rtk::systems::RenderSystem<RtkWindowAdapter>>(rtk::ecs::Order::Render, std::ref(_adapter));
     context.scheduler.add<rtk::systems::DebugCollisionSystem>(rtk::ecs::Order::Physics, _collisionBuffer, _window, _inputState);
     context.scheduler.add<rtk::systems::ColliderSystem>(rtk::ecs::Order::Physics, _collisionBuffer, 64.f, context.eventBus);
@@ -263,17 +263,37 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
   while (_networkClient.pollReplicationEvent(repEvent)) {
       if (std::holds_alternative<protocol::CreateEntityPayload>(repEvent.payload)) {
           const auto& createPayload = std::get<protocol::CreateEntityPayload>(repEvent.payload);
+          _pendingEntityQueries.erase(createPayload.entityId);
+
+          bool alreadyExists = false;
+          auto viewNet = context.registry.view<component::NetworkEntity>();
+          for (auto e : viewNet) {
+              auto *netEnt = context.registry.get_components<component::NetworkEntity>().get(e);
+              if (netEnt && netEnt->id == createPayload.entityId) {
+                  alreadyExists = true;
+                  break;
+              }
+          }
+          if (alreadyExists)
+              continue;
 
           auto entity = context._entityFactory.createNetwork(
               context.registry,
               createPayload.blueprintId,
               createPayload.entityId
           );
+          _networkEntities[createPayload.entityId] = entity;
 
           auto *transform = context.registry.get_components<component::Transform>().get(entity);
           if (transform) {
               transform->position.x = createPayload.x;
               transform->position.y = createPayload.y;
+          }
+          if (createPayload.y < 50.0f) {
+              auto *sprite = context.registry.get_components<rtk::ecs::concepts::SpriteData>().get(entity);
+              if (sprite) {
+                  sprite->flags = 1 << 1;
+              }
           }
           LOG_INFO(std::to_string(createPayload.blueprintId));
 
@@ -281,6 +301,8 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
 
       else if (std::holds_alternative<protocol::DestroyEntityPayload>(repEvent.payload)) {
           const auto& destroyPayload = std::get<protocol::DestroyEntityPayload>(repEvent.payload);
+          _pendingEntityQueries.erase(destroyPayload.entityId);
+          _networkEntities.erase(destroyPayload.entityId);
 
           auto view = context.registry.view<component::NetworkEntity>();
           for (auto e : view) {
@@ -300,8 +322,7 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           auto& networkEntities = context.registry.get_components<component::NetworkEntity>();
 
           for (const auto& netData : snapshotPayload.entities) {
-              //if (netData.entityId == _networkClient.getConnectionId()) continue;
-
+              bool found = false;
               for (auto e : view) {
                   auto *netEnt = networkEntities.get(e);
                   if (netEnt && netEnt->id == netData.entityId) {
@@ -310,7 +331,14 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
                           transform->position.x = netData.x;
                           transform->position.y = netData.y;
                       }
+                      found = true;
                       break;
+                  }
+              }
+              if (!found) {
+                  if (!_pendingEntityQueries.contains(netData.entityId)) {
+                      _pendingEntityQueries.insert(netData.entityId);
+                      _networkClient.sendQueryEntity(netData.entityId);
                   }
               }
           }
@@ -380,7 +408,7 @@ void Game::applySnapshot(rtk::EngineContext &context, const protocol::SnapshotPa
     transform->position = {state.x, state.y};
   }
     _lastServerTick = payload.serverTick;
-    //LOG_INFO("[SNAPSHOT APPLIED]");
+    LOG_INFO("[SNAPSHOT APPLIED]");
 }
 
 void Game::handleReplication(rtk::EngineContext &context) {
