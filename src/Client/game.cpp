@@ -264,6 +264,7 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
       if (std::holds_alternative<protocol::CreateEntityPayload>(repEvent.payload)) {
           const auto& createPayload = std::get<protocol::CreateEntityPayload>(repEvent.payload);
           _pendingEntityQueries.erase(createPayload.entityId);
+          _destroyedEntities.erase(createPayload.entityId);
 
           bool alreadyExists = false;
           auto viewNet = context.registry.view<component::NetworkEntity>();
@@ -303,6 +304,7 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           const auto& destroyPayload = std::get<protocol::DestroyEntityPayload>(repEvent.payload);
           _pendingEntityQueries.erase(destroyPayload.entityId);
           _networkEntities.erase(destroyPayload.entityId);
+          _destroyedEntities.insert(destroyPayload.entityId);
 
           auto view = context.registry.view<component::NetworkEntity>();
           for (auto e : view) {
@@ -336,7 +338,7 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
                   }
               }
               if (!found) {
-                  if (!_pendingEntityQueries.contains(netData.entityId)) {
+                  if (!_destroyedEntities.contains(netData.entityId) && !_pendingEntityQueries.contains(netData.entityId)) {
                       _pendingEntityQueries.insert(netData.entityId);
                       _networkClient.sendQueryEntity(netData.entityId);
                   }

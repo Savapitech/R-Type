@@ -2,6 +2,7 @@
 #include "Logger/Logger.hpp"
 #include "components/Transform.hpp"
 #include "components/Bullet.hpp"
+#include "components/Dead.hpp"
 #include <ISystem.hpp>
 
 namespace rtk::systems {
@@ -23,7 +24,7 @@ public:
       if (!transform) continue;
 
       if (transform->position.x > 1920.0f) {
-        reg.kill_entity(entity);
+        reg.get_components<component::Dead>().insert_at(entity, {});
       }
     }
   }

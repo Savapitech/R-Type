@@ -118,14 +118,15 @@ public:
     std::size_t createNetwork(rtk::ecs::Registry& reg, ArchetypeID archetypeId, std::uint32_t networkId) {
         std::size_t entity = createFromBlueprint(reg, archetypeId);
         reg.get_components<component::NetworkEntity>().insert_at(
-            entity, component::NetworkEntity{networkId});
+            entity, component::NetworkEntity{networkId, archetypeId});
         return entity;
     }
 
     std::size_t createNetwork(rtk::ecs::Registry& reg, const std::string& blueprintName, std::uint32_t networkId) {
+        ArchetypeID archetypeId = getArchetypeID(blueprintName);
         std::size_t entity = createFromBlueprint(reg, blueprintName);
         reg.get_components<component::NetworkEntity>().insert_at(
-            entity, component::NetworkEntity{networkId});
+            entity, component::NetworkEntity{networkId, archetypeId});
         return entity;
     }
 };

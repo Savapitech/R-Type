@@ -46,6 +46,7 @@ private:
 
   std::unordered_map<protocol::NetworkEntityId,std::size_t> _networkEntities;
   std::unordered_set<std::uint32_t> _pendingEntityQueries;
+  std::unordered_set<std::uint32_t> _destroyedEntities;
   std::uint32_t _lastServerTick = 0;
   rtk::RenderWindow _window;
   RtkWindowAdapter _adapter;

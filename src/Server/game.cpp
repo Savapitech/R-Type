@@ -24,6 +24,7 @@
 #include "systems/BulletSystem.hpp"
 #include "systems/EnemySpawnerSystem.hpp"
 #include "systems/EnemyGarbageCollectorSystem.hpp"
+#include "ServerDeathSystem.hpp"
 
 namespace rtype::server {
 
@@ -154,12 +155,15 @@ void Game::subscribeEvents(rtk::EngineContext &context) {
 }
 
 void Game::addSystems(rtk::EngineContext &context) {
-  context.scheduler.add<rtk::systems::DeathSystem>(rtk::ecs::Order::Update);
+  context.scheduler.add<ServerDeathSystem>(
+      rtk::ecs::Order::Update, std::ref(_server), std::ref(_players));
   context.scheduler.add<rtk::systems::BulletSystem>(rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::EnemySpawnerSystem>(
     rtk::ecs::Order::Update, std::ref(context._entityFactory), std::ref(context.eventBus));
   context.scheduler.add<rtk::systems::EnemyGCSystem>(
       rtk::ecs::Order::SndUpdate, context.eventBus);
+  context.scheduler.add<ServerDeathSystem>(
+      rtk::ecs::Order::SndUpdate, std::ref(_server), std::ref(_players));
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
   context.scheduler.add<rtk::systems::ColliderSystem>(
       rtk::ecs::Order::Physics, _collisionBuffer, 64.f, context.eventBus);

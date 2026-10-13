@@ -8,6 +8,7 @@
 
 #include "components/Enemy.hpp"
 #include "components/EnemyEvent.hpp"
+#include "components/Dead.hpp"
 
 namespace rtk::systems {
 class EnemyGCSystem final : public rtk::ecs::ISystem {
@@ -33,7 +34,7 @@ public:
         }
 
         for (auto entity : entitiesToDestroy) {
-            reg.kill_entity(entity);
+            reg.get_components<component::Dead>().insert_at(entity, {});
             _eventBus.publish(rtype::events::EnemyEscapedEvent{entity});
         }
     }
