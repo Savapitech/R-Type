@@ -4,6 +4,8 @@
 #include <utility>
 
 #include "Protocol/PayloadCodec.hpp"
+#include "Protocol/MessageType.hpp"
+#include "protocol/MessageHeader.hpp"
 #include "protocol/PacketReader.hpp"
 
 namespace rtype::server {
@@ -30,7 +32,7 @@ Server::Server(std::uint16_t port) : _network(port) {
     }
   });
 
-  _network.setOnMessage([this](std::uint32_t connectionId, MessageType type,
+  _network.setOnMessage([this](std::uint32_t connectionId, MessageId type,
                                const std::vector<std::uint8_t> &payload) {
     handleMessage(connectionId, type, payload);
   });
@@ -47,10 +49,10 @@ void Server::send(std::uint32_t connectionId,
   _network.send(connectionId, payload);
 }
 
-void Server::handleMessage(std::uint32_t connectionId, MessageType type,
+void Server::handleMessage(std::uint32_t connectionId, MessageId type,
                            const std::vector<std::uint8_t> &payload) {
-  switch (type) {
-case MessageType::Input: {
+  switch (static_cast<protocol::MessageType>(type)) {
+    case protocol::MessageType::Input: {
     PacketReader reader(payload);
     protocol::InputPayload input;
     if (!protocol::readPayload(reader, input) || !reader.isEnd()) {

@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "Protocol/InputPayload.hpp"
+#include "Protocol/MessageType.hpp"
 #include "protocol/MessageHeader.hpp"
 #include "server/NetworkServer.hpp"
 
@@ -34,7 +35,7 @@ public:
   bool pollConnectionEvent(ConnectionEvent &event);
 
 private:
-  void handleMessage(std::uint32_t connectionId, MessageType type,
+  void handleMessage(std::uint32_t connectionId, MessageId type,
                      const std::vector<std::uint8_t> &payload);
 
   NetworkServer _network;

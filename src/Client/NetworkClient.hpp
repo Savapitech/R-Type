@@ -11,6 +11,7 @@
 #include <array>
 #include <string>
 
+#include "Protocol/MessageType.hpp"
 #include "protocol/MessageHeader.hpp"
 #include "tracking/PacketTracker.hpp"
 #include "Protocol/InputPayload.hpp"
@@ -27,7 +28,7 @@ enum class NetworkEventType {
 struct NetworkEvent {
   NetworkEventType type = NetworkEventType::Message;
   std::uint32_t connectionId = 0;
-  MessageType messageType = MessageType::Invalid;
+  rtype::protocol::MessageType messageType = protocol::MessageType::Invalid;
   std::vector<std::uint8_t> payload;
 };
 

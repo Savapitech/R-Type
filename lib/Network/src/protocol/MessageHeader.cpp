@@ -16,10 +16,10 @@ bool MessageHeader::deserialize(PacketReader &reader) {
   if (!reader.readUInt16(size))
     return false;
 
-  setType(static_cast<MessageType>(rawType));
+  setType(static_cast<MessageId>(rawType));
   return true;
 }
 
-void MessageHeader::setType(MessageType type) { _type = type; }
+void MessageHeader::setType(MessageId type) { _type = type; }
 
-MessageType MessageHeader::getType() const { return _type; }
+MessageId MessageHeader::getType() const { return _type; }

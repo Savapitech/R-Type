@@ -1,6 +1,7 @@
 #include "NetworkClient.hpp"
 #include "Protocol/BigEndian.hpp"
 #include "Protocol/InputPayload.hpp"
+#include "Protocol/MessageType.hpp"
 #include "Protocol/PayloadCodec.hpp"
 #include "config/NetworkConfig.hpp"
 #include "protocol/HandshakeHeader.hpp"
@@ -107,7 +108,7 @@ void NetworkClient::sendInput(
               return;
 
             MessageHeader messageHeader;
-            messageHeader.setType(MessageType::Input);
+            messageHeader.setType(protocol::toMessageId(protocol::MessageType::Input));
             messageHeader.size = static_cast<std::uint16_t>(
                 sizeof(rtype::protocol::InputPayload)
             );
@@ -283,7 +284,7 @@ void NetworkClient::handleConnectedPackets(const std::uint8_t *data, std::size_t
     pushEvent({
       .type = NetworkEventType::Message,
       .connectionId = header.connectionId,
-      .messageType = message.type,
+      .messageType = static_cast<protocol::MessageType>(message.type),
       .payload = std::move(message.payload)
     });
   }
