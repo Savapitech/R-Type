@@ -428,7 +428,7 @@ void Game::broadcastPlayerCreated(std::uint32_t connectionId, rtk::EngineContext
     payload.y = transform->position.y;
     for (const auto &[playerId, entity] : _players) {
       (void)entity;
-      _server.sendCreateEntity(connectionId, payload);
+      _server.sendCreateEntity(playerId, payload);
     }
 }
 
@@ -465,7 +465,7 @@ void Game::sendSnapshots(rtk::EngineContext &context) {
       continue;
 
     snapshot.entities.push_back({connectionId, transform->position.x, transform->position.y});
-    if (snapshot.entities.size() == protocol::SnapshotPayload::MAX_SIZE) {
+    if (snapshot.entities.size() == protocol::SnapshotPayload::MAX_ENTITIES) {
       flush();
     }
   }
