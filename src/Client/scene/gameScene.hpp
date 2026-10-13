@@ -36,6 +36,21 @@ public:
 
 private:
 
+ void createParallaxBackground(rtk::EngineContext &context, const std::string &bp) {
+    const float scaledWidth = 720.0f; 
+
+    for (int i = 0; i < 3; ++i) {
+        auto bg = context._entityFactory.createFromBlueprint(context.registry, bp);
+
+        auto* transform = context.registry.get_components<component::Transform>().get(bg);
+        if (transform) {
+            transform->position.x = i * scaledWidth;
+        }
+
+        _entities.push_back(bg);
+    }
+ }
+
   float createGate(rtk::EngineContext &context, float startX, bool symmetric) {
     auto gateEntity = context._entityFactory.createFromBlueprint(context.registry, "gate");
 

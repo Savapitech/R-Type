@@ -1,0 +1,21 @@
+{
+  "components": {
+    "transform": { 
+      "position": { "x": 0.0, "y": 0.0 }, 
+      "scale": { "x": 1.40625, "y": 1.40625 }, 
+      "rotation": 0.0 
+    },
+    "sprite": { 
+      "texture": "assets/entityTexture/Background/BackdropBlackLittleSparkBlack.png", 
+      "size": { "w": 512.0, "h": 512.0 }, 
+      "textureRect": { "x": 0, "y": 0, "w": 512, "h": 512 },
+      "origin": { "x": 0.0, "y": 0.0 },
+      "color": { "r": 255, "g": 255, "b": 255, "a": 255 },
+      "layer": -11
+    },
+    "parallax": { 
+      "speedX": 20.0, 
+      "loopWidth": 720.0 
+    }
+  }
+}
