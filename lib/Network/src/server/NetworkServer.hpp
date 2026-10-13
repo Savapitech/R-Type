@@ -18,7 +18,7 @@ class NetworkServer {
 public:
   using ConnectionCallback = std::function<void(std::uint32_t connectionId)>;
   using MessageCallback =
-      std::function<void(std::uint32_t connectionId, MessageType type,
+      std::function<void(std::uint32_t connectionId, MessageId type,
                          const std::vector<std::uint8_t> &payload)>;
 
   NetworkServer(std::uint16_t port);

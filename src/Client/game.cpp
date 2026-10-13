@@ -1,5 +1,7 @@
 #include "game.hpp"
 
+#include "EngineContext.hpp"
+#include "NetworkClient.hpp"
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
 #include "components/AABBCollider.hpp"
@@ -44,6 +46,11 @@
 #include "systems/ParallaxSystem.hpp"
 
 #include "factoryDataDriven/factoryDataDriven.hpp"
+#include "Protocol/EntityPayload.hpp"
+#include "Protocol/SnapshotPayload.hpp"
+
+#include <type_traits>
+#include <variant>
 
 namespace rtype::client {
 Game::Game()
@@ -221,12 +228,12 @@ void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
 void Game::addSystems(rtk::EngineContext &context) {
     context.scheduler.add<rtk::systems::AnimationSystem>(rtk::ecs::Order::Render);
     context.scheduler.add<rtk::systems::DeathSystem>(rtk::ecs::Order::Update);
-    context.scheduler.add<rtk::systems::PlayerSystem>(rtk::ecs::Order::Update, std::ref(_inputState), std::ref(context.eventBus), std::ref(context._entityFactory));
-    context.scheduler.add<rtk::systems::BulletSystem>(rtk::ecs::Order::Update);
-    context.scheduler.add<rtk::systems::EnemySpawnerSystem>(rtk::ecs::Order::Update, std::ref(context._entityFactory));
+    //context.scheduler.add<rtk::systems::PlayerSystem>(rtk::ecs::Order::Update, std::ref(_inputState), std::ref(context.eventBus), std::ref(context._entityFactory));
+    //context.scheduler.add<rtk::systems::BulletSystem>(rtk::ecs::Order::Update);
+    //context.scheduler.add<rtk::systems::EnemySpawnerSystem>(rtk::ecs::Order::Update, std::ref(context._entityFactory));
     context.scheduler.add<rtk::systems::EnemyGCSystem>(rtk::ecs::Order::SndUpdate, context.eventBus);
     context.scheduler.add<rtk::systems::InputSystem<RtkWindowAdapter>>(rtk::ecs::Order::Input, std::ref(_adapter), _inputState, _inputMapping);
-    context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
+    //context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
     context.scheduler.add<rtk::systems::RenderSystem<RtkWindowAdapter>>(rtk::ecs::Order::Render, std::ref(_adapter));
     context.scheduler.add<rtk::systems::DebugCollisionSystem>(rtk::ecs::Order::Physics, _collisionBuffer, _window, _inputState);
     context.scheduler.add<rtk::systems::ColliderSystem>(rtk::ecs::Order::Physics, _collisionBuffer, 64.f, context.eventBus);
@@ -237,19 +244,110 @@ void Game::addSystems(rtk::EngineContext &context) {
 
 bool Game::shouldContinue() const { return !_inputState.closeRequested; }
 
-void Game::onUpdate(rtk::EngineContext &context, float dt) {
+void Game::onUpdate(rtk::EngineContext &context, float dt)
+{
   NetworkEvent netEvent;
+
   while (_networkClient.pollEvent(netEvent)) {
     if (netEvent.type == NetworkEventType::Connected) {
-      context.eventBus.publish(rtype::events::ConnectedToServerEvent{});
-    } else if (netEvent.type == NetworkEventType::Rejected) {
-      context.eventBus.publish(rtype::events::ConnectionRejectedEvent{});
+        context.eventBus.publish(
+            rtype::events::ConnectedToServerEvent{}
+        );
+    }
+    else if (netEvent.type == NetworkEventType::Rejected) {
+      context.eventBus.publish(
+          rtype::events::ConnectionRejectedEvent{}
+      );
     }
   }
+
   _sceneManager.update(context, _inputState, dt);
+
+  if (_sceneManager.get<GameScene>() != nullptr) {
+    handleReplication(context);
+  }
 }
 
 void Game::onUnload(rtk::EngineContext &context) {
+  for (const auto &[networkId, entity] : _networkEntities) {
+    (void)networkId;
+    context.registry.kill_entity(entity);
+  }
+  _networkEntities.clear();
   _sceneManager.stop(context);
+  _networkClient.stop();
+
 }
+
+void Game::createReplicatedEntity(rtk::EngineContext &context,
+    const protocol::CreateEntityPayload &payload) {
+  if (_networkEntities.contains(payload.entityId))
+    return;
+
+  const auto entity = context._entityFactory.createNetwork(context.registry,
+    payload.blueprintId, payload.entityId);
+    
+  auto *transform = context.registry.get_components<component::Transform>().get(entity);
+  if (!transform) {
+    context.registry.kill_entity(entity);
+    return;
+  }
+  
+  transform->position = {payload.x, payload.y};
+  _networkEntities.emplace(payload.entityId, entity);
+}
+
+void Game::destroyReplicatedEntity(rtk::EngineContext &context,
+  const protocol::DestroyEntityPayload &payload) {
+  
+  const auto it = _networkEntities.find(payload.entityId);
+
+    if (it == _networkEntities.end())
+        return;
+
+    context.registry.kill_entity(it->second);
+    _networkEntities.erase(it);
+}
+
+void Game::applySnapshot(rtk::EngineContext &context, const protocol::SnapshotPayload &payload) {
+  const auto delta = static_cast<std::int32_t>(payload.serverTick - _lastServerTick);
+
+  if (_lastServerTick != 0 && delta < 0)
+    return;
+
+  auto &transforms = context.registry.get_components<component::Transform>();
+
+  for (const auto &state : payload.entities) {
+    const auto it = _networkEntities.find(state.entityId);
+    if (it == _networkEntities.end())
+      continue;
+
+    auto *transform = transforms.get(it->second);
+    if (!transform)
+      continue;
+    transform->position = {state.x, state.y};
+  }
+    _lastServerTick = payload.serverTick;
+}
+
+void Game::handleReplication(rtk::EngineContext &context) {
+  ReplicationEvent event;
+
+  while(_networkClient.pollReplicationEvent(event)) {
+    std::visit([&](const auto &payload){
+      using T = std::decay_t<decltype(payload)>;
+      if constexpr (std::is_same_v<T, protocol::CreateEntityPayload>) {
+          createReplicatedEntity(context, payload); 
+      } else if constexpr (std::is_same_v<T, protocol::DestroyEntityPayload>) {
+          destroyReplicatedEntity(context, payload);
+      } else if constexpr (std::is_same_v<T, protocol::SnapshotPayload>) {
+        applySnapshot(context, payload);
+      }
+    },
+    event.payload
+  );}
+}
+
+
+
 } // namespace rtype::client

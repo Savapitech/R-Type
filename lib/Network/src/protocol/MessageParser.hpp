@@ -7,7 +7,7 @@
 #include <vector>
 
 struct ParsedMessage {
-  MessageType type = MessageType::Invalid;
+  MessageId type = 0;
   std::vector<std::uint8_t> payload;
 };
 

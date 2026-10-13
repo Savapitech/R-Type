@@ -36,7 +36,12 @@ private:
   float createHighGround(rtk::EngineContext &context, float startX, bool symmetric);
   float createLowGround(rtk::EngineContext &context, float startX, bool symmetric);
   float createMediumGround(rtk::EngineContext &context, float startX, bool symmetric);
+  void sendExistingPlayers(std::uint32_t connectionId, rtk::EngineContext &context);
+  void broadcastPlayerCreated(std::uint32_t connectionId, rtk::EngineContext &context);
+  void broadcastPlayerDestroyed(std::uint32_t connectionId);
+  void sendSnapshots(rtk::EngineContext &context);
 
+  std::uint32_t _serverTick = 0;
   Server _server;
   bool _running{true};
   rtk::collision::CollisionBuffer _collisionBuffer;

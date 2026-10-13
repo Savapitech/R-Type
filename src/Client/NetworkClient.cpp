@@ -1,6 +1,7 @@
 #include "NetworkClient.hpp"
 #include "Protocol/BigEndian.hpp"
 #include "Protocol/InputPayload.hpp"
+#include "Protocol/MessageType.hpp"
 #include "Protocol/PayloadCodec.hpp"
 #include "config/NetworkConfig.hpp"
 #include "protocol/HandshakeHeader.hpp"
@@ -9,6 +10,8 @@
 #include "protocol/PacketHeader.hpp"
 #include "protocol/PacketReader.hpp"
 #include "tracking/PacketTracker.hpp"
+#include "Protocol/EntityPayload.hpp"
+#include "Protocol/SnapshotPayload.hpp"
 
 #include <asio/error.hpp>
 #include <asio/error_code.hpp>
@@ -18,6 +21,7 @@
 #include <cstdint>
 #include <iostream>
 #include <memory>
+#include <mutex>
 
 namespace rtype::client {
 
@@ -107,7 +111,7 @@ void NetworkClient::sendInput(
               return;
 
             MessageHeader messageHeader;
-            messageHeader.setType(MessageType::Input);
+            messageHeader.setType(protocol::toMessageId(protocol::MessageType::Input));
             messageHeader.size = static_cast<std::uint16_t>(
                 sizeof(rtype::protocol::InputPayload)
             );
@@ -280,12 +284,29 @@ void NetworkClient::handleConnectedPackets(const std::uint8_t *data, std::size_t
     return;
 
   for (auto &message : messages) {
-    pushEvent({
-      .type = NetworkEventType::Message,
-      .connectionId = header.connectionId,
-      .messageType = message.type,
-      .payload = std::move(message.payload)
-    });
+  const auto type =
+        static_cast<protocol::MessageType>(message.type);
+
+    switch (type) {
+        case protocol::MessageType::CreateEntity:
+        case protocol::MessageType::DestroyEntity:
+        case protocol::MessageType::Snapshot:
+            handleReplicationMessage(
+                header.connectionId,
+                type,
+                message.payload
+            );
+            break;
+
+        default:
+            pushEvent({
+                .type = NetworkEventType::Message,
+                .connectionId = header.connectionId,
+                .messageType = type,
+                .payload = std::move(message.payload)
+            });
+            break;
+    }
   }
 }
 
@@ -349,5 +370,66 @@ void NetworkClient::stop()
     _connected.store(false);
     _connectionId.store(0);
 }
+
+bool NetworkClient::pollReplicationEvent(ReplicationEvent &event)
+{
+    std::lock_guard<std::mutex> lock(_eventMutex);
+
+    if (_replicationEvents.empty())
+        return false;
+
+    event = std::move(_replicationEvents.front());
+    _replicationEvents.pop();
+
+    return true;
+}
+
+void NetworkClient::handleReplicationMessage(std::uint32_t connectionId, protocol::MessageType type, const std::vector<std::uint8_t> &payload) {
+  PacketReader reader(payload);
+
+  switch (type) {
+    case protocol::MessageType::CreateEntity: {
+      if (payload.size() != protocol::CreateEntityPayload::SIZE)
+        return;
+
+      protocol::CreateEntityPayload decoded;
+
+      if (!decoded.deserialize(reader) || !reader.isEnd())
+        return;
+
+      std::lock_guard<std::mutex> lock(_eventMutex);
+      _replicationEvents.push({connectionId, std::move(decoded)});
+      return;
+    }
+    case protocol::MessageType::DestroyEntity: {
+      if (payload.size() != protocol::DestroyEntityPayload::SIZE)
+        return;
+
+      protocol::DestroyEntityPayload decoded;
+
+      if (!decoded.deserialize(reader) || !reader.isEnd())
+          return;
+
+      std::lock_guard<std::mutex> lock(_eventMutex);
+      _replicationEvents.push({connectionId, std::move(decoded)});
+      return;                        
+    }
+    case protocol::MessageType::Snapshot: {
+      protocol::SnapshotPayload decoded;
+
+      if (!decoded.deserialize(reader) || !reader.isEnd())
+          return;
+
+      std::lock_guard<std::mutex> lock(_eventMutex);
+      _replicationEvents.push({connectionId, std::move(decoded)});
+      return;
+    }
+
+    default:
+      return;
+  
+  }
+}
+
 } //namespace rtype::client 
 

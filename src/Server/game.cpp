@@ -2,6 +2,9 @@
 
 #include <iostream>
 
+#include "EngineContext.hpp"
+#include "Protocol/EntityPayload.hpp"
+#include "Protocol/SnapshotPayload.hpp"
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
 #include "components/AABBCollider.hpp"
@@ -146,25 +149,34 @@ void Game::addSystems(rtk::EngineContext &context) {
 void Game::handleConnections(rtk::EngineContext &context) {
   Server::ConnectionEvent connEvent;
   while (_server.pollConnectionEvent(connEvent)) {
-    if (connEvent.type == Server::ConnectionEvent::Type::Connected) {
-      std::cout << "[Server] Spawning player entity for connection "
-                << connEvent.connectionId << std::endl;
-      auto playerEntity = context._entityFactory.createNetwork(
-          context.registry, "player", connEvent.connectionId);
+    const auto connectionId = connEvent.connectionId;
 
-      auto *transform = context.registry.get_components<component::Transform>().get(playerEntity);
+    if (connEvent.type == Server::ConnectionEvent::Type::Connected) {
+      std::cout << "connection" << std::endl;
+      if (_players.contains(connectionId))
+        continue;
+
+      const auto entity = context._entityFactory.createNetwork(context.registry, "player", connectionId);
+
+      auto *transform = context.registry.get_components<component::Transform>().get(entity);
       if (transform) {
         transform->position = {
             150.0f,
             150.0f + static_cast<float>((connEvent.connectionId - 1) % 4) * 100.0f};
       }
 
-      _players[connEvent.connectionId] = playerEntity;
+      sendExistingPlayers(connectionId, context);
+      _players[connectionId] = entity;
+      broadcastPlayerCreated(connectionId, context);
+      std::cout << "[Server] Player connected: " << connectionId << std::endl;
+  
+
     } else if (connEvent.type == Server::ConnectionEvent::Type::Disconnected) {
       std::cout << "[Server] Removing player entity for connection "
                 << connEvent.connectionId << std::endl;
       auto it = _players.find(connEvent.connectionId);
       if (it != _players.end()) {
+        broadcastPlayerDestroyed(connectionId);
         context.registry.kill_entity(it->second);
         _players.erase(it);
       }
@@ -228,6 +240,11 @@ void Game::handleInputs(rtk::EngineContext &context) {
 void Game::onUpdate(rtk::EngineContext &context, float) {
   handleConnections(context);
   handleInputs(context);
+
+  _serverTick++;
+
+  if(_serverTick % 3 == 0)
+    sendSnapshots(context);
 }
 
 bool Game::shouldContinue() const {
@@ -376,4 +393,82 @@ void Game::onUnload(rtk::EngineContext &) {
   std::cout << "[Server] Game simulation stopped" << std::endl;
 }
 
+void Game::sendExistingPlayers(std::uint32_t connectionId, rtk::EngineContext &context) {
+  auto &transforms = context.registry.get_components<component::Transform>();
+
+  for (const auto &[playerId, entity] : _players) {
+    const auto *transform = transforms.get(entity);
+    if (!transform)
+      continue;
+
+    protocol::CreateEntityPayload payload;
+
+    payload.entityId = playerId;
+    payload.blueprintId = context._entityFactory.getArchetypeID("player");
+    payload.x = transform->position.x;
+    payload.y = transform->position.y;
+    _server.sendCreateEntity(connectionId, payload);
+  }
+}
+
+void Game::broadcastPlayerCreated(std::uint32_t connectionId, rtk::EngineContext &context) {
+  const auto it = _players.find(connectionId);
+  if (it == _players.end())
+    return;
+
+  const auto *transform = context.registry.get_components<component::Transform>().get(it->second);
+    if (!transform)
+      return;
+
+    protocol::CreateEntityPayload payload;
+
+    payload.entityId = connectionId;
+    payload.blueprintId = context._entityFactory.getArchetypeID("player");
+    payload.x = transform->position.x;
+    payload.y = transform->position.y;
+    for (const auto &[playerId, entity] : _players) {
+      (void)entity;
+      _server.sendCreateEntity(playerId, payload);
+    }
+}
+
+void Game::broadcastPlayerDestroyed(std::uint32_t connectionId) {
+  protocol::DestroyEntityPayload payload;
+  payload.entityId = connectionId;
+
+  for (const auto &[playerId, entity] : _players) {
+    (void)entity;
+    if (playerId != connectionId)
+      _server.sendDestroyEntity(playerId, payload);
+  }
+}
+
+void Game::sendSnapshots(rtk::EngineContext &context) {
+  auto &transforms = context.registry.get_components<component::Transform>();
+  protocol::SnapshotPayload snapshot;
+  snapshot.serverTick = _serverTick;
+
+  const auto flush = [&]() {
+    if (snapshot.entities.empty())
+      return;
+
+    for (const auto &[connectionId, entity] : _players) {
+      (void)entity;
+      _server.sendSnapshot(connectionId, snapshot);
+    }
+    snapshot.entities.clear();
+  };
+
+  for (const auto &[connectionId, entity] : _players) {
+    const auto &transform = transforms.get(entity);
+    if (!transform)
+      continue;
+
+    snapshot.entities.push_back({connectionId, transform->position.x, transform->position.y});
+    if (snapshot.entities.size() == protocol::SnapshotPayload::MAX_ENTITIES) {
+      flush();
+    }
+  }
+  flush();
+}
 } // namespace rtype::server

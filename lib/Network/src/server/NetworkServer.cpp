@@ -185,47 +185,8 @@ void NetworkServer::disconnectClient(std::uint32_t connectionId) {
 
 void NetworkServer::handleMessage(std::uint32_t connectionId,
                                   const ParsedMessage &message) {
-  switch (message.type) {
-  case MessageType::Ping: {
-    PacketReader reader(message.payload);
-
-    PingMessage ping;
-
-    if (!ping.deserialize(reader))
-      return;
-
-    if (!reader.isEnd())
-      return;
-
-    PacketWriter writer;
-
-    MessageHeader header;
-    header.setType(MessageType::Pong);
-    header.size = PongMessage::SIZE;
-
-    if (!header.serialize(writer))
-      return;
-
-    PongMessage pong;
-    pong.timestamp = ping.timestamp;
-
-    if (!pong.serialize(writer))
-      return;
-
-    doSend(connectionId, writer.getData());
-
-    break;
-  }
-
-  case MessageType::Disconnect:
-    disconnectClient(connectionId);
-    break;
-
-  default:
-    if (_onMessage)
-      _onMessage(connectionId, message.type, message.payload);
-    break;
-  }
+  if (_onMessage)
+    _onMessage(connectionId, message.type, message.payload);
 }
 
 void NetworkServer::setOnClientConnected(ConnectionCallback callback) {
