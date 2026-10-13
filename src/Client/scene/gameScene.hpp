@@ -178,10 +178,10 @@ private:
   }
 
   void createPlayer(rtk::EngineContext &context) {
-    auto entity = context._entityFactory.createFromBlueprint(context.registry, "player");
+    //auto entity = context._entityFactory.createFromBlueprint(context.registry, "player");
 
-    _entities.push_back(entity);
-    _playerEntity.emplace(entity);
+    //_entities.push_back(entity);
+    //_playerEntity.emplace(entity);
   }
   rtk::RenderWindow &_window;
 

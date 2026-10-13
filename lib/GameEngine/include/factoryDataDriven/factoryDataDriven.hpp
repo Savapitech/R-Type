@@ -60,6 +60,7 @@ public:
 
         json blueprintJson;
         file >> blueprintJson;
+        std::cout << blueprintName << " Hash ID : " << registerBlueprint(blueprintName, blueprintJson) << std::endl;
         return registerBlueprint(blueprintName, blueprintJson);
     }
 

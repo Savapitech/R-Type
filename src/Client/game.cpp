@@ -228,7 +228,12 @@ void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
 void Game::addSystems(rtk::EngineContext &context) {
     context.scheduler.add<rtk::systems::AnimationSystem>(rtk::ecs::Order::Render);
     context.scheduler.add<rtk::systems::DeathSystem>(rtk::ecs::Order::Update);
-    //context.scheduler.add<rtk::systems::PlayerSystem>(rtk::ecs::Order::Update, std::ref(_inputState), std::ref(context.eventBus), std::ref(context._entityFactory));
+    context.scheduler.add<rtk::systems::PlayerSystem>(rtk::ecs::Order::Update, 
+        std::ref(_inputState),
+        std::ref(context.eventBus),
+        std::ref(context._entityFactory),
+        std::ref(_networkClient)
+    );
     //context.scheduler.add<rtk::systems::BulletSystem>(rtk::ecs::Order::Update);
     //context.scheduler.add<rtk::systems::EnemySpawnerSystem>(rtk::ecs::Order::Update, std::ref(context._entityFactory));
     context.scheduler.add<rtk::systems::EnemyGCSystem>(rtk::ecs::Order::SndUpdate, context.eventBus);
@@ -244,28 +249,75 @@ void Game::addSystems(rtk::EngineContext &context) {
 
 bool Game::shouldContinue() const { return !_inputState.closeRequested; }
 
-void Game::onUpdate(rtk::EngineContext &context, float dt)
-{
+void Game::onUpdate(rtk::EngineContext &context, float dt) {
   NetworkEvent netEvent;
-
   while (_networkClient.pollEvent(netEvent)) {
     if (netEvent.type == NetworkEventType::Connected) {
-        context.eventBus.publish(
-            rtype::events::ConnectedToServerEvent{}
-        );
+      context.eventBus.publish(rtype::events::ConnectedToServerEvent{});
+    } else if (netEvent.type == NetworkEventType::Rejected) {
+      context.eventBus.publish(rtype::events::ConnectionRejectedEvent{});
     }
-    else if (netEvent.type == NetworkEventType::Rejected) {
-      context.eventBus.publish(
-          rtype::events::ConnectionRejectedEvent{}
-      );
-    }
+  }
+
+  rtype::client::ReplicationEvent repEvent;
+  while (_networkClient.pollReplicationEvent(repEvent)) {
+      if (std::holds_alternative<protocol::CreateEntityPayload>(repEvent.payload)) {
+          const auto& createPayload = std::get<protocol::CreateEntityPayload>(repEvent.payload);
+
+          auto entity = context._entityFactory.createNetwork(
+              context.registry,
+              createPayload.blueprintId,
+              createPayload.entityId
+          );
+
+          auto *transform = context.registry.get_components<component::Transform>().get(entity);
+          if (transform) {
+              transform->position.x = createPayload.x;
+              transform->position.y = createPayload.y;
+          }
+          LOG_INFO(std::to_string(createPayload.blueprintId));
+
+      }
+
+      else if (std::holds_alternative<protocol::DestroyEntityPayload>(repEvent.payload)) {
+          const auto& destroyPayload = std::get<protocol::DestroyEntityPayload>(repEvent.payload);
+
+          auto view = context.registry.view<component::NetworkEntity>();
+          for (auto e : view) {
+              auto *netEnt = context.registry.get_components<component::NetworkEntity>().get(e);
+              if (netEnt && netEnt->id == destroyPayload.entityId) {
+                  context.registry.kill_entity(e);
+                  break;
+              }
+          }
+      }
+
+      else if (std::holds_alternative<protocol::SnapshotPayload>(repEvent.payload)) {
+          const auto& snapshotPayload = std::get<protocol::SnapshotPayload>(repEvent.payload);
+
+          auto view = context.registry.view<component::NetworkEntity, component::Transform>();
+          auto& transforms = context.registry.get_components<component::Transform>();
+          auto& networkEntities = context.registry.get_components<component::NetworkEntity>();
+
+          for (const auto& netData : snapshotPayload.entities) {
+              //if (netData.entityId == _networkClient.getConnectionId()) continue;
+
+              for (auto e : view) {
+                  auto *netEnt = networkEntities.get(e);
+                  if (netEnt && netEnt->id == netData.entityId) {
+                      auto *transform = transforms.get(e);
+                      if (transform) {
+                          transform->position.x = netData.x;
+                          transform->position.y = netData.y;
+                      }
+                      break;
+                  }
+              }
+          }
+      }
   }
 
   _sceneManager.update(context, _inputState, dt);
-
-  if (_sceneManager.get<GameScene>() != nullptr) {
-    handleReplication(context);
-  }
 }
 
 void Game::onUnload(rtk::EngineContext &context) {
@@ -328,6 +380,7 @@ void Game::applySnapshot(rtk::EngineContext &context, const protocol::SnapshotPa
     transform->position = {state.x, state.y};
   }
     _lastServerTick = payload.serverTick;
+    //LOG_INFO("[SNAPSHOT APPLIED]");
 }
 
 void Game::handleReplication(rtk::EngineContext &context) {

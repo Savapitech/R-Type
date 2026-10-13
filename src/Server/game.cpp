@@ -92,6 +92,22 @@ void Game::loadEntityBlueprints(rtk::EngineContext &context) {
 }
 
 void Game::subscribeEvents(rtk::EngineContext &context) {
+
+  context.eventBus.subscribe<rtype::events::EnemySpawnedEvent>(
+      [this, &context](const rtype::events::EnemySpawnedEvent &event) {
+          std::cout << "[Create]: BIDOS\n";
+          protocol::CreateEntityPayload payload;
+          payload.entityId = event.networkId;
+          payload.blueprintId = context._entityFactory.getArchetypeID("enemyBidos");
+          payload.x = event.x;
+          payload.y = event.y;
+
+          for (const auto &[playerId, entity] : _players) {
+              _server.sendCreateEntity(playerId, payload);
+          }
+      }
+  );
+
   context.eventBus.subscribe<rtk::collision::Collision>(
       [&context](const rtk::collision::Collision &event) {
         auto &colliders = context.registry.get_components<component::AABBCollider>();
@@ -124,6 +140,7 @@ void Game::subscribeEvents(rtk::EngineContext &context) {
         } else if (collisionPair == playerVsEnemy) {
           deads.insert_at(event.firstEntity, {});
           deads.insert_at(event.secondEntity, {});
+          std::cout << "[SERVER] Player died from collision!" << std::endl;
         } else if (collisionPair == playerVsEnv) {
           if (colA->layer == Collider::CollisionLayer::Player) {
             deads.insert_at(event.firstEntity, {});
@@ -138,7 +155,7 @@ void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<rtk::systems::DeathSystem>(rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::BulletSystem>(rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::EnemySpawnerSystem>(
-      rtk::ecs::Order::Update, std::ref(context._entityFactory));
+    rtk::ecs::Order::Update, std::ref(context._entityFactory), std::ref(context.eventBus));
   context.scheduler.add<rtk::systems::EnemyGCSystem>(
       rtk::ecs::Order::SndUpdate, context.eventBus);
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
@@ -169,7 +186,6 @@ void Game::handleConnections(rtk::EngineContext &context) {
       _players[connectionId] = entity;
       broadcastPlayerCreated(connectionId, context);
       std::cout << "[Server] Player connected: " << connectionId << std::endl;
-  
 
     } else if (connEvent.type == Server::ConnectionEvent::Type::Disconnected) {
       std::cout << "[Server] Removing player entity for connection "
@@ -228,12 +244,12 @@ void Game::handleInputs(rtk::EngineContext &context) {
       controllable->isChargingShoot = false;
 
       auto bulletEntity = context._entityFactory.createFromBlueprint(context.registry, "bullet");
-      auto *bulletTransform =
-          context.registry.get_components<component::Transform>().get(bulletEntity);
-      if (bulletTransform) {
+      auto *bulletTransform = context.registry.get_components<component::Transform>().get(bulletEntity);
+
+      if (bulletTransform)
         bulletTransform->position = {transform->position.x + 50.0f, transform->position.y};
-      }
     }
+
   }
 }
 
@@ -444,7 +460,10 @@ void Game::broadcastPlayerDestroyed(std::uint32_t connectionId) {
 }
 
 void Game::sendSnapshots(rtk::EngineContext &context) {
+  auto view = context.registry.view<component::NetworkEntity, component::Transform>();
   auto &transforms = context.registry.get_components<component::Transform>();
+  auto &networkEntities = context.registry.get_components<component::NetworkEntity>();
+
   protocol::SnapshotPayload snapshot;
   snapshot.serverTick = _serverTick;
 
@@ -452,23 +471,27 @@ void Game::sendSnapshots(rtk::EngineContext &context) {
     if (snapshot.entities.empty())
       return;
 
-    for (const auto &[connectionId, entity] : _players) {
-      (void)entity;
+    for (const auto &[connectionId, dummy] : _players) {
       _server.sendSnapshot(connectionId, snapshot);
     }
     snapshot.entities.clear();
   };
 
-  for (const auto &[connectionId, entity] : _players) {
-    const auto &transform = transforms.get(entity);
-    if (!transform)
+  for (auto entity : view) {
+    const auto *transform = transforms.get(entity);
+    const auto *netEnt = networkEntities.get(entity);
+
+    if (!transform || !netEnt)
       continue;
 
-    snapshot.entities.push_back({connectionId, transform->position.x, transform->position.y});
+    snapshot.entities.push_back({netEnt->id, transform->position.x, transform->position.y});
+
     if (snapshot.entities.size() == protocol::SnapshotPayload::MAX_ENTITIES) {
       flush();
     }
   }
+
   flush();
 }
+
 } // namespace rtype::server
