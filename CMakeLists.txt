@@ -360,6 +360,38 @@ set_tests_properties(
         TIMEOUT 15
 )
 
+add_executable(test_replication_payload
+    tests/network/testReplicationPayload.cpp
+)
+
+target_compile_features(test_replication_payload
+    PRIVATE
+        cxx_std_20
+)
+
+target_link_libraries(test_replication_payload
+    PRIVATE
+        CommonProtocole
+        Network
+)
+
+set_target_properties(test_replication_payload
+    PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY
+            "${CMAKE_BINARY_DIR}/tests"
+)
+
+add_test(
+    NAME ReplicationPayload
+    COMMAND test_replication_payload
+)
+
+set_tests_properties(
+    ReplicationPayload
+    PROPERTIES
+        TIMEOUT 15
+)
+
     function(enable_test_assertions target)
       target_compile_options(${target} PRIVATE -UNDEBUG)
     endfunction()
