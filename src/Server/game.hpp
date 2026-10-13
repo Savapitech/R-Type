@@ -41,6 +41,7 @@ private:
   void broadcastPlayerDestroyed(std::uint32_t connectionId);
   void sendSnapshots(rtk::EngineContext &context);
 
+  std::uint32_t _nextBulletId{20000};
   std::uint32_t _serverTick = 0;
   Server _server;
   bool _running{true};

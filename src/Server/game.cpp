@@ -243,13 +243,25 @@ void Game::handleInputs(rtk::EngineContext &context) {
     } else if (controllable->isChargingShoot) {
       controllable->isChargingShoot = false;
 
-      auto bulletEntity = context._entityFactory.createFromBlueprint(context.registry, "bullet");
+      std::uint32_t bulletNetId = _nextBulletId++;
+
+      auto bulletEntity = context._entityFactory.createNetwork(context.registry, "bullet", bulletNetId);
       auto *bulletTransform = context.registry.get_components<component::Transform>().get(bulletEntity);
 
-      if (bulletTransform)
+      if (bulletTransform) {
         bulletTransform->position = {transform->position.x + 50.0f, transform->position.y};
-    }
 
+        protocol::CreateEntityPayload payload;
+        payload.entityId = bulletNetId;
+        payload.blueprintId = context._entityFactory.getArchetypeID("bullet");
+        payload.x = bulletTransform->position.x;
+        payload.y = bulletTransform->position.y;
+
+        for (const auto &[connectedClientId, dummy] : _players) {
+            _server.sendCreateEntity(connectedClientId, payload);
+        }
+      }
+    }
   }
 }
 
@@ -259,8 +271,11 @@ void Game::onUpdate(rtk::EngineContext &context, float) {
 
   _serverTick++;
 
-  if(_serverTick % 3 == 0)
+  std::cout << "Tick: "<<_serverTick<<std::endl;
+  if(_serverTick % 3 == 0){
+
     sendSnapshots(context);
+  }
 }
 
 bool Game::shouldContinue() const {
@@ -464,13 +479,18 @@ void Game::sendSnapshots(rtk::EngineContext &context) {
   auto &transforms = context.registry.get_components<component::Transform>();
   auto &networkEntities = context.registry.get_components<component::NetworkEntity>();
 
+  std::cout << "Send Snapshot from game\n";
   protocol::SnapshotPayload snapshot;
   snapshot.serverTick = _serverTick;
 
   const auto flush = [&]() {
-    if (snapshot.entities.empty())
+    if (snapshot.entities.empty()){
+      std::cout << "SnapShot empty\n";
       return;
-
+    }
+    if (_players.empty()){
+      std::cout << "No Network entities\n";
+    }
     for (const auto &[connectionId, dummy] : _players) {
       _server.sendSnapshot(connectionId, snapshot);
     }
