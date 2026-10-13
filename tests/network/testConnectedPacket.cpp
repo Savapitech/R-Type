@@ -1,112 +1,129 @@
-#include <array>
-#include <cassert>
-#include <chrono>
-#include <cstdint>
-#include <iostream>
-#include <thread>
-#include <vector>
-
 #include <asio.hpp>
 
-#include "server/NetworkServer.hpp"
+#include <chrono>
+#include <cstdint>
+#include <cstdlib>
+#include <future>
+#include <iostream>
+#include <memory>
+#include <vector>
 
+#include "config/NetworkConfig.hpp"
 #include "protocol/HandshakeHeader.hpp"
 #include "protocol/MessageHeader.hpp"
-#include "protocol/MessageParser.hpp"
 #include "protocol/PacketHeader.hpp"
 #include "protocol/PacketReader.hpp"
 #include "protocol/PacketWriter.hpp"
-#include "protocol/PingMessage.hpp"
-#include "protocol/PongMessage.hpp"
+#include "server/NetworkServer.hpp"
 
-#include "config/NetworkConfig.hpp"
+using namespace std::chrono_literals;
 
+#define CHECK(condition)                                      \
+    do {                                                      \
+        if (!(condition)) {                                   \
+            std::cerr << "CHECK FAILED: " #condition          \
+                      << " at " << __FILE__ << ":"             \
+                      << __LINE__ << '\n';                    \
+            std::exit(EXIT_FAILURE);                          \
+        }                                                     \
+    } while (false)
 
-static std::size_t receiveWithTimeout(
-    asio::ip::udp::socket &socket,
-    std::array<std::uint8_t, MAX_PAYLOAD_SIZE> &buffer,
-    asio::ip::udp::endpoint &sender
+namespace {
+
+using udp = asio::ip::udp;
+
+constexpr std::uint16_t PORT = 42433;
+constexpr MessageId MESSAGE_ID = 0xBEEF;
+
+struct ReceivedMessage {
+    std::uint32_t connectionId = 0;
+    MessageId type = 0;
+    std::vector<std::uint8_t> payload;
+};
+
+std::vector<std::uint8_t> receiveDatagram(
+    udp::socket &socket,
+    std::chrono::milliseconds timeout
 )
 {
-    socket.non_blocking(true);
+    std::vector<std::uint8_t> data(MAX_PAYLOAD_SIZE);
+    udp::endpoint sender;
+
+    asio::error_code error;
+
+    socket.non_blocking(true, error);
+    CHECK(!error);
 
     const auto deadline =
-        std::chrono::steady_clock::now()
-        + std::chrono::seconds(2);
+        std::chrono::steady_clock::now() + timeout;
 
-    while (
-        std::chrono::steady_clock::now()
-        < deadline
-    ) {
-        asio::error_code error;
+    while (std::chrono::steady_clock::now() < deadline) {
+        error.clear();
 
-        const std::size_t received =
-            socket.receive_from(
-                asio::buffer(buffer),
-                sender,
-                0,
-                error
-            );
+        const auto received = socket.receive_from(
+            asio::buffer(data),
+            sender,
+            0,
+            error
+        );
 
-        if (!error)
-            return received;
+        if (!error) {
+            data.resize(received);
+            return data;
+        }
 
         if (
             error != asio::error::would_block &&
             error != asio::error::try_again
         ) {
-            std::cerr
-                << "Receive error: "
-                << error.message()
-                << '\n';
-
-            return 0;
+            return {};
         }
 
-        std::this_thread::sleep_for(
-            std::chrono::milliseconds(10)
-        );
+        std::this_thread::sleep_for(1ms);
     }
 
-    return 0;
+    return {};
 }
 
-
-int main()
+void testConnectedPacket()
 {
-    constexpr std::uint16_t PORT = 4242;
-    constexpr std::uint32_t TIMESTAMP = 0x12345678;
-
-    std::cout << "PING -> PONG integration test...\n";
-
-
-
     NetworkServer server(PORT);
+
+    auto promise =
+        std::make_shared<std::promise<ReceivedMessage>>();
+
+    auto future = promise->get_future();
+
+    server.setOnMessage(
+        [promise](
+            std::uint32_t connectionId,
+            MessageId type,
+            const std::vector<std::uint8_t> &payload
+        ) {
+            try {
+                promise->set_value({
+                    connectionId,
+                    type,
+                    payload
+                });
+            } catch (const std::future_error &) {
+            }
+        }
+    );
 
     server.start();
 
+    asio::io_context io;
 
-
-    asio::io_context clientIo;
-
-    asio::ip::udp::socket clientSocket(
-        clientIo,
-        asio::ip::udp::v4()
+    udp::socket socket(
+        io,
+        udp::endpoint(udp::v4(), 0)
     );
 
-    clientSocket.bind(
-        asio::ip::udp::endpoint(
-            asio::ip::udp::v4(),
-            0
-        )
-    );
-
-    const asio::ip::udp::endpoint serverEndpoint(
+    const udp::endpoint serverEndpoint(
         asio::ip::make_address("127.0.0.1"),
         PORT
     );
-
-
 
     PacketWriter helloWriter;
 
@@ -116,278 +133,92 @@ int main()
     hello.version = VERSION;
     hello.type = HandshakeType::Hello;
 
-    assert(
-        hello.serialize(helloWriter)
-    );
+    CHECK(hello.serialize(helloWriter));
 
-    clientSocket.send_to(
-        asio::buffer(
-            helloWriter.getData()
-        ),
+    const auto helloSent = socket.send_to(
+        asio::buffer(helloWriter.getData()),
         serverEndpoint
     );
 
-    std::cout << "HELLO sent\n";
+    CHECK(helloSent == helloWriter.getSize());
 
-
-
-    std::array<
-        std::uint8_t,
-        MAX_PAYLOAD_SIZE
-    > receiveBuffer{};
-
-    asio::ip::udp::endpoint sender;
-
-    std::size_t received =
-        receiveWithTimeout(
-            clientSocket,
-            receiveBuffer,
-            sender
-        );
-
-    assert(received > 0);
-
-    std::vector<std::uint8_t> welcomeData(
-        receiveBuffer.begin(),
-        receiveBuffer.begin() + received
+    const auto welcomeData = receiveDatagram(
+        socket,
+        2s
     );
 
-    PacketReader welcomeReader(
-        welcomeData
-    );
+    CHECK(!welcomeData.empty());
+
+    PacketReader welcomeReader(welcomeData);
 
     HandshakeHeader welcome;
 
-    assert(
-        welcome.deserialize(
-            welcomeReader
-        )
-    );
-
-    assert(
-        welcome.type
-        == HandshakeType::Welcome
-    );
+    CHECK(welcome.deserialize(welcomeReader));
+    CHECK(welcome.magic == MAGIC);
+    CHECK(welcome.version == VERSION);
+    CHECK(welcome.type == HandshakeType::Welcome);
 
     std::uint32_t connectionId = 0;
 
-    assert(
-        welcomeReader.readUInt32(
-            connectionId
-        )
-    );
-
-    assert(connectionId != 0);
-
-    std::cout
-        << "WELCOME received, connectionId="
-        << connectionId
-        << '\n';
-
-
+    CHECK(welcomeReader.readUInt32(connectionId));
+    CHECK(welcomeReader.isEnd());
+    CHECK(connectionId != 0);
 
     PacketWriter packetWriter;
 
-
-
     PacketHeader packetHeader{};
 
-    packetHeader.connectionId =
-        connectionId;
-
+    packetHeader.connectionId = connectionId;
     packetHeader.sequence = 1;
     packetHeader.ack = 0;
     packetHeader.ackBits = 0;
 
-    assert(
-        packetHeader.serialize(
-            packetWriter
-        )
-    );
+    CHECK(packetHeader.serialize(packetWriter));
 
+    const std::vector<std::uint8_t> payload = {
+        0xDE, 0xAD, 0xBE, 0xEF
+    };
 
+    MessageHeader messageHeader;
 
-    MessageHeader messageHeader{};
-
-    messageHeader.setType(
-        MessageType::Ping
-    );
-
+    messageHeader.setType(MESSAGE_ID);
     messageHeader.size =
-        PingMessage::SIZE;
+        static_cast<std::uint16_t>(payload.size());
 
-    assert(
-        messageHeader.serialize(
-            packetWriter
+    CHECK(messageHeader.serialize(packetWriter));
+
+    CHECK(
+        packetWriter.writeBytes(
+            payload.data(),
+            payload.size()
         )
     );
 
-
-
-    PingMessage ping;
-
-    ping.timestamp = TIMESTAMP;
-
-    assert(
-        ping.serialize(
-            packetWriter
-        )
-    );
-
-
-
-    clientSocket.send_to(
-        asio::buffer(
-            packetWriter.getData()
-        ),
+    const auto packetSent = socket.send_to(
+        asio::buffer(packetWriter.getData()),
         serverEndpoint
     );
 
-    std::cout
-        << "PING sent, timestamp="
-        << TIMESTAMP
-        << '\n';
+    CHECK(packetSent == packetWriter.getSize());
 
+    CHECK(future.wait_for(2s) == std::future_status::ready);
 
+    const ReceivedMessage received = future.get();
 
-    receiveBuffer.fill(0);
-
-    received =
-        receiveWithTimeout(
-            clientSocket,
-            receiveBuffer,
-            sender
-        );
-
-    assert(received > 0);
-
-    std::cout
-        << "Received "
-        << received
-        << " bytes from server\n";
-
-
-
-    std::vector<std::uint8_t> responseData(
-        receiveBuffer.begin(),
-        receiveBuffer.begin() + received
-    );
-
-    PacketReader responseReader(
-        responseData
-    );
-
-
-
-    PacketHeader responseHeader{};
-
-    assert(
-        responseHeader.deserialize(
-            responseReader
-        )
-    );
-
-    std::cout
-        << "PacketHeader:"
-        << " connectionId="
-        << responseHeader.connectionId
-        << " sequence="
-        << responseHeader.sequence
-        << " ack="
-        << responseHeader.ack
-        << " ackBits="
-        << responseHeader.ackBits
-        << '\n';
-
-
-
-    assert(
-        responseHeader.connectionId
-        == connectionId
-    );
-
-    assert(
-        responseHeader.sequence
-        == 1
-    );
-
-    assert(
-        responseHeader.ack
-        == 1
-    );
-
-    assert(
-        responseHeader.ackBits
-        == 0
-    );
-
-
-
-    std::vector<ParsedMessage> messages;
-
-    assert(
-        MessageParser::parse(
-            responseReader,
-            messages
-        )
-    );
-
-    assert(
-        messages.size()
-        == 1
-    );
-
-
-
-    const ParsedMessage &message =
-        messages[0];
-
-    assert(
-        message.type
-        == MessageType::Pong
-    );
-
-    assert(
-        message.payload.size()
-        == PongMessage::SIZE
-    );
-
-
-
-    PacketReader pongReader(
-        message.payload
-    );
-
-    PongMessage pong;
-
-    assert(
-        pong.deserialize(
-            pongReader
-        )
-    );
-
-    assert(
-        pongReader.isEnd()
-    );
-
-
-
-    assert(
-        pong.timestamp
-        == TIMESTAMP
-    );
-
-    std::cout
-        << "PONG received, timestamp="
-        << pong.timestamp
-        << '\n';
-
-
+    CHECK(received.connectionId == connectionId);
+    CHECK(received.type == MESSAGE_ID);
+    CHECK(received.payload == payload);
 
     server.stop();
 
-    std::cout
-        << "PING -> PONG integration test: OK\n";
+    std::cout << "ConnectedPacket integration test: OK\n";
+}
 
-    return 0;
+}
+
+int main()
+{
+    testConnectedPacket();
+
+    return EXIT_SUCCESS;
 }
