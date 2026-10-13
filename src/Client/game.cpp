@@ -41,6 +41,7 @@
 #include "systems/EnemyGarbageCollectorSystem.hpp"
 #include "systems/EnemySpawnerSystem.hpp"
 #include "systems/PlayerSystem.hpp"
+#include "systems/ParallaxSystem.hpp"
 
 #include "factoryDataDriven/factoryDataDriven.hpp"
 
@@ -76,7 +77,8 @@ void Game::loadEntityBluePrint(rtk::EngineContext &context)
     context._entityFactory.loadBlueprintFromPath("medium_ground", "assets/descriptionEntity/medium_ground.json");
     context._entityFactory.loadBlueprintFromPath("bullet", "assets/descriptionEntity/bullet.json");
     context._entityFactory.loadBlueprintFromPath("enemyBidos", "assets/descriptionEntity/enemyBidos.json");
-
+    context._entityFactory.loadBlueprintFromPath("background_stars", "assets/descriptionEntity/background_star.json");
+    context._entityFactory.loadBlueprintFromPath("background_fast_stars", "assets/descriptionEntity/background_fast_star.json");
 }
 
 
@@ -109,8 +111,8 @@ void Game::registerBuilders(rtk::EngineContext &context) {
     context._entityFactory.registerBuilder("EnemyEscapedEvent", rtype::events::enemyEscapedEventFromJson);
     context._entityFactory.registerBuilder("Animator", component::animatorFromJson);
     context._entityFactory.registerBuilder("animator", component::animatorFromJson);
-
-
+    context._entityFactory.registerBuilder("Parallax", component::parallaxFromJson);
+    context._entityFactory.registerBuilder("parallax", component::parallaxFromJson);
 
     context._entityFactory.registerBuilder("sprite", [this](rtk::ecs::Registry& reg, std::size_t entity, const nlohmann::json& data) {
         rtk::ecs::concepts::SpriteData sprite{};
@@ -145,8 +147,9 @@ void Game::registerComponents(rtk::EngineContext &context) {
     context.registry.register_component<component::Dead>();
     context.registry.register_component<component::NetworkEntity>();
     context.registry.register_component<component::SoundRequest>();
-     context.registry.register_component<component::animator>();
+    context.registry.register_component<component::animator>();
     context.registry.register_component<rtype::events::EnemyEscapedEvent>();
+    context.registry.register_component<component::Parallax>();
 }
 
 void Game::createBindings() {
@@ -229,6 +232,7 @@ void Game::addSystems(rtk::EngineContext &context) {
     context.scheduler.add<rtk::systems::ColliderSystem>(rtk::ecs::Order::Physics, _collisionBuffer, 64.f, context.eventBus);
     context.scheduler.add<rtk::systems::AudioSystem<RtkAudioAdapter>>(rtk::ecs::Order::Update, std::ref(_adapterAudioManager));
     context.scheduler.add<rtk::systems::AnimatorSystem>(rtk::ecs::Order::Update);
+    context.scheduler.add<rtk::systems::ParallaxSystem>(rtk::ecs::Order::Update);
 }
 
 bool Game::shouldContinue() const { return !_inputState.closeRequested; }
