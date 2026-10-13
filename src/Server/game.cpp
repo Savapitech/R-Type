@@ -149,10 +149,8 @@ void Game::handleConnections(rtk::EngineContext &context) {
     if (connEvent.type == Server::ConnectionEvent::Type::Connected) {
       std::cout << "[Server] Spawning player entity for connection "
                 << connEvent.connectionId << std::endl;
-      auto playerEntity = context._entityFactory.createFromBlueprint(context.registry, "player");
-
-      context.registry.get_components<component::NetworkEntity>().insert_at(
-          playerEntity, component::NetworkEntity{connEvent.connectionId});
+      auto playerEntity = context._entityFactory.createNetwork(
+          context.registry, "player", connEvent.connectionId);
 
       auto *transform = context.registry.get_components<component::Transform>().get(playerEntity);
       if (transform) {
