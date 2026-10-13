@@ -19,16 +19,11 @@ public:
   ~GameEngine() = default;
 
   ecs::Registry &registry() { return _registry; }
-
   ecs::Scheduler &scheduler() { return _scheduler; }
-
   busEvent &eventBus() { return _eventBus; }
 
   void stop() { _running = false; }
-
-  void setFPS(uint32_t fps) {
-      _targetFps = fps;
-  }
+  void setFPS(uint32_t fps) { _targetFps = fps; }
 
   template <Game TGame> int run(TGame &game) {
     EngineContext context{
@@ -38,35 +33,57 @@ public:
     };
 
     game.onLoad(context);
-
     _running = true;
-    _previousTime = Clock::now();
+
+    auto currentTime = Clock::now();
+    auto nextFrameTarget = currentTime;
+
+    float accumulator = 0.0f;
+    const float fixedDeltaTime = 1.0f / 60.0f;
 
     _scheduler.start(_registry);
 
     try {
       while (_running) {
-        if constexpr (requires {
-                        { game.shouldContinue() } -> std::convertible_to<bool>;
-                      }) {
-          if (!game.shouldContinue()) {
-            break;
-          }
-        }
-        const float dt = computeDeltaTime();
-
-        if constexpr (requires {
-                        { game.onUpdate(context, dt) } -> std::same_as<void>;
-                      }) {
-          game.onUpdate(context, dt);
+        if constexpr (requires { { game.shouldContinue() } -> std::convertible_to<bool>; }) {
+          if (!game.shouldContinue()) break;
         }
 
-        _scheduler.run(_registry, dt);
+        auto newTime = Clock::now();
+        float realDeltaTime = std::chrono::duration<float>(newTime - currentTime).count();
+        currentTime = newTime;
+
+        float frameTime = std::min(realDeltaTime, 0.25f); 
+        accumulator += frameTime;
+
+        while (accumulator >= fixedDeltaTime) {
+            accumulator -= fixedDeltaTime;
+        }
+
+        if constexpr (requires { { game.onUpdate(context, frameTime) } -> std::same_as<void>; }) {
+          game.onUpdate(context, frameTime);
+        }
+        _scheduler.run(_registry, frameTime);
+
+        updateFPS(realDeltaTime);
 
         if (_targetFps > 0) {
             const auto targetDuration = std::chrono::nanoseconds(1000000000 / _targetFps);
-            const auto nextFrameTime = _previousTime + targetDuration;
-            std::this_thread::sleep_until(nextFrameTime);
+
+            nextFrameTarget += targetDuration; 
+
+            auto sleepStart = Clock::now();
+
+            if (nextFrameTarget > sleepStart) {
+                auto timeToSleep = nextFrameTarget - sleepStart;
+
+                if (timeToSleep > std::chrono::milliseconds(2))
+                    std::this_thread::sleep_for(timeToSleep - std::chrono::milliseconds(2));
+
+                while (Clock::now() < nextFrameTarget) {}
+            } else {
+                nextFrameTarget = Clock::now(); 
+            }
         }
       }
     } catch (...) {
@@ -75,42 +92,28 @@ public:
     }
 
     _scheduler.stop(_registry);
-
     if constexpr (requires { game.onUnload(context); }) {
       game.onUnload(context);
     }
-
     return 0;
   }
 
 private:
-  float computeDeltaTime() {
-    const auto currentTime = Clock::now();
-
-    const float dt =
-        std::chrono::duration<float>(currentTime - _previousTime).count();
-
-    _previousTime = currentTime;
-
-    _fpsTimer += dt;
+  void updateFPS(float realDeltaTime) {
+    _fpsTimer += realDeltaTime;
     _fpsFrames++;
     if (_fpsTimer >= 1.0f) {
       LOG_DEBUG("FPS: " + std::to_string(_fpsFrames));
       _fpsTimer -= 1.0f;
       _fpsFrames = 0;
     }
-
-    return std::min(dt, 0.1f);
   }
 
   ecs::Registry _registry;
   ecs::Scheduler _scheduler;
   busEvent _eventBus;
 
-  Clock::time_point _previousTime;
-
   bool _running = false;
-
   uint32_t _targetFps = 0;
 
   float _fpsTimer = 0.0f;
