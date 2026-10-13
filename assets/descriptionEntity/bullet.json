@@ -17,7 +17,7 @@
       "width": 32.0, 
       "height": 16.0, 
       "layer": "PlayerProjectile", 
-      "mask": ["EnemyProjectile", "Enemy"]
+      "mask": ["EnemyProjectile", "Enemy", "Environment"]
     },
     "velocity": { "x": 800.0, "y": 0.0 },
     "bullet": { "damage": 10.0 }

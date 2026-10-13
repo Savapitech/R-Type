@@ -33,6 +33,8 @@ void Game::onLoad(rtk::EngineContext &context) {
   subscribeEvents(context);
   addSystems(context);
 
+  createBackground(context);
+
   _server.start();
   std::cout << "[Server] Game simulation started" << std::endl;
 }
@@ -78,6 +80,12 @@ void Game::loadEntityBlueprints(rtk::EngineContext &context) {
   context._entityFactory.loadBlueprintFromPath("player", "assets/descriptionEntity/player.json");
   context._entityFactory.loadBlueprintFromPath("bullet", "assets/descriptionEntity/bullet.json");
   context._entityFactory.loadBlueprintFromPath("enemyBidos", "assets/descriptionEntity/enemyBidos.json");
+  context._entityFactory.loadBlueprintFromPath("gate", "assets/descriptionEntity/gate.json");
+  context._entityFactory.loadBlueprintFromPath("ramp", "assets/descriptionEntity/ramp.json");
+  context._entityFactory.loadBlueprintFromPath("reactor", "assets/descriptionEntity/reactor.json");
+  context._entityFactory.loadBlueprintFromPath("high_ground", "assets/descriptionEntity/high_ground.json");
+  context._entityFactory.loadBlueprintFromPath("low_ground", "assets/descriptionEntity/low_ground.json");
+  context._entityFactory.loadBlueprintFromPath("medium_ground", "assets/descriptionEntity/medium_ground.json");
 }
 
 void Game::subscribeEvents(rtk::EngineContext &context) {
@@ -92,11 +100,33 @@ void Game::subscribeEvents(rtk::EngineContext &context) {
         std::uint32_t collisionPair = colA->layer | colB->layer;
         std::uint32_t bulletVsEnemy =
             Collider::CollisionLayer::PlayerProjectile | Collider::CollisionLayer::Enemy;
+        std::uint32_t bulletVsEnv =
+            Collider::CollisionLayer::PlayerProjectile | Collider::CollisionLayer::Environment;
+        std::uint32_t playerVsEnemy =
+            Collider::CollisionLayer::Player | Collider::CollisionLayer::Enemy;
+        std::uint32_t playerVsEnv =
+            Collider::CollisionLayer::Player | Collider::CollisionLayer::Environment;
+
+        auto &deads = context.registry.get_components<component::Dead>();
 
         if (collisionPair == bulletVsEnemy) {
-          auto &deads = context.registry.get_components<component::Dead>();
           deads.insert_at(event.firstEntity, {});
           deads.insert_at(event.secondEntity, {});
+        } else if (collisionPair == bulletVsEnv) {
+          if (colA->layer == Collider::CollisionLayer::PlayerProjectile) {
+            deads.insert_at(event.firstEntity, {});
+          } else {
+            deads.insert_at(event.secondEntity, {});
+          }
+        } else if (collisionPair == playerVsEnemy) {
+          deads.insert_at(event.firstEntity, {});
+          deads.insert_at(event.secondEntity, {});
+        } else if (collisionPair == playerVsEnv) {
+          if (colA->layer == Collider::CollisionLayer::Player) {
+            deads.insert_at(event.firstEntity, {});
+          } else {
+            deads.insert_at(event.secondEntity, {});
+          }
         }
       });
 }
@@ -204,6 +234,142 @@ void Game::onUpdate(rtk::EngineContext &context, float) {
 
 bool Game::shouldContinue() const {
   return _running;
+}
+
+float Game::createGate(rtk::EngineContext &context, float startX, bool symmetric) {
+  auto gateEntity = context._entityFactory.createFromBlueprint(context.registry, "gate");
+  auto *transform = context.registry.get_components<component::Transform>().get(gateEntity);
+  if (transform) {
+    transform->position.x = startX;
+  }
+
+  if (symmetric) {
+    auto ceilingEntity = context._entityFactory.createFromBlueprint(context.registry, "gate");
+    auto *ceilTransform = context.registry.get_components<component::Transform>().get(ceilingEntity);
+    if (ceilTransform) {
+      ceilTransform->position.x = startX;
+      ceilTransform->position.y = 0.0f;
+    }
+  }
+  return startX + (192.0f * 2.0f);
+}
+
+float Game::createRamp(rtk::EngineContext &context, float startX, bool symmetric) {
+  auto rampEntity = context._entityFactory.createFromBlueprint(context.registry, "ramp");
+  auto *transform = context.registry.get_components<component::Transform>().get(rampEntity);
+  if (transform) {
+    transform->position.x = startX;
+  }
+
+  if (symmetric) {
+    auto ceilingEntity = context._entityFactory.createFromBlueprint(context.registry, "ramp");
+    auto *ceilTransform = context.registry.get_components<component::Transform>().get(ceilingEntity);
+    if (ceilTransform) {
+      ceilTransform->position.x = startX;
+      ceilTransform->position.y = 0.0f;
+    }
+  }
+  return startX + (192.0f * 2.0f);
+}
+
+float Game::createReactor(rtk::EngineContext &context, float startX, bool symmetric) {
+  auto reactorEntity = context._entityFactory.createFromBlueprint(context.registry, "reactor");
+  auto *transform = context.registry.get_components<component::Transform>().get(reactorEntity);
+  if (transform) {
+    transform->position.x = startX;
+  }
+
+  if (symmetric) {
+    auto ceilingEntity = context._entityFactory.createFromBlueprint(context.registry, "reactor");
+    auto *ceilTransform = context.registry.get_components<component::Transform>().get(ceilingEntity);
+    if (ceilTransform) {
+      ceilTransform->position.x = startX;
+      ceilTransform->position.y = 0.0f;
+    }
+  }
+  return startX + (113.0f * 2.0f);
+}
+
+float Game::createHighGround(rtk::EngineContext &context, float startX, bool symmetric) {
+  auto highGroundEntity = context._entityFactory.createFromBlueprint(context.registry, "high_ground");
+  auto *transform = context.registry.get_components<component::Transform>().get(highGroundEntity);
+  if (transform) {
+    transform->position.x = startX;
+  }
+
+  if (symmetric) {
+    auto ceilingEntity = context._entityFactory.createFromBlueprint(context.registry, "high_ground");
+    auto *ceilTransform = context.registry.get_components<component::Transform>().get(ceilingEntity);
+    if (ceilTransform) {
+      ceilTransform->position.x = startX;
+      ceilTransform->position.y = 0.0f;
+    }
+  }
+  return startX + (64.0f * 2.0f);
+}
+
+float Game::createLowGround(rtk::EngineContext &context, float startX, bool symmetric) {
+  auto lowGroundEntity = context._entityFactory.createFromBlueprint(context.registry, "low_ground");
+  auto *transform = context.registry.get_components<component::Transform>().get(lowGroundEntity);
+  if (transform) {
+    transform->position.x = startX;
+  }
+
+  if (symmetric) {
+    auto ceilingEntity = context._entityFactory.createFromBlueprint(context.registry, "low_ground");
+    auto *ceilTransform = context.registry.get_components<component::Transform>().get(ceilingEntity);
+    if (ceilTransform) {
+      ceilTransform->position.x = startX;
+      ceilTransform->position.y = 0.0f;
+    }
+  }
+  return startX + (256.0f * 2.0f);
+}
+
+float Game::createMediumGround(rtk::EngineContext &context, float startX, bool symmetric) {
+  auto groundEntity = context._entityFactory.createFromBlueprint(context.registry, "medium_ground");
+  auto *transform = context.registry.get_components<component::Transform>().get(groundEntity);
+  if (transform) {
+    transform->position.x = startX;
+  }
+
+  if (symmetric) {
+    auto ceilingEntity = context._entityFactory.createFromBlueprint(context.registry, "medium_ground");
+    auto *ceilTransform = context.registry.get_components<component::Transform>().get(ceilingEntity);
+    if (ceilTransform) {
+      ceilTransform->position.x = startX;
+      ceilTransform->position.y = 0.0f;
+    }
+  }
+  return startX + (64.0f * 2.0f);
+}
+
+void Game::createBackground(rtk::EngineContext &context) {
+  float currentX = 0.0f;
+  currentX = createMediumGround(context, currentX, false);
+  currentX = createLowGround(context, currentX, false);
+  currentX = createHighGround(context, currentX, false);
+  currentX = createMediumGround(context, currentX, false);
+  currentX = createLowGround(context, currentX, false);
+  currentX = createHighGround(context, currentX, false);
+  currentX = createHighGround(context, currentX, false);
+  currentX = createMediumGround(context, currentX, false);
+  currentX = createLowGround(context, currentX, false);
+  currentX = createMediumGround(context, currentX, false);
+  currentX = createReactor(context, currentX, true);
+  currentX = createLowGround(context, currentX, true);
+  currentX = createMediumGround(context, currentX, true);
+  currentX = createHighGround(context, currentX, true);
+  currentX = createLowGround(context, currentX, true);
+  currentX = createRamp(context, currentX, true);
+  currentX = createMediumGround(context, currentX, true);
+  currentX = createMediumGround(context, currentX, true);
+  currentX = createMediumGround(context, currentX, true);
+  currentX = createHighGround(context, currentX, true);
+  currentX = createGate(context, currentX, true);
+  currentX = createLowGround(context, currentX, true);
+  currentX = createMediumGround(context, currentX, true);
+  currentX = createHighGround(context, currentX, true);
 }
 
 void Game::onUnload(rtk::EngineContext &) {

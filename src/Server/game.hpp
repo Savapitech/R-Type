@@ -29,6 +29,14 @@ private:
   void handleConnections(rtk::EngineContext &context);
   void handleInputs(rtk::EngineContext &context);
 
+  void createBackground(rtk::EngineContext &context);
+  float createGate(rtk::EngineContext &context, float startX, bool symmetric);
+  float createRamp(rtk::EngineContext &context, float startX, bool symmetric);
+  float createReactor(rtk::EngineContext &context, float startX, bool symmetric);
+  float createHighGround(rtk::EngineContext &context, float startX, bool symmetric);
+  float createLowGround(rtk::EngineContext &context, float startX, bool symmetric);
+  float createMediumGround(rtk::EngineContext &context, float startX, bool symmetric);
+
   Server _server;
   bool _running{true};
   rtk::collision::CollisionBuffer _collisionBuffer;
