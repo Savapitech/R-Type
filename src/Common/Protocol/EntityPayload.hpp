@@ -13,22 +13,7 @@ namespace rtype::protocol {
 
 using NetworkEntityId = std::uint32_t;
 
-enum class BlueprintId : std::uint16_t {
-  Player = 1,
-  Missile = 2,
-  EnemyBidos = 3,
-  Gate = 4,
-  Ramp = 5,
-  Reactor = 6,
-  HighGround = 7,
-  LowGround = 8,
-  MediumGround = 9
-};
-
-inline bool isValidBlueprint(BlueprintId blueprint) {
-  const auto id = static_cast<std::uint16_t>(blueprint);
-  return id >= 1 && id <= 9;
-}
+using BlueprintId = std::uint16_t;
 
 inline constexpr float POSITION_SCALE = 4.0f;
 inline constexpr float POSITION_OFFSET = 8192.0f;
@@ -57,12 +42,12 @@ struct CreateEntityPayload {
   static constexpr std::size_t SIZE = 10;
 
   NetworkEntityId entityId = 0;
-  BlueprintId blueprintId = BlueprintId::Player;
+  BlueprintId blueprintId = 0;
   float x = 0.0f;
   float y = 0.0f;
 
   bool serialize(PacketWriter&writer) const {
-    if (entityId == 0 || !isValidBlueprint(blueprintId))
+    if (entityId == 0)
       return false;
 
     std::uint16_t encodedX = 0;
@@ -88,7 +73,7 @@ struct CreateEntityPayload {
 
     const auto decodedBluep = static_cast<BlueprintId>(blueprint);
 
-    if (id == 0 || !isValidBlueprint(decodedBluep))
+    if (id == 0)
       return false;
 
     entityId = id;

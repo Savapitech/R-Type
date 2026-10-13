@@ -14,7 +14,6 @@ namespace rtype::client {
 GameScene::GameScene(rtk::RenderWindow &window) : _window(window) {}
 
 void GameScene::onEnter(rtk::EngineContext &context) {
-  createPlayer(context);
   createBackground(context);
 }
 
