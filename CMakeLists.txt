@@ -140,8 +140,12 @@ target_link_libraries(Network
         asio::asio
 )
 
+#JSON LOADER
+find_package(nlohmann_json CONFIG REQUIRED)
+
 #Game Engine Lib
 add_library(GameEngine INTERFACE)
+target_link_libraries(GameEngine INTERFACE nlohmann_json::nlohmann_json)
 target_include_directories(GameEngine INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/lib/GameEngine/include")
 
 add_library(CommonProtocole INTERFACE)
@@ -166,7 +170,7 @@ endif()
 file(GLOB_RECURSE SERVER_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Server/*.cpp")
 
 add_executable(r-type_server ${SERVER_SOURCES})
-target_include_directories(r-type_client PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/Client")
+target_include_directories(r-type_server PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/Server")
 
 target_link_libraries(r-type_server PRIVATE ECSLib GameEngine Network CommonProtocole)
 

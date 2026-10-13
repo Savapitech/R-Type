@@ -24,38 +24,52 @@ public:
       auto *anim = animations.get(entity);
       auto *sprite = sprites.get(entity);
 
-      if (!anim || !sprite || !anim->playing || anim->totalFrames <= 1) {
+      if (!anim || !sprite) {
         continue;
       }
 
-      anim->elapsedTime += dt;
+      if (anim->playing && anim->totalFrames > 1 && anim->frameDuration > 0.0f) {
+        anim->elapsedTime += dt;
 
-      while (anim->elapsedTime >= anim->frameDuration) {
-        anim->elapsedTime -= anim->frameDuration;
-        anim->currentFrame++;
+        while (anim->elapsedTime >= anim->frameDuration) {
+          anim->elapsedTime -= anim->frameDuration;
+          anim->currentFrame++;
 
-        if (anim->currentFrame >= anim->totalFrames) {
-          if (anim->loop) {
-            anim->currentFrame = 0;
-          } else {
-            anim->currentFrame = anim->totalFrames - 1;
-            anim->playing = false;
-            break;
+          if (anim->currentFrame >= anim->totalFrames) {
+            if (anim->loop) {
+              anim->currentFrame = 0;
+            } else {
+              anim->currentFrame = anim->totalFrames - 1;
+              anim->playing = false;
+              break;
+            }
           }
         }
       }
+
+      uint16_t frameIdx = anim->currentFrame;
+      if (anim->reverse && anim->totalFrames > 1) {
+        frameIdx = (anim->currentFrame < anim->totalFrames)
+                       ? (anim->totalFrames - 1 - anim->currentFrame)
+                       : 0;
+      }
+
       uint16_t currentColumn = (anim->columns > 0)
-                                   ? (anim->currentFrame % anim->columns)
-                                   : anim->currentFrame;
+                                   ? (frameIdx % anim->columns)
+                                   : frameIdx;
       uint16_t currentRow =
-          (anim->columns > 0) ? (anim->currentFrame / anim->columns) : 0;
+          (anim->columns > 0) ? (frameIdx / anim->columns) : 0;
 
       sprite->textureRect.x =
           anim->startX + (currentColumn * (anim->frameWidth + anim->paddingX));
       sprite->textureRect.y =
           anim->startY + (currentRow * (anim->frameHeight + anim->paddingY));
-      sprite->textureRect.width = anim->frameWidth;
-      sprite->textureRect.height = anim->frameHeight;
+      if (anim->frameWidth > 0) {
+        sprite->textureRect.width = anim->frameWidth;
+      }
+      if (anim->frameHeight > 0) {
+        sprite->textureRect.height = anim->frameHeight;
+      }
     }
   }
 

@@ -6,6 +6,7 @@
 #include "inputAction/inputMapping.hpp"
 
 #include "sceneManager/sceneManager.hpp"
+#include "factoryDataDriven/factoryDataDriven.hpp"
 
 #include "rtkWindowAdapter.hpp"
 #include "rtkAudiManagerAdapter.hpp"
@@ -29,8 +30,15 @@ public:
   bool shouldContinue() const;
   void onUpdate(rtk::EngineContext &context, float dt);
   void onUnload(rtk::EngineContext &context);
-
+  
 private:
+  void registerBuilders(rtk::EngineContext &context);
+  void registerComponents(rtk::EngineContext &context);
+  void createBindings();
+  void subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId);
+  void addSystems(rtk::EngineContext &context);
+  void loadEntityBluePrint(rtk::EngineContext &context);
+  
   rtk::RenderWindow _window;
   RtkWindowAdapter _adapter;
   RtkAudioAdapter _adapterAudioManager;
