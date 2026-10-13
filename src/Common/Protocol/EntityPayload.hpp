@@ -104,7 +104,7 @@ struct DestroyEntityPayload {
 
   NetworkEntityId entityId = 0;
 
-  bool serialize(PacketWriter &writer) {
+  bool serialize(PacketWriter &writer) const {
     if (entityId == 0)
       return false;
 

@@ -3,10 +3,13 @@
 #include <iostream>
 #include <utility>
 
+#include "Protocol/EntityPayload.hpp"
 #include "Protocol/PayloadCodec.hpp"
 #include "Protocol/MessageType.hpp"
+#include "Protocol/SnapshotPayload.hpp"
 #include "protocol/MessageHeader.hpp"
 #include "protocol/PacketReader.hpp"
+#include "protocol/PacketWriter.hpp"
 
 namespace rtype::server {
 
@@ -103,5 +106,52 @@ bool Server::pollConnectionEvent(ConnectionEvent &event) {
     event = _connectionQueue.front();
     _connectionQueue.pop();
     return true;
+}
+
+bool Server::sendMessage(std::uint32_t connectionId, protocol::MessageType type, const std::vector<std::uint8_t> &payload) {
+  if (connectionId == 0 || payload.size() > MAX_MESSAGE_SIZE - MessageHeader::HEADER_SIZE ||
+        payload.size() > std::numeric_limits<std::uint16_t>::max())
+    return false;
+
+  PacketWriter writer;
+  MessageHeader header;
+
+  header.setType(protocol::toMessageId(type));
+  header.size = static_cast<std::uint16_t>(payload.size());
+  if (!header.serialize(writer))
+    return false;
+
+  if (!writer.writeBytes(payload.data(), payload.size()))
+    return false;
+
+  send(connectionId, writer.getData());
+  return true;
+}
+
+bool Server::sendCreateEntity(std::uint32_t connectionId, const protocol::CreateEntityPayload &payload) {
+  PacketWriter writer;
+
+  if (!payload.serialize(writer))
+    return false;
+
+  return sendMessage(connectionId, protocol::MessageType::CreateEntity, writer.getData());
+}
+
+bool Server::sendDestroyEntity(std::uint32_t connectionId, const protocol::DestroyEntityPayload &payload) {
+  PacketWriter writer;
+
+  if (!payload.serialize(writer))
+    return false;
+
+  return sendMessage(connectionId, protocol::MessageType::DestroyEntity, writer.getData());
+}
+
+bool Server::sendSnapshot(std::uint32_t connectionId, const protocol::SnapshotPayload &payload) {
+  PacketWriter writer;
+
+  if (!payload.serialize(writer))
+    return false;
+
+  return sendMessage(connectionId, protocol::MessageType::Snapshot, writer.getData());
 }
 } // namespace rtype::server
