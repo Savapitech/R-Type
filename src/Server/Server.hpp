@@ -21,11 +21,17 @@ public:
     protocol::InputPayload input;
   };
 
+  struct ConnectionEvent {
+    enum class Type { Connected, Disconnected } type;
+    std::uint32_t connectionId;
+  };
+
   void start();
   void stop();
   void send(std::uint32_t connectionId,
             const std::vector<std::uint8_t> &payload);
   bool pollInput(InputEvent &event);
+  bool pollConnectionEvent(ConnectionEvent &event);
 
 private:
   void handleMessage(std::uint32_t connectionId, MessageType type,
@@ -35,6 +41,9 @@ private:
   std::mutex _inputMutex;
   std::queue<InputEvent> _inputQueue;
   std::unordered_map<std::uint32_t, std::uint32_t> _lastInputSequence;
+
+  std::mutex _connectionMutex;
+  std::queue<ConnectionEvent> _connectionQueue;
 
   std::function<void(std::uint32_t connectionId)> _onClientConnected;
   std::function<void(std::uint32_t connectionId)> _onClientDisconnected;

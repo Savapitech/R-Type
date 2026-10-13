@@ -15,11 +15,19 @@ static bool isSequenceNewer(std::uint32_t sequence, std::uint32_t previous) {
 Server::Server(std::uint16_t port) : _network(port) {
   _network.setOnClientConnected([this](std::uint32_t connectionId) {
     std::cout << "Client connected: " << connectionId << std::endl;
+    {
+      std::lock_guard<std::mutex> lock(_connectionMutex);
+      _connectionQueue.push({ConnectionEvent::Type::Connected, connectionId});
+    }
   });
 
   _network.setOnClientDisconnected([this](std::uint32_t connectionId) {
     _lastInputSequence.erase(connectionId);
     std::cout << "Client disconnected: " << connectionId << std::endl;
+    {
+      std::lock_guard<std::mutex> lock(_connectionMutex);
+      _connectionQueue.push({ConnectionEvent::Type::Disconnected, connectionId});
+    }
   });
 
   _network.setOnMessage([this](std::uint32_t connectionId, MessageType type,
@@ -81,6 +89,17 @@ bool Server::pollInput(InputEvent &event) {
 
     event = _inputQueue.front();
     _inputQueue.pop();
+    return true;
+}
+
+bool Server::pollConnectionEvent(ConnectionEvent &event) {
+    std::lock_guard<std::mutex> lock(_connectionMutex);
+
+    if (_connectionQueue.empty())
+        return false;
+
+    event = _connectionQueue.front();
+    _connectionQueue.pop();
     return true;
 }
 } // namespace rtype::server

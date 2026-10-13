@@ -1,0 +1,38 @@
+#pragma once
+
+#include <cstdint>
+#include <unordered_map>
+
+#include "EngineContext.hpp"
+#include "Server.hpp"
+#include "collision/collisionBuffer.hpp"
+
+namespace rtype::server {
+
+class Game {
+public:
+  explicit Game(std::uint16_t port = 4242);
+  ~Game();
+
+  void onLoad(rtk::EngineContext &context);
+  void onUpdate(rtk::EngineContext &context, float dt);
+  bool shouldContinue() const;
+  void onUnload(rtk::EngineContext &context);
+
+private:
+  void registerComponents(rtk::EngineContext &context);
+  void registerBuilders(rtk::EngineContext &context);
+  void loadEntityBlueprints(rtk::EngineContext &context);
+  void addSystems(rtk::EngineContext &context);
+  void subscribeEvents(rtk::EngineContext &context);
+
+  void handleConnections(rtk::EngineContext &context);
+  void handleInputs(rtk::EngineContext &context);
+
+  Server _server;
+  bool _running{true};
+  rtk::collision::CollisionBuffer _collisionBuffer;
+  std::unordered_map<std::uint32_t, std::size_t> _players;
+};
+
+} // namespace rtype::server
