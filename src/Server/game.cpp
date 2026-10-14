@@ -136,12 +136,10 @@ void Game::subscribeEvents(rtk::EngineContext &context) {
   context.eventBus.subscribe<rtype::events::EnemySpawnedEvent>(
       [this, &context](const rtype::events::EnemySpawnedEvent &event) {
         std::cout << "[Create]: BIDOS\n";
-        protocol::CreateEntityPayload payload;
-        payload.entityId = event.networkId;
-        payload.blueprintId =
-            context._entityFactory.getArchetypeID("enemyBidos");
-        payload.x = event.x;
-        payload.y = event.y;
+        const auto payload = protocol::createEntityPayload(
+            _serverTick, event.networkId,
+            context._entityFactory.getArchetypeID("enemyBidos"), event.x,
+            event.y);
 
         for (const auto &[playerId, entity] : _players) {
           _server.sendCreateEntity(playerId, payload);
@@ -196,15 +194,17 @@ void Game::subscribeEvents(rtk::EngineContext &context) {
 
 void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<ServerDeathSystem>(
-      rtk::ecs::Order::Update, std::ref(_server), std::ref(_players));
+      rtk::ecs::Order::Update, std::ref(_server), std::ref(_players),
+      std::cref(_serverTick));
   context.scheduler.add<rtk::systems::BulletSystem>(rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::EnemySpawnerSystem>(
       rtk::ecs::Order::Update, std::ref(context._entityFactory),
       std::ref(context.eventBus), [this]() { return _isGameActive; });
-  context.scheduler.add<rtk::systems::EnemyGCSystem>(rtk::ecs::Order::SecondUpdate,
-                                                     context.eventBus);
+  context.scheduler.add<rtk::systems::EnemyGCSystem>(
+      rtk::ecs::Order::SecondUpdate, context.eventBus);
   context.scheduler.add<ServerDeathSystem>(
-      rtk::ecs::Order::SecondUpdate, std::ref(_server), std::ref(_players));
+      rtk::ecs::Order::SecondUpdate, std::ref(_server), std::ref(_players),
+      std::cref(_serverTick));
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
   context.scheduler.add<rtk::systems::ColliderSystem>(
       rtk::ecs::Order::Physics, _collisionBuffer, 64.f, context.eventBus);
@@ -346,11 +346,10 @@ void Game::handleInputs(rtk::EngineContext &context) {
         bulletTransform->position = {transform->position.x + 50.0f,
                                      transform->position.y};
 
-        protocol::CreateEntityPayload payload;
-        payload.entityId = bulletNetId;
-        payload.blueprintId = context._entityFactory.getArchetypeID("bullet");
-        payload.x = bulletTransform->position.x;
-        payload.y = bulletTransform->position.y;
+        const auto payload = protocol::createEntityPayload(
+            _serverTick, bulletNetId,
+            context._entityFactory.getArchetypeID("bullet"),
+            bulletTransform->position.x, bulletTransform->position.y);
 
         for (const auto &[connectedClientId, dummy] : _players) {
           _server.sendCreateEntity(connectedClientId, payload);
@@ -580,11 +579,9 @@ void Game::sendExistingEntities(std::uint32_t connectionId,
       continue;
     }
 
-    protocol::CreateEntityPayload payload;
-    payload.entityId = netEnt->id;
-    payload.blueprintId = netEnt->archetypeId;
-    payload.x = transform->position.x;
-    payload.y = transform->position.y;
+    const auto payload = protocol::createEntityPayload(
+        _serverTick, netEnt->id, netEnt->archetypeId, transform->position.x,
+        transform->position.y, transform->rotation);
     _server.sendCreateEntity(connectionId, payload);
   }
 }
@@ -611,11 +608,10 @@ void Game::handleEntityQueries(rtk::EngineContext &context) {
               transform->position.y > protocol::MAX_POSITION) {
             break;
           }
-          protocol::CreateEntityPayload payload;
-          payload.entityId = netEnt->id;
-          payload.blueprintId = netEnt->archetypeId;
-          payload.x = transform->position.x;
-          payload.y = transform->position.y;
+          const auto payload = protocol::createEntityPayload(
+              _serverTick, netEnt->id, netEnt->archetypeId,
+              transform->position.x, transform->position.y,
+              transform->rotation);
           _server.sendCreateEntity(queryEvent.connectionId, payload);
         }
         break;
@@ -638,12 +634,9 @@ void Game::broadcastPlayerCreated(std::uint32_t connectionId,
   if (!transform || !netEnt)
     return;
 
-  protocol::CreateEntityPayload payload;
-
-  payload.entityId = netEnt->id;
-  payload.blueprintId = netEnt->archetypeId;
-  payload.x = transform->position.x;
-  payload.y = transform->position.y;
+  const auto payload = protocol::createEntityPayload(
+      _serverTick, netEnt->id, netEnt->archetypeId, transform->position.x,
+      transform->position.y, transform->rotation);
   for (const auto &[playerId, entity] : _players) {
     (void)entity;
     _server.sendCreateEntity(playerId, payload);
@@ -652,8 +645,8 @@ void Game::broadcastPlayerCreated(std::uint32_t connectionId,
 
 void Game::broadcastPlayerDestroyed(std::uint32_t connectionId,
                                     std::uint32_t networkId) {
-  protocol::DestroyEntityPayload payload;
-  payload.entityId = networkId;
+  const auto payload = protocol::destroyEntityPayload(
+      _serverTick, networkId, protocol::DestroyReason::PlayerDisconnected);
 
   for (const auto &[playerId, entity] : _players) {
     (void)entity;
@@ -699,9 +692,12 @@ void Game::sendSnapshots(rtk::EngineContext &context) {
     }
 
     snapshot.entities.push_back(
-        {netEnt->id, transform->position.x, transform->position.y});
+        {netEnt->id, static_cast<std::uint8_t>(netEnt->archetypeId & 0xFF),
+         protocol::encodePosition(transform->position.x),
+         protocol::encodePosition(transform->position.y),
+         protocol::encodeRotation(transform->rotation)});
 
-    if (snapshot.entities.size() == protocol::SnapshotPayload::MAX_ENTITIES) {
+    if (snapshot.entities.size() == protocol::SNAPSHOT_MAX_ENTITIES) {
       flush();
     }
   }
