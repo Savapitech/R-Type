@@ -4,8 +4,8 @@
 #include <utility>
 
 #include "Protocol/EntityPayload.hpp"
-#include "Protocol/PayloadCodec.hpp"
 #include "Protocol/MessageType.hpp"
+#include "Protocol/PayloadCodec.hpp"
 #include "Protocol/SnapshotPayload.hpp"
 #include "protocol/MessageHeader.hpp"
 #include "protocol/PacketReader.hpp"
@@ -14,7 +14,7 @@
 namespace rtype::server {
 
 static bool isSequenceNewer(std::uint32_t sequence, std::uint32_t previous) {
-    return static_cast<std::int32_t>(sequence - previous) > 0;
+  return static_cast<std::int32_t>(sequence - previous) > 0;
 }
 
 Server::Server(std::uint16_t port) : _network(port) {
@@ -31,7 +31,8 @@ Server::Server(std::uint16_t port) : _network(port) {
     std::cout << "Client disconnected: " << connectionId << std::endl;
     {
       std::lock_guard<std::mutex> lock(_connectionMutex);
-      _connectionQueue.push({ConnectionEvent::Type::Disconnected, connectionId});
+      _connectionQueue.push(
+          {ConnectionEvent::Type::Disconnected, connectionId});
     }
   });
 
@@ -55,44 +56,44 @@ void Server::send(std::uint32_t connectionId,
 void Server::handleMessage(std::uint32_t connectionId, MessageId type,
                            const std::vector<std::uint8_t> &payload) {
   switch (static_cast<protocol::MessageType>(type)) {
-    case protocol::MessageType::Input: {
+  case protocol::MessageType::Input: {
     PacketReader reader(payload);
     protocol::InputPayload input;
     if (!protocol::readPayload(reader, input) || !reader.isEnd()) {
-        return;
+      return;
     }
     const std::uint32_t sequence = input.inputSequence.get();
     auto it = _lastInputSequence.find(connectionId);
 
     if (it != _lastInputSequence.end()) {
-        if (!isSequenceNewer(sequence, it->second)) {
-            return;
-        }
-        it->second = sequence;
+      if (!isSequenceNewer(sequence, it->second)) {
+        return;
+      }
+      it->second = sequence;
     } else {
-        _lastInputSequence.emplace(connectionId, sequence);
+      _lastInputSequence.emplace(connectionId, sequence);
     }
 
     {
-        std::lock_guard<std::mutex> lock(_inputMutex);
+      std::lock_guard<std::mutex> lock(_inputMutex);
 
-        _inputQueue.push({connectionId, input});
+      _inputQueue.push({connectionId, input});
     }
     break;
-}
+  }
 
-    case protocol::MessageType::QueryEntity: {
-      PacketReader reader(payload);
-      protocol::QueryEntityPayload query;
-      if (!query.deserialize(reader) || !reader.isEnd()) {
-        return;
-      }
-      {
-        std::lock_guard<std::mutex> lock(_queryMutex);
-        _queryQueue.push({connectionId, query.entityId});
-      }
-      break;
+  case protocol::MessageType::QueryEntity: {
+    PacketReader reader(payload);
+    protocol::QueryEntityPayload query;
+    if (!query.deserialize(reader) || !reader.isEnd()) {
+      return;
     }
+    {
+      std::lock_guard<std::mutex> lock(_queryMutex);
+      _queryQueue.push({connectionId, query.entityId});
+    }
+    break;
+  }
 
   default:
     break;
@@ -100,41 +101,43 @@ void Server::handleMessage(std::uint32_t connectionId, MessageId type,
 }
 
 bool Server::pollInput(InputEvent &event) {
-    std::lock_guard<std::mutex> lock(_inputMutex);
+  std::lock_guard<std::mutex> lock(_inputMutex);
 
-    if (_inputQueue.empty())
-        return false;
+  if (_inputQueue.empty())
+    return false;
 
-    event = _inputQueue.front();
-    _inputQueue.pop();
-    return true;
+  event = _inputQueue.front();
+  _inputQueue.pop();
+  return true;
 }
 
 bool Server::pollConnectionEvent(ConnectionEvent &event) {
-    std::lock_guard<std::mutex> lock(_connectionMutex);
+  std::lock_guard<std::mutex> lock(_connectionMutex);
 
-    if (_connectionQueue.empty())
-        return false;
+  if (_connectionQueue.empty())
+    return false;
 
-    event = _connectionQueue.front();
-    _connectionQueue.pop();
-    return true;
+  event = _connectionQueue.front();
+  _connectionQueue.pop();
+  return true;
 }
 
 bool Server::pollQueryEntity(QueryEntityEvent &event) {
-    std::lock_guard<std::mutex> lock(_queryMutex);
+  std::lock_guard<std::mutex> lock(_queryMutex);
 
-    if (_queryQueue.empty())
-        return false;
+  if (_queryQueue.empty())
+    return false;
 
-    event = _queryQueue.front();
-    _queryQueue.pop();
-    return true;
+  event = _queryQueue.front();
+  _queryQueue.pop();
+  return true;
 }
 
-bool Server::sendMessage(std::uint32_t connectionId, protocol::MessageType type, const std::vector<std::uint8_t> &payload) {
-  if (connectionId == 0 || payload.size() > MAX_MESSAGE_SIZE - MessageHeader::HEADER_SIZE ||
-        payload.size() > std::numeric_limits<std::uint16_t>::max())
+bool Server::sendMessage(std::uint32_t connectionId, protocol::MessageType type,
+                         const std::vector<std::uint8_t> &payload) {
+  if (connectionId == 0 ||
+      payload.size() > MAX_MESSAGE_SIZE - MessageHeader::HEADER_SIZE ||
+      payload.size() > std::numeric_limits<std::uint16_t>::max())
     return false;
 
   PacketWriter writer;
@@ -152,30 +155,36 @@ bool Server::sendMessage(std::uint32_t connectionId, protocol::MessageType type,
   return true;
 }
 
-bool Server::sendCreateEntity(std::uint32_t connectionId, const protocol::CreateEntityPayload &payload) {
+bool Server::sendCreateEntity(std::uint32_t connectionId,
+                              const protocol::CreateEntityPayload &payload) {
   PacketWriter writer;
 
   if (!payload.serialize(writer))
     return false;
 
-  return sendMessage(connectionId, protocol::MessageType::CreateEntity, writer.getData());
+  return sendMessage(connectionId, protocol::MessageType::CreateEntity,
+                     writer.getData());
 }
 
-bool Server::sendDestroyEntity(std::uint32_t connectionId, const protocol::DestroyEntityPayload &payload) {
+bool Server::sendDestroyEntity(std::uint32_t connectionId,
+                               const protocol::DestroyEntityPayload &payload) {
   PacketWriter writer;
 
   if (!payload.serialize(writer))
     return false;
 
-  return sendMessage(connectionId, protocol::MessageType::DestroyEntity, writer.getData());
+  return sendMessage(connectionId, protocol::MessageType::DestroyEntity,
+                     writer.getData());
 }
 
-bool Server::sendSnapshot(std::uint32_t connectionId, const protocol::SnapshotPayload &payload) {
+bool Server::sendSnapshot(std::uint32_t connectionId,
+                          const protocol::SnapshotPayload &payload) {
   PacketWriter writer;
 
   if (!payload.serialize(writer))
     return false;
 
-  return sendMessage(connectionId, protocol::MessageType::Snapshot, writer.getData());
+  return sendMessage(connectionId, protocol::MessageType::Snapshot,
+                     writer.getData());
 }
 } // namespace rtype::server

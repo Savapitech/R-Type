@@ -1,6 +1,6 @@
 #pragma once
-#include <cstdint>
 #include <atomic>
+#include <cstdint>
 
 namespace rtype::server {
 
@@ -9,22 +9,20 @@ namespace rtype::server {
  */
 class NetworkIdGenerator {
 private:
-    std::atomic<std::uint32_t> _nextId{1000}; 
+  std::atomic<std::uint32_t> _nextId{1000};
 
-    NetworkIdGenerator() = default;
+  NetworkIdGenerator() = default;
 
 public:
-    static NetworkIdGenerator& getInstance() {
-        static NetworkIdGenerator instance;
-        return instance;
-    }
+  static NetworkIdGenerator &getInstance() {
+    static NetworkIdGenerator instance;
+    return instance;
+  }
 
-    NetworkIdGenerator(const NetworkIdGenerator&) = delete;
-    NetworkIdGenerator& operator=(const NetworkIdGenerator&) = delete;
+  NetworkIdGenerator(const NetworkIdGenerator &) = delete;
+  NetworkIdGenerator &operator=(const NetworkIdGenerator &) = delete;
 
-    std::uint32_t getNextId() {
-        return _nextId++;
-    }
+  std::uint32_t getNextId() { return _nextId++; }
 };
 
 } // namespace rtype::server

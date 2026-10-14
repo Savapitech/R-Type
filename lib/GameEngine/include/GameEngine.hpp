@@ -45,22 +45,30 @@ public:
 
     try {
       while (_running) {
-        if constexpr (requires { { game.shouldContinue() } -> std::convertible_to<bool>; }) {
-          if (!game.shouldContinue()) break;
+        if constexpr (requires {
+                        { game.shouldContinue() } -> std::convertible_to<bool>;
+                      }) {
+          if (!game.shouldContinue())
+            break;
         }
 
         auto newTime = Clock::now();
-        float realDeltaTime = std::chrono::duration<float>(newTime - currentTime).count();
+        float realDeltaTime =
+            std::chrono::duration<float>(newTime - currentTime).count();
         currentTime = newTime;
 
-        float frameTime = std::min(realDeltaTime, 0.25f); 
+        float frameTime = std::min(realDeltaTime, 0.25f);
         accumulator += frameTime;
 
         while (accumulator >= fixedDeltaTime) {
-            accumulator -= fixedDeltaTime;
+          accumulator -= fixedDeltaTime;
         }
 
-        if constexpr (requires { { game.onUpdate(context, frameTime) } -> std::same_as<void>; }) {
+        if constexpr (requires {
+                        {
+                          game.onUpdate(context, frameTime)
+                        } -> std::same_as<void>;
+                      }) {
           game.onUpdate(context, frameTime);
         }
         _scheduler.run(_registry, frameTime);
@@ -69,22 +77,25 @@ public:
         updateFPS(realDeltaTime);
 
         if (_targetFps > 0) {
-            const auto targetDuration = std::chrono::nanoseconds(1000000000 / _targetFps);
+          const auto targetDuration =
+              std::chrono::nanoseconds(1000000000 / _targetFps);
 
-            nextFrameTarget += targetDuration; 
+          nextFrameTarget += targetDuration;
 
-            auto sleepStart = Clock::now();
+          auto sleepStart = Clock::now();
 
-            if (nextFrameTarget > sleepStart) {
-                auto timeToSleep = nextFrameTarget - sleepStart;
+          if (nextFrameTarget > sleepStart) {
+            auto timeToSleep = nextFrameTarget - sleepStart;
 
-                if (timeToSleep > std::chrono::milliseconds(2))
-                    std::this_thread::sleep_for(timeToSleep - std::chrono::milliseconds(2));
+            if (timeToSleep > std::chrono::milliseconds(2))
+              std::this_thread::sleep_for(timeToSleep -
+                                          std::chrono::milliseconds(2));
 
-                while (Clock::now() < nextFrameTarget) {}
-            } else {
-                nextFrameTarget = Clock::now(); 
+            while (Clock::now() < nextFrameTarget) {
             }
+          } else {
+            nextFrameTarget = Clock::now();
+          }
         }
       }
     } catch (...) {

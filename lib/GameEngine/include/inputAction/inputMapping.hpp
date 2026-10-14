@@ -1,85 +1,93 @@
 #pragma once
-#include <cstdint>
-#include <array>
 #include "systems/RenderConcept.hpp"
+#include <array>
+#include <cstdint>
 
 namespace rtk::Input {
 
-    struct AxisData
-    {
-        ecs::concepts::GamepadAxis axis;
-        float validationPression;
-    };
+struct AxisData {
+  ecs::concepts::GamepadAxis axis;
+  float validationPression;
+};
 
-    struct InputBinding {
-        enum class Type : uint8_t { NoneAction, Keyboard, GamepadButton, GamepadAxis, Mouse };
+struct InputBinding {
+  enum class Type : uint8_t {
+    NoneAction,
+    Keyboard,
+    GamepadButton,
+    GamepadAxis,
+    Mouse
+  };
 
-        Type type{Type::NoneAction};
+  Type type{Type::NoneAction};
 
-        union {
-            ecs::concepts::Key key;
-            ecs::concepts::GamepadButton button;
-            ecs::concepts::MouseButton mouse;
-            AxisData axisData;
-        };
+  union {
+    ecs::concepts::Key key;
+    ecs::concepts::GamepadButton button;
+    ecs::concepts::MouseButton mouse;
+    AxisData axisData;
+  };
 
-        InputBinding() : type(Type::NoneAction) {}
-    };
+  InputBinding() : type(Type::NoneAction) {}
+};
 
-    class InputMapping {
-    public:
-        static constexpr uint8_t MAX_ACTIONS = 32;
-        static constexpr uint8_t BINDINGS_PER_ACTION = 4;
-    private:
-        std::array<InputBinding, MAX_ACTIONS * BINDINGS_PER_ACTION> _bindings;
+class InputMapping {
+public:
+  static constexpr uint8_t MAX_ACTIONS = 32;
+  static constexpr uint8_t BINDINGS_PER_ACTION = 4;
 
-    public:
-        void bindKey(uint8_t bitIndex, ecs::concepts::Key key) {
-            addBinding(bitIndex, [key](InputBinding& b) {
-                b.type = InputBinding::Type::Keyboard;
-                b.key = key;
-            });
-        }
+private:
+  std::array<InputBinding, MAX_ACTIONS * BINDINGS_PER_ACTION> _bindings;
 
-        void bindGamepad(uint8_t bitIndex, ecs::concepts::GamepadButton button) {
-            addBinding(bitIndex, [button](InputBinding& b) {
-                b.type = InputBinding::Type::GamepadButton;
-                b.button = button;
-            });
-        }
+public:
+  void bindKey(uint8_t bitIndex, ecs::concepts::Key key) {
+    addBinding(bitIndex, [key](InputBinding &b) {
+      b.type = InputBinding::Type::Keyboard;
+      b.key = key;
+    });
+  }
 
-        void bindMouse(uint8_t bitIndex, ecs::concepts::MouseButton mouseButton) {
-            addBinding(bitIndex, [mouseButton](InputBinding& b) {
-                b.type = InputBinding::Type::Mouse;
-                b.mouse = mouseButton;
-            });
-        }
+  void bindGamepad(uint8_t bitIndex, ecs::concepts::GamepadButton button) {
+    addBinding(bitIndex, [button](InputBinding &b) {
+      b.type = InputBinding::Type::GamepadButton;
+      b.button = button;
+    });
+  }
 
-        void bindGamepadAxis(uint8_t bitIndex, ecs::concepts::GamepadAxis axis, float validationPression) {
-            addBinding(bitIndex, [axis, validationPression](InputBinding& b) {
-                b.type = InputBinding::Type::GamepadAxis;
-                b.axisData.axis = axis;
-                b.axisData.validationPression = validationPression;
-            });
-        }
+  void bindMouse(uint8_t bitIndex, ecs::concepts::MouseButton mouseButton) {
+    addBinding(bitIndex, [mouseButton](InputBinding &b) {
+      b.type = InputBinding::Type::Mouse;
+      b.mouse = mouseButton;
+    });
+  }
 
-        const std::array<InputBinding, MAX_ACTIONS * BINDINGS_PER_ACTION>& getBindings() const {
-            return _bindings;
-        }
+  void bindGamepadAxis(uint8_t bitIndex, ecs::concepts::GamepadAxis axis,
+                       float validationPression) {
+    addBinding(bitIndex, [axis, validationPression](InputBinding &b) {
+      b.type = InputBinding::Type::GamepadAxis;
+      b.axisData.axis = axis;
+      b.axisData.validationPression = validationPression;
+    });
+  }
 
-        private:
-            template<typename Func>
-            void addBinding(uint8_t bitIndex, Func assignFunc) {
-                if (bitIndex >= MAX_ACTIONS) return;
+  const std::array<InputBinding, MAX_ACTIONS * BINDINGS_PER_ACTION> &
+  getBindings() const {
+    return _bindings;
+  }
 
-                size_t startIndex = bitIndex * BINDINGS_PER_ACTION;
-                for (size_t i = 0; i < BINDINGS_PER_ACTION; ++i) {
-                    if (_bindings[startIndex + i].type == InputBinding::Type::NoneAction) {
-                        assignFunc(_bindings[startIndex + i]);
-                        return;
-                    }
-                }
-                LOG_WARN("No free slots left for action bit " + std::to_string(bitIndex));
-            }
-    };
-}
+private:
+  template <typename Func> void addBinding(uint8_t bitIndex, Func assignFunc) {
+    if (bitIndex >= MAX_ACTIONS)
+      return;
+
+    size_t startIndex = bitIndex * BINDINGS_PER_ACTION;
+    for (size_t i = 0; i < BINDINGS_PER_ACTION; ++i) {
+      if (_bindings[startIndex + i].type == InputBinding::Type::NoneAction) {
+        assignFunc(_bindings[startIndex + i]);
+        return;
+      }
+    }
+    LOG_WARN("No free slots left for action bit " + std::to_string(bitIndex));
+  }
+};
+} // namespace rtk::Input

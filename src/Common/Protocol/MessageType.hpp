@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 
 #include <cstdint>
 
@@ -20,4 +20,4 @@ constexpr std::uint16_t toMessageId(MessageType type) {
   return static_cast<std::uint16_t>(type);
 }
 
-} //namespace rtype::protocol
+} // namespace rtype::protocol

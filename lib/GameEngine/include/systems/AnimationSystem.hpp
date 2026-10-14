@@ -28,7 +28,8 @@ public:
         continue;
       }
 
-      if (anim->playing && anim->totalFrames > 1 && anim->frameDuration > 0.0f) {
+      if (anim->playing && anim->totalFrames > 1 &&
+          anim->frameDuration > 0.0f) {
         anim->elapsedTime += dt;
 
         while (anim->elapsedTime >= anim->frameDuration) {
@@ -54,9 +55,8 @@ public:
                        : 0;
       }
 
-      uint16_t currentColumn = (anim->columns > 0)
-                                   ? (frameIdx % anim->columns)
-                                   : frameIdx;
+      uint16_t currentColumn =
+          (anim->columns > 0) ? (frameIdx % anim->columns) : frameIdx;
       uint16_t currentRow =
           (anim->columns > 0) ? (frameIdx / anim->columns) : 0;
 

@@ -1,19 +1,21 @@
 #pragma once
 
-#include <ISystem.hpp>
-#include <vector>
-#include <unordered_map>
-#include <cstdint>
-#include "components/Dead.hpp"
-#include "components/NetworkEntity.hpp"
 #include "Protocol/EntityPayload.hpp"
 #include "Server.hpp"
+#include "components/Dead.hpp"
+#include "components/NetworkEntity.hpp"
+#include <ISystem.hpp>
+#include <cstdint>
+#include <unordered_map>
+#include <vector>
 
 namespace rtype::server {
 
 class ServerDeathSystem final : public rtk::ecs::ISystem {
 public:
-  ServerDeathSystem(Server &server, const std::unordered_map<std::uint32_t, std::size_t> &players)
+  ServerDeathSystem(
+      Server &server,
+      const std::unordered_map<std::uint32_t, std::size_t> &players)
       : _server(server), _players(players) {}
 
   ~ServerDeathSystem() override = default;
