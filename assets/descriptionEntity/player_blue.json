@@ -1,0 +1,56 @@
+{
+  "components": {
+    "transform": {
+      "position": { "x": 150.0, "y": 250.0 },
+      "rotation": 0.0,
+      "scale": { "x": 1.0, "y": 1.0 }
+    },
+    "sprite": {
+      "texture": "assets/sprite.png",
+      "size": { "w": 66.0, "h": 34.0 },
+      "origin": { "x": 0.0, "y": 0.0 },
+      "textureRect": { "x": 66, "y": 0, "w": 33, "h": 17 },
+      "color": { "r": 255, "g": 255, "b": 255, "a": 255 },
+      "layer": 0
+    },
+    "collider": {
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "width": 64.0,
+      "height": 32.0,
+      "layer": "Player",
+      "mask": ["Enemy", "EnemyProjectile", "Environment"]
+    },
+    "animation": {
+      "frameDuration": 0.1,
+      "currentFrame": 0,
+      "totalFrames": 1,
+      "frameWidth": 33,
+      "frameHeight": 17,
+      "startX": 66,
+      "startY": 0,
+      "loop": false,
+      "playing": true,
+      "reverse": false,
+      "columns": 0,
+      "paddingX": 0,
+      "paddingY": 0
+    },
+    "animator": {
+      "currentState": "IDLE",
+      "clips": {
+        "IDLE": { "startX": 66, "startY": 0, "totalFrames": 1, "frameDuration": 0.1, "loop": false, "reverse": false },
+        "UP": { "startX": 99, "startY": 0, "totalFrames": 2, "frameDuration": 0.1, "loop": false, "reverse": false },
+        "DOWN": { "startX": 0, "startY": 0, "totalFrames": 2, "frameDuration": 0.1, "loop": false, "reverse": true }
+      }
+    },
+    "controllable": {
+      "speed": 300.0
+    },
+    "velocity": {
+      "x": 0.0,
+      "y": 0.0
+    },
+    "networkEntity": {}
+  }
+}

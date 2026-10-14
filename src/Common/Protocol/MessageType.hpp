@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 
 #include <cstdint>
 
@@ -12,11 +12,12 @@ enum class MessageType : std::uint16_t {
   Pong = 0x04,
   CreateEntity = 0x10,
   DestroyEntity = 0x11,
-  Snapshot = 0x12
+  Snapshot = 0x12,
+  QueryEntity = 0x13
 };
 
 constexpr std::uint16_t toMessageId(MessageType type) {
   return static_cast<std::uint16_t>(type);
 }
 
-} //namespace rtype::protocol
+} // namespace rtype::protocol

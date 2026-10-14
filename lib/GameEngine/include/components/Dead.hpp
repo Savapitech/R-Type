@@ -6,12 +6,13 @@
 #include <Registry.hpp>
 
 namespace component {
-    struct Dead {};
+struct Dead {};
 
-inline void deadFromJson(rtk::ecs::Registry& reg, std::size_t entity, const nlohmann::json& /*data*/) {
-    component::Dead dead{};
+inline void deadFromJson(rtk::ecs::Registry &reg, std::size_t entity,
+                         const nlohmann::json & /*data*/) {
+  component::Dead dead{};
 
-    reg.get_components<component::Dead>().insert_at(entity, dead);
+  reg.get_components<component::Dead>().insert_at(entity, dead);
 }
 
 } // namespace component

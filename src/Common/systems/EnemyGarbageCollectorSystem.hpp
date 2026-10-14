@@ -3,44 +3,46 @@
 
 #include <ISystem.hpp>
 
-#include "events/busEvents.hpp"
 #include "components/Transform.hpp"
+#include "events/busEvents.hpp"
 
+#include "components/Dead.hpp"
 #include "components/Enemy.hpp"
 #include "components/EnemyEvent.hpp"
 
 namespace rtk::systems {
 class EnemyGCSystem final : public rtk::ecs::ISystem {
 public:
-    EnemyGCSystem(busEvent &eventBus) : _eventBus(eventBus){};
-    ~EnemyGCSystem() override = default;
+  EnemyGCSystem(busEvent &eventBus) : _eventBus(eventBus){};
+  ~EnemyGCSystem() override = default;
 
-    void onStart(rtk::ecs::Registry &) override {}
+  void onStart(rtk::ecs::Registry &) override {}
 
-    void update(rtk::ecs::Registry &reg, float) override {
-        auto view = reg.view<component::Transform, component::Enemy>();
-        auto &transforms = reg.get_components<component::Transform>();
+  void update(rtk::ecs::Registry &reg, float) override {
+    auto view = reg.view<component::Transform, component::Enemy>();
+    auto &transforms = reg.get_components<component::Transform>();
 
-        std::vector<std::size_t> entitiesToDestroy;
+    std::vector<std::size_t> entitiesToDestroy;
 
-        for (auto entity : view) {
-            auto *transform = transforms.get(entity);
-            if (!transform) continue;
+    for (auto entity : view) {
+      auto *transform = transforms.get(entity);
+      if (!transform)
+        continue;
 
-            if (transform->position.x < -100.0f) {
-                entitiesToDestroy.push_back(entity);
-            }
-        }
-
-        for (auto entity : entitiesToDestroy) {
-            reg.kill_entity(entity);
-            _eventBus.publish(rtype::events::EnemyEscapedEvent{entity});
-        }
+      if (transform->position.x < -100.0f) {
+        entitiesToDestroy.push_back(entity);
+      }
     }
 
-    void onStop(rtk::ecs::Registry &) override {}
+    for (auto entity : entitiesToDestroy) {
+      reg.get_components<component::Dead>().insert_at(entity, {});
+      _eventBus.publish(rtype::events::EnemyEscapedEvent{entity});
+    }
+  }
 
-    private:
-        busEvent &_eventBus;
+  void onStop(rtk::ecs::Registry &) override {}
+
+private:
+  busEvent &_eventBus;
 };
 } // namespace rtk::systems

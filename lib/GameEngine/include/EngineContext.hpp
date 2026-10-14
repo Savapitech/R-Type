@@ -4,9 +4,9 @@
 #include <Scheduler.hpp>
 
 #include "Game.hpp"
-#include "inputAction/InputAction.hpp"
 #include "events/busEvents.hpp"
 #include "factoryDataDriven/factoryDataDriven.hpp"
+#include "inputAction/InputAction.hpp"
 
 namespace rtk {
 struct EngineContext {

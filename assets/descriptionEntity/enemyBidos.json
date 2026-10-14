@@ -40,6 +40,7 @@
       "paddingX": 0,
       "paddingY": 0
     },
-    "enemy": {}
+    "enemy": {},
+    "networkEntity": {}
   }
 }

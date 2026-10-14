@@ -20,6 +20,7 @@
       "mask": ["EnemyProjectile", "Enemy", "Environment"]
     },
     "velocity": { "x": 800.0, "y": 0.0 },
-    "bullet": { "damage": 10.0 }
+    "bullet": { "damage": 10.0 },
+    "networkEntity": {}
   }
 }

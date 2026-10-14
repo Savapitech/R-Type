@@ -5,20 +5,22 @@
 #include "inputAction/InputAction.hpp"
 #include "inputAction/inputMapping.hpp"
 
-#include "sceneManager/sceneManager.hpp"
 #include "factoryDataDriven/factoryDataDriven.hpp"
+#include "sceneManager/sceneManager.hpp"
+#include <array>
+#include <unordered_set>
 
-#include "rtkWindowAdapter.hpp"
 #include "rtkAudiManagerAdapter.hpp"
+#include "rtkWindowAdapter.hpp"
 
-#include "scene/gameScene.hpp"
-#include "scene/networkConnectionScene.hpp"
-#include "scene/menuScene.hpp"
 #include "NetworkClient.hpp"
+#include "scene/gameScene.hpp"
+#include "scene/menuScene.hpp"
+#include "scene/networkConnectionScene.hpp"
 
 namespace rtype::events {
-    struct PlayerShotEvent {};
-}
+struct PlayerShotEvent {};
+} // namespace rtype::events
 
 namespace rtype::client {
 class Game {
@@ -30,7 +32,7 @@ public:
   bool shouldContinue() const;
   void onUpdate(rtk::EngineContext &context, float dt);
   void onUnload(rtk::EngineContext &context);
-  
+
 private:
   void registerBuilders(rtk::EngineContext &context);
   void registerComponents(rtk::EngineContext &context);
@@ -39,11 +41,17 @@ private:
   void addSystems(rtk::EngineContext &context);
   void loadEntityBluePrint(rtk::EngineContext &context);
   void handleReplication(rtk::EngineContext &context);
-  void createReplicatedEntity(rtk::EngineContext &context, const protocol::CreateEntityPayload &payload);
-  void destroyReplicatedEntity(rtk::EngineContext &context, const protocol::DestroyEntityPayload &payload);
-  void applySnapshot(rtk::EngineContext &context, const protocol::SnapshotPayload &payload);
+  void createReplicatedEntity(rtk::EngineContext &context,
+                              const protocol::CreateEntityPayload &payload);
+  void destroyReplicatedEntity(rtk::EngineContext &context,
+                               const protocol::DestroyEntityPayload &payload);
+  void applySnapshot(rtk::EngineContext &context,
+                     const protocol::SnapshotPayload &payload);
 
-  std::unordered_map<protocol::NetworkEntityId,std::size_t> _networkEntities;
+  std::unordered_map<protocol::NetworkEntityId, std::size_t> _networkEntities;
+  std::unordered_set<std::uint32_t> _pendingEntityQueries;
+  std::unordered_set<std::uint32_t> _destroyedEntities;
+  std::array<std::uint16_t, 4> _playerArchetypes{};
   std::uint32_t _lastServerTick = 0;
   rtk::RenderWindow _window;
   RtkWindowAdapter _adapter;
@@ -53,8 +61,8 @@ private:
   rtk::Input::InputMapping _inputMapping;
   rtype::client::NetworkClient _networkClient;
 
-  rtk::SceneManager<SceneType, rtk::RenderWindow, rtk::InputState, MenuScene, NetworkConnectionScene,
-                    GameScene>
+  rtk::SceneManager<SceneType, rtk::RenderWindow, rtk::InputState, MenuScene,
+                    NetworkConnectionScene, GameScene>
       _sceneManager;
 };
 } // namespace rtype::client

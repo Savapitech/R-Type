@@ -75,7 +75,7 @@ endif()
 
 
 #set variable to fetch the ECS part
-set(ECS_URL "https://github.com/rtk-lib/ECS/releases/latest/download/rtk_ecs-v1.0.3.tar.gz")
+set(ECS_URL "https://github.com/rtk-lib/ECS/releases/latest/download/rtk_ecs-1.04.tar.gz ")
 set(ECS_FOLDER_NAME "rtk_ecs/include")
 
 #declare a fetch toward the ecs lib

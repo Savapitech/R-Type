@@ -30,6 +30,7 @@ enum class CommandType : std::uint8_t
     Input = 0x02,
     Ping = 0x03,
     Disconnect = 0x04,
+    QueryEntity = 0x13,
 
     Welcome = 0x81,
     ConnectionRejected = 0x82,
@@ -136,6 +137,18 @@ enum class DisconnectReason : std::uint8_t
 ```
 
 The server must not rely solely on this command, as a UDP packet can be lost. It must also have a timeout.
+
+### 3.5 QueryEntity
+
+Queries the server for entity creation details when the client receives an unknown `networkId` in a snapshot or in case of a dropped `CreateEntity` packet.
+
+Payload:
+
+| Field | Type | Description |
+|---|---|---|
+| `networkId` | `uint32` | Network identifier being queried |
+
+The server responds to the querying client by sending a `CreateEntity` command containing the entity's archetype and current position.
 
 ## 4. Server to Client Commands
 
@@ -316,8 +329,9 @@ RTT = current time - timestamp
 | `Input` | 20 times per second |
 | `Snapshot` | 20 times per second |
 | `Ping` | 1 time per second |
-| `CreateEntity` | On creation |
+| `CreateEntity` | On creation / connection replication |
 | `DestroyEntity` | On destruction |
+| `QueryEntity` | On unknown entity received in Snapshot |
 
 ## 6. Authority Rules
 
@@ -328,6 +342,7 @@ Connect
 Input
 Ping
 Disconnect
+QueryEntity
 ```
 
 The server can only send:
@@ -351,14 +366,18 @@ A client receiving these commands from an address other than the server's must i
 ```text
 1. Client -> Connect
 2. Server -> Welcome
-3. Server -> CreateEntity of the player
-4. Client -> Input
-5. Server -> Snapshot
-6. Client -> Input with Shoot
-7. Server creates the projectile
-8. Server -> CreateEntity of the projectile
-9. Server -> Snapshot
-10. Server detects a collision
-11. Server -> DestroyEntity
-12. Client -> Disconnect
+3. Server -> CreateEntity for all existing entities (obstacles, active players, enemies)
+4. Server -> CreateEntity of the new player
+5. Client -> Input
+6. Server -> Snapshot
+7. (Optional fallback if a Snapshot contains an unknown entity)
+   Client -> QueryEntity
+   Server -> CreateEntity
+8. Client -> Input with Shoot
+9. Server creates the projectile
+10. Server -> CreateEntity of the projectile
+11. Server -> Snapshot
+12. Server detects a collision
+13. Server -> DestroyEntity
+14. Client -> Disconnect
 ```

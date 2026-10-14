@@ -25,7 +25,8 @@ public:
         continue;
 
       auto stateIdx = static_cast<std::size_t>(animator->currentState);
-      if (stateIdx < animator->clips.size() && animator->currentState != animator->previousState) {
+      if (stateIdx < animator->clips.size() &&
+          animator->currentState != animator->previousState) {
         const auto &currentClip = animator->clips[stateIdx];
 
         anim->startX = currentClip.startX;
