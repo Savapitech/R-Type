@@ -141,14 +141,14 @@ void NetworkClient::sendQueryEntity(std::uint32_t networkId) {
     messageHeader.setType(
         protocol::toMessageId(protocol::MessageType::QueryEntity));
     messageHeader.size =
-        static_cast<std::uint16_t>(protocol::QueryEntityPayload::SIZE);
+        static_cast<std::uint16_t>(sizeof(protocol::QueryEntityPayload));
 
     if (!messageHeader.serialize(writer))
       return;
 
     protocol::QueryEntityPayload payload;
-    payload.entityId = networkId;
-    if (!payload.serialize(writer))
+    payload.networkId = networkId;
+    if (!protocol::writePayload(writer, payload))
       return;
 
     doSend(writer.getData());
@@ -381,12 +381,10 @@ void NetworkClient::handleReplicationMessage(
 
   switch (type) {
   case protocol::MessageType::CreateEntity: {
-    if (payload.size() != protocol::CreateEntityPayload::SIZE)
-      return;
-
     protocol::CreateEntityPayload decoded;
 
-    if (!decoded.deserialize(reader) || !reader.isEnd())
+    if (!protocol::readPayload(reader, decoded) || !reader.isEnd() ||
+        !protocol::isValid(decoded))
       return;
 
     std::lock_guard<std::mutex> lock(_eventMutex);
@@ -394,12 +392,10 @@ void NetworkClient::handleReplicationMessage(
     return;
   }
   case protocol::MessageType::DestroyEntity: {
-    if (payload.size() != protocol::DestroyEntityPayload::SIZE)
-      return;
-
     protocol::DestroyEntityPayload decoded;
 
-    if (!decoded.deserialize(reader) || !reader.isEnd())
+    if (!protocol::readPayload(reader, decoded) || !reader.isEnd() ||
+        !protocol::isValid(decoded))
       return;
 
     std::lock_guard<std::mutex> lock(_eventMutex);
@@ -409,7 +405,7 @@ void NetworkClient::handleReplicationMessage(
   case protocol::MessageType::Snapshot: {
     protocol::SnapshotPayload decoded;
 
-    if (!decoded.deserialize(reader) || !reader.isEnd())
+    if (!protocol::readSnapshot(reader, decoded) || !reader.isEnd())
       return;
 
     std::lock_guard<std::mutex> lock(_eventMutex);
