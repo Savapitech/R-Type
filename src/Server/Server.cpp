@@ -173,11 +173,9 @@ bool Server::sendDestroyEntity(std::uint32_t connectionId, const protocol::Destr
 bool Server::sendSnapshot(std::uint32_t connectionId, const protocol::SnapshotPayload &payload) {
   PacketWriter writer;
 
-  if (!payload.serialize(writer)){
-    std::cout << "SEND PAYLOAD FAILED\n";
+  if (!payload.serialize(writer))
     return false;
-  }
-  std::cout << "SEND PAYLOAD\n";
+
   return sendMessage(connectionId, protocol::MessageType::Snapshot, writer.getData());
 }
 } // namespace rtype::server

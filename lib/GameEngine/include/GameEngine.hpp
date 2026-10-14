@@ -64,6 +64,7 @@ public:
           game.onUpdate(context, frameTime);
         }
         _scheduler.run(_registry, frameTime);
+        _registry.flush();
 
         updateFPS(realDeltaTime);
 

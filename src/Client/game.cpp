@@ -6,6 +6,7 @@
 #include "components/Velocity.hpp"
 #include "components/AABBCollider.hpp"
 #include "components/Animation.hpp"
+#include "components/Animator.hpp"
 #include "systems/AnimatorSystem.hpp"
 #include "components/Controllable.hpp"
 #include "components/EnemyEvent.hpp"
@@ -310,6 +311,7 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           for (auto e : view) {
               auto *netEnt = context.registry.get_components<component::NetworkEntity>().get(e);
               if (netEnt && netEnt->id == destroyPayload.entityId) {
+                  context.registry.remove_entity_from_all_pools(e);
                   context.registry.kill_entity(e);
                   break;
               }
@@ -322,6 +324,8 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           auto view = context.registry.view<component::NetworkEntity, component::Transform>();
           auto& transforms = context.registry.get_components<component::Transform>();
           auto& networkEntities = context.registry.get_components<component::NetworkEntity>();
+          auto& animators = context.registry.get_components<component::animator>();
+          auto& velocities = context.registry.get_components<component::Velocity>();
 
           for (const auto& netData : snapshotPayload.entities) {
               bool found = false;
@@ -330,6 +334,21 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
                   if (netEnt && netEnt->id == netData.entityId) {
                       auto *transform = transforms.get(e);
                       if (transform) {
+                          float deltaY = netData.y - transform->position.y;
+                          auto *anim = animators.get(e);
+                          if (anim) {
+                              if (deltaY < -0.5f) {
+                                  anim->currentState = component::animState::UP;
+                              } else if (deltaY > 0.5f) {
+                                  anim->currentState = component::animState::DOWN;
+                              } else {
+                                  anim->currentState = component::animState::IDLE;
+                              }
+                          }
+                          auto *vel = velocities.get(e);
+                          if (vel) {
+                              vel->y = deltaY;
+                          }
                           transform->position.x = netData.x;
                           transform->position.y = netData.y;
                       }

@@ -37,13 +37,15 @@ public:
     LOG_INFO("Load Player System");
   }
 
-  void update(rtk::ecs::Registry &reg, float) override {
+  void update(rtk::ecs::Registry &, float) override {
     sendInputsToServer();
-    processLocalLogic(reg);
+    handleShootingAudio();
     _clientTick++;
   }
 
 private:
+  bool _isChargingShoot{false};
+
   void sendInputsToServer() {
     if (!_networkClient.isConnected()) return;
 
@@ -67,66 +69,15 @@ private:
 
     _networkClient.sendInput(_clientTick, networkActions);
   }
-  void processLocalLogic(rtk::ecs::Registry &reg) {
-    auto view = reg.view<component::Velocity, component::Controllable, component::Transform, component::animator, component::NetworkEntity>();
 
-    auto &velocities = reg.get_components<component::Velocity>();
-    auto &controllables = reg.get_components<component::Controllable>();
-    auto &transforms = reg.get_components<component::Transform>();
-    auto &animators = reg.get_components<component::animator>();
-    auto &networkEntities = reg.get_components<component::NetworkEntity>();
+  void handleShootingAudio() {
+    bool isShootPressed = rtype::Input::hasAction(_inputState.actionMask, rtype::Action::Shoot);
 
-    for (auto entity : view) {
-      auto *velocity = velocities.get(entity);
-      auto *controllable = controllables.get(entity);
-      auto *playerTransform = transforms.get(entity);
-      auto *animator = animators.get(entity);
-      auto *networkEntity = networkEntities.get(entity);
-
-      if (!velocity || !controllable || !playerTransform || !animator || !networkEntity)
-        continue;
-
-      if (networkEntity->id == _networkClient.getConnectionId()) {
-          velocity->x = 0.0f;
-          velocity->y = 0.0f;
-
-          if (rtype::Input::hasAction(_inputState.actionMask, rtype::Action::Up)) {
-            velocity->y = -controllable->speed;
-          }
-          if (rtype::Input::hasAction(_inputState.actionMask, rtype::Action::Down)) {
-            velocity->y = controllable->speed;
-          }
-          if (rtype::Input::hasAction(_inputState.actionMask, rtype::Action::Left)) {
-            velocity->x = -controllable->speed;
-          }
-          if (rtype::Input::hasAction(_inputState.actionMask, rtype::Action::Right)) {
-            velocity->x = controllable->speed;
-          }
-
-          if (velocity->x != 0.0f && velocity->y != 0.0f) {
-            velocity->x *= SQUARE_2_DIVIDE_BY_2;
-            velocity->y *= SQUARE_2_DIVIDE_BY_2;
-          }
-      }
-
-      if (velocity->y < 0.0f) {
-        animator->currentState = component::animState::UP;
-      } else if (velocity->y > 0.0f) {
-        animator->currentState = component::animState::DOWN;
-      } else {
-        animator->currentState = component::animState::IDLE;
-      }
-
-      if (networkEntity->id == _networkClient.getConnectionId()) {
-          bool isShootPressed = rtype::Input::hasAction(_inputState.actionMask, rtype::Action::Shoot);
-
-          if (isShootPressed) {
-            controllable->isChargingShoot = true;
-          } else if (controllable->isChargingShoot) {
-            controllable->isChargingShoot = false;
-            _eventBus.publish(rtype::events::PlayerShotEvent{});
-          }
-      }
+    if (isShootPressed) {
+      _isChargingShoot = true;
+    } else if (_isChargingShoot) {
+      _isChargingShoot = false;
+      _eventBus.publish(rtype::events::PlayerShotEvent{});
     }
   }
 

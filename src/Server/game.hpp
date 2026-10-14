@@ -41,6 +41,7 @@ private:
   void broadcastPlayerCreated(std::uint32_t connectionId, rtk::EngineContext &context);
   void broadcastPlayerDestroyed(std::uint32_t connectionId, std::uint32_t networkId);
   void sendSnapshots(rtk::EngineContext &context);
+  void cleanupOffscreenEnvironment(rtk::EngineContext &context);
 
   std::uint32_t _serverTick = 0;
   Server _server;

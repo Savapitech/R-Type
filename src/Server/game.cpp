@@ -1,6 +1,8 @@
 #include "game.hpp"
 
 #include <iostream>
+#include <array>
+#include <cmath>
 
 #include "NetworkIdGenerator.hpp"
 
@@ -179,17 +181,36 @@ void Game::handleConnections(rtk::EngineContext &context) {
       if (_players.contains(connectionId))
         continue;
 
+      sendExistingEntities(connectionId, context);
+
       const std::uint32_t playerNetId = rtype::server::NetworkIdGenerator::getInstance().getNextId();
       const auto entity = context._entityFactory.createNetwork(context.registry, "player", playerNetId);
+
+      std::uint32_t slot = 0;
+      std::array<bool, 4> usedSlots = {false, false, false, false};
+      for (const auto &[cId, pEntity] : _players) {
+        auto *pTransform = context.registry.get_components<component::Transform>().get(pEntity);
+        if (pTransform) {
+          int s = static_cast<int>(std::lround((pTransform->position.y - 150.0f) / 100.0f));
+          if (s >= 0 && s < 4) {
+            usedSlots[s] = true;
+          }
+        }
+      }
+      for (std::uint32_t i = 0; i < 4; ++i) {
+        if (!usedSlots[i]) {
+          slot = i;
+          break;
+        }
+      }
 
       auto *transform = context.registry.get_components<component::Transform>().get(entity);
       if (transform) {
         transform->position = {
             150.0f,
-            150.0f + static_cast<float>((connEvent.connectionId - 1) % 4) * 100.0f};
+            150.0f + static_cast<float>(slot) * 100.0f};
       }
 
-      sendExistingEntities(connectionId, context);
       _players[connectionId] = entity;
       broadcastPlayerCreated(connectionId, context);
       std::cout << "[Server] Player connected: " << connectionId << " (NetworkId: " << playerNetId << ")" << std::endl;
@@ -203,6 +224,7 @@ void Game::handleConnections(rtk::EngineContext &context) {
         if (netEnt) {
           broadcastPlayerDestroyed(connectionId, netEnt->id);
         }
+        context.registry.remove_entity_from_all_pools(it->second);
         context.registry.kill_entity(it->second);
         _players.erase(it);
       }
@@ -279,12 +301,11 @@ void Game::onUpdate(rtk::EngineContext &context, float) {
   handleConnections(context);
   handleInputs(context);
   handleEntityQueries(context);
+  cleanupOffscreenEnvironment(context);
 
   _serverTick++;
 
-  std::cout << "Tick: "<<_serverTick<<std::endl;
   if(_serverTick % 3 == 0){
-
     sendSnapshots(context);
   }
 }
@@ -458,6 +479,12 @@ void Game::sendExistingEntities(std::uint32_t connectionId, rtk::EngineContext &
     if (!transform || !netEnt)
       continue;
 
+    if (!std::isfinite(transform->position.x) || !std::isfinite(transform->position.y) ||
+        transform->position.x < protocol::MIN_POSITION || transform->position.x > protocol::MAX_POSITION ||
+        transform->position.y < protocol::MIN_POSITION || transform->position.y > protocol::MAX_POSITION) {
+      continue;
+    }
+
     protocol::CreateEntityPayload payload;
     payload.entityId = netEnt->id;
     payload.blueprintId = netEnt->archetypeId;
@@ -479,6 +506,11 @@ void Game::handleEntityQueries(rtk::EngineContext &context) {
       if (netEnt && netEnt->id == queryEvent.networkId) {
         const auto *transform = transforms.get(entity);
         if (transform) {
+          if (!std::isfinite(transform->position.x) || !std::isfinite(transform->position.y) ||
+              transform->position.x < protocol::MIN_POSITION || transform->position.x > protocol::MAX_POSITION ||
+              transform->position.y < protocol::MIN_POSITION || transform->position.y > protocol::MAX_POSITION) {
+            break;
+          }
           protocol::CreateEntityPayload payload;
           payload.entityId = netEnt->id;
           payload.blueprintId = netEnt->archetypeId;
@@ -530,17 +562,12 @@ void Game::sendSnapshots(rtk::EngineContext &context) {
   auto &transforms = context.registry.get_components<component::Transform>();
   auto &networkEntities = context.registry.get_components<component::NetworkEntity>();
 
-  std::cout << "Send Snapshot from game\n";
   protocol::SnapshotPayload snapshot;
   snapshot.serverTick = _serverTick;
 
   const auto flush = [&]() {
     if (snapshot.entities.empty()){
-      std::cout << "SnapShot empty\n";
       return;
-    }
-    if (_players.empty()){
-      std::cout << "No Network entities\n";
     }
     for (const auto &[connectionId, dummy] : _players) {
       _server.sendSnapshot(connectionId, snapshot);
@@ -555,6 +582,12 @@ void Game::sendSnapshots(rtk::EngineContext &context) {
     if (!transform || !netEnt)
       continue;
 
+    if (!std::isfinite(transform->position.x) || !std::isfinite(transform->position.y) ||
+        transform->position.x < protocol::MIN_POSITION || transform->position.x > protocol::MAX_POSITION ||
+        transform->position.y < protocol::MIN_POSITION || transform->position.y > protocol::MAX_POSITION) {
+      continue;
+    }
+
     snapshot.entities.push_back({netEnt->id, transform->position.x, transform->position.y});
 
     if (snapshot.entities.size() == protocol::SnapshotPayload::MAX_ENTITIES) {
@@ -563,6 +596,24 @@ void Game::sendSnapshots(rtk::EngineContext &context) {
   }
 
   flush();
+}
+
+void Game::cleanupOffscreenEnvironment(rtk::EngineContext &context) {
+  auto view = context.registry.view<component::Transform, component::AABBCollider>();
+  auto &transforms = context.registry.get_components<component::Transform>();
+  auto &colliders = context.registry.get_components<component::AABBCollider>();
+  auto &deads = context.registry.get_components<component::Dead>();
+
+  for (auto entity : view) {
+    const auto *col = colliders.get(entity);
+    const auto *transform = transforms.get(entity);
+    if (!col || !transform)
+      continue;
+
+    if ((col->layer & Collider::CollisionLayer::Environment) && (transform->position.x + col->width < -200.0f)) {
+      deads.insert_at(entity, {});
+    }
+  }
 }
 
 } // namespace rtype::server

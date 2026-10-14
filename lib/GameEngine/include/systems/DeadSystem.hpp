@@ -20,6 +20,7 @@ public:
         }
 
         for (auto entity : toDestroy) {
+            reg.remove_entity_from_all_pools(entity);
             reg.kill_entity(entity);
         }
     }
