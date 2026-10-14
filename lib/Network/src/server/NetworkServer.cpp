@@ -4,6 +4,7 @@
 #include "../protocol/PacketWriter.hpp"
 #include "../protocol/PingMessage.hpp"
 #include "../protocol/PongMessage.hpp"
+#include "../protocol/SystemMessages.hpp"
 
 #include <asio/post.hpp>
 #include <cstdint>
@@ -185,8 +186,38 @@ void NetworkServer::disconnectClient(std::uint32_t connectionId) {
 
 void NetworkServer::handleMessage(std::uint32_t connectionId,
                                   const ParsedMessage &message) {
-  if (_onMessage)
-    _onMessage(connectionId, message.type, message.payload);
+  switch (message.type) {
+  case systemMessage::Ping: {
+    PacketReader reader(message.payload);
+    PingMessage ping;
+
+    if (!ping.deserialize(reader) || !reader.isEnd())
+      return;
+
+    PacketWriter writer;
+    MessageHeader header;
+    header.setType(systemMessage::Pong);
+    header.size = PongMessage::SIZE;
+
+    PongMessage pong;
+    pong.timestamp = ping.timestamp;
+
+    if (!header.serialize(writer) || !pong.serialize(writer))
+      return;
+
+    doSend(connectionId, writer.getData());
+    break;
+  }
+
+  case systemMessage::Disconnect:
+    disconnectClient(connectionId);
+    break;
+
+  default:
+    if (_onMessage)
+      _onMessage(connectionId, message.type, message.payload);
+    break;
+  }
 }
 
 void NetworkServer::setOnClientConnected(ConnectionCallback callback) {
