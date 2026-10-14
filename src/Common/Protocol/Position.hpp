@@ -33,7 +33,8 @@ inline float decodePosition(be16 encoded) {
   return static_cast<float>(encoded.get()) / POSITION_SCALE - POSITION_OFFSET;
 }
 
-// 0 is 0 radians and 65536 would be 2*pi as the payload is 16 a 16 bit unsigned int
+// 0 is 0 radians and 65536 would be 2*pi as the payload is 16 a 16 bit unsigned
+// int
 inline be16 encodeRotation(float radians) {
   constexpr float turn = 2.0f * std::numbers::pi_v<float>;
 

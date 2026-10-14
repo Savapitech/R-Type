@@ -281,8 +281,8 @@ void Game::addSystems(rtk::EngineContext &context) {
   // context.scheduler.add<rtk::systems::BulletSystem>(rtk::ecs::Order::Update);
   // context.scheduler.add<rtk::systems::EnemySpawnerSystem>(rtk::ecs::Order::Update,
   // std::ref(context._entityFactory));
-  context.scheduler.add<rtk::systems::EnemyGCSystem>(rtk::ecs::Order::SecondUpdate,
-                                                     context.eventBus);
+  context.scheduler.add<rtk::systems::EnemyGCSystem>(
+      rtk::ecs::Order::SecondUpdate, context.eventBus);
   context.scheduler.add<rtk::systems::InputSystem<RtkWindowAdapter>>(
       rtk::ecs::Order::Input, std::ref(_adapter), _inputState, _inputMapping);
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
@@ -333,14 +333,17 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
         continue;
 
       auto entity = context._entityFactory.createNetwork(
-          context.registry, createPayload.entityType.get(), createPayload.networkId.get());
+          context.registry, createPayload.entityType.get(),
+          createPayload.networkId.get());
       _networkEntities[createPayload.networkId.get()] = entity;
 
       auto *transform =
           context.registry.get_components<component::Transform>().get(entity);
       if (transform) {
-        transform->position.x = protocol::decodePosition(createPayload.positionX);
-        transform->position.y = protocol::decodePosition(createPayload.positionY);
+        transform->position.x =
+            protocol::decodePosition(createPayload.positionX);
+        transform->position.y =
+            protocol::decodePosition(createPayload.positionY);
       }
       if (protocol::decodePosition(createPayload.positionY) < 50.0f) {
         auto *sprite =
@@ -395,7 +398,8 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           if (netEnt && netEnt->id == netData.networkId.get()) {
             auto *transform = transforms.get(e);
             if (transform) {
-              float deltaY = protocol::decodePosition(netData.positionY) - transform->position.y;
+              float deltaY = protocol::decodePosition(netData.positionY) -
+                             transform->position.y;
               auto *anim = animators.get(e);
               if (anim) {
                 if (deltaY < -0.5f) {
@@ -410,8 +414,10 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
               if (vel) {
                 vel->y = deltaY;
               }
-              transform->position.x = protocol::decodePosition(netData.positionX);
-              transform->position.y = protocol::decodePosition(netData.positionY);
+              transform->position.x =
+                  protocol::decodePosition(netData.positionX);
+              transform->position.y =
+                  protocol::decodePosition(netData.positionY);
             }
             found = true;
             break;
@@ -494,7 +500,7 @@ void Game::applySnapshot(rtk::EngineContext &context,
     if (!transform)
       continue;
     transform->position = {protocol::decodePosition(state.positionX),
-                          protocol::decodePosition(state.positionY)};
+                           protocol::decodePosition(state.positionY)};
     transform->rotation = protocol::decodeRotation(state.rotation);
   }
   _lastServerTick = payload.serverTick.get();
