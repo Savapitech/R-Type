@@ -281,8 +281,8 @@ void Game::addSystems(rtk::EngineContext &context) {
   // context.scheduler.add<rtk::systems::BulletSystem>(rtk::ecs::Order::Update);
   // context.scheduler.add<rtk::systems::EnemySpawnerSystem>(rtk::ecs::Order::Update,
   // std::ref(context._entityFactory));
-  context.scheduler.add<rtk::systems::EnemyGCSystem>(rtk::ecs::Order::SecondUpdate,
-                                                     context.eventBus);
+  context.scheduler.add<rtk::systems::EnemyGCSystem>(
+      rtk::ecs::Order::SecondUpdate, context.eventBus);
   context.scheduler.add<rtk::systems::InputSystem<RtkWindowAdapter>>(
       rtk::ecs::Order::Input, std::ref(_adapter), _inputState, _inputMapping);
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
@@ -316,15 +316,15 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
             repEvent.payload)) {
       const auto &createPayload =
           std::get<protocol::CreateEntityPayload>(repEvent.payload);
-      _pendingEntityQueries.erase(createPayload.entityId);
-      _destroyedEntities.erase(createPayload.entityId);
+      _pendingEntityQueries.erase(createPayload.networkId.get());
+      _destroyedEntities.erase(createPayload.networkId.get());
 
       bool alreadyExists = false;
       auto viewNet = context.registry.view<component::NetworkEntity>();
       for (auto e : viewNet) {
         auto *netEnt =
             context.registry.get_components<component::NetworkEntity>().get(e);
-        if (netEnt && netEnt->id == createPayload.entityId) {
+        if (netEnt && netEnt->id == createPayload.networkId.get()) {
           alreadyExists = true;
           break;
         }
@@ -333,16 +333,19 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
         continue;
 
       auto entity = context._entityFactory.createNetwork(
-          context.registry, createPayload.blueprintId, createPayload.entityId);
-      _networkEntities[createPayload.entityId] = entity;
+          context.registry, createPayload.entityType.get(),
+          createPayload.networkId.get());
+      _networkEntities[createPayload.networkId.get()] = entity;
 
       auto *transform =
           context.registry.get_components<component::Transform>().get(entity);
       if (transform) {
-        transform->position.x = createPayload.x;
-        transform->position.y = createPayload.y;
+        transform->position.x =
+            protocol::decodePosition(createPayload.positionX);
+        transform->position.y =
+            protocol::decodePosition(createPayload.positionY);
       }
-      if (createPayload.y < 50.0f) {
+      if (protocol::decodePosition(createPayload.positionY) < 50.0f) {
         auto *sprite =
             context.registry.get_components<rtk::ecs::concepts::SpriteData>()
                 .get(entity);
@@ -350,7 +353,7 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           sprite->flags = 1 << 1;
         }
       }
-      LOG_INFO(std::to_string(createPayload.blueprintId));
+      LOG_INFO(std::to_string(createPayload.entityType.get()));
 
     }
 
@@ -358,15 +361,15 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
                  repEvent.payload)) {
       const auto &destroyPayload =
           std::get<protocol::DestroyEntityPayload>(repEvent.payload);
-      _pendingEntityQueries.erase(destroyPayload.entityId);
-      _networkEntities.erase(destroyPayload.entityId);
-      _destroyedEntities.insert(destroyPayload.entityId);
+      _pendingEntityQueries.erase(destroyPayload.networkId.get());
+      _networkEntities.erase(destroyPayload.networkId.get());
+      _destroyedEntities.insert(destroyPayload.networkId.get());
 
       auto view = context.registry.view<component::NetworkEntity>();
       for (auto e : view) {
         auto *netEnt =
             context.registry.get_components<component::NetworkEntity>().get(e);
-        if (netEnt && netEnt->id == destroyPayload.entityId) {
+        if (netEnt && netEnt->id == destroyPayload.networkId.get()) {
           context.registry.remove_entity_from_all_pools(e);
           context.registry.kill_entity(e);
           break;
@@ -392,10 +395,11 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
         bool found = false;
         for (auto e : view) {
           auto *netEnt = networkEntities.get(e);
-          if (netEnt && netEnt->id == netData.entityId) {
+          if (netEnt && netEnt->id == netData.networkId.get()) {
             auto *transform = transforms.get(e);
             if (transform) {
-              float deltaY = netData.y - transform->position.y;
+              float deltaY = protocol::decodePosition(netData.positionY) -
+                             transform->position.y;
               auto *anim = animators.get(e);
               if (anim) {
                 if (deltaY < -0.5f) {
@@ -410,18 +414,20 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
               if (vel) {
                 vel->y = deltaY;
               }
-              transform->position.x = netData.x;
-              transform->position.y = netData.y;
+              transform->position.x =
+                  protocol::decodePosition(netData.positionX);
+              transform->position.y =
+                  protocol::decodePosition(netData.positionY);
             }
             found = true;
             break;
           }
         }
         if (!found) {
-          if (!_destroyedEntities.contains(netData.entityId) &&
-              !_pendingEntityQueries.contains(netData.entityId)) {
-            _pendingEntityQueries.insert(netData.entityId);
-            _networkClient.sendQueryEntity(netData.entityId);
+          if (!_destroyedEntities.contains(netData.networkId.get()) &&
+              !_pendingEntityQueries.contains(netData.networkId.get())) {
+            _pendingEntityQueries.insert(netData.networkId.get());
+            _networkClient.sendQueryEntity(netData.networkId.get());
           }
         }
       }
@@ -443,11 +449,11 @@ void Game::onUnload(rtk::EngineContext &context) {
 
 void Game::createReplicatedEntity(
     rtk::EngineContext &context, const protocol::CreateEntityPayload &payload) {
-  if (_networkEntities.contains(payload.entityId))
+  if (_networkEntities.contains(payload.networkId.get()))
     return;
 
   const auto entity = context._entityFactory.createNetwork(
-      context.registry, payload.blueprintId, payload.entityId);
+      context.registry, payload.entityType.get(), payload.networkId.get());
 
   auto *transform =
       context.registry.get_components<component::Transform>().get(entity);
@@ -456,15 +462,17 @@ void Game::createReplicatedEntity(
     return;
   }
 
-  transform->position = {payload.x, payload.y};
-  _networkEntities.emplace(payload.entityId, entity);
+  transform->position = {protocol::decodePosition(payload.positionX),
+                         protocol::decodePosition(payload.positionY)};
+  transform->rotation = protocol::decodeRotation(payload.rotation);
+  _networkEntities.emplace(payload.networkId.get(), entity);
 }
 
 void Game::destroyReplicatedEntity(
     rtk::EngineContext &context,
     const protocol::DestroyEntityPayload &payload) {
 
-  const auto it = _networkEntities.find(payload.entityId);
+  const auto it = _networkEntities.find(payload.networkId.get());
 
   if (it == _networkEntities.end())
     return;
@@ -476,7 +484,7 @@ void Game::destroyReplicatedEntity(
 void Game::applySnapshot(rtk::EngineContext &context,
                          const protocol::SnapshotPayload &payload) {
   const auto delta =
-      static_cast<std::int32_t>(payload.serverTick - _lastServerTick);
+      static_cast<std::int32_t>(payload.serverTick.get() - _lastServerTick);
 
   if (_lastServerTick != 0 && delta < 0)
     return;
@@ -484,16 +492,18 @@ void Game::applySnapshot(rtk::EngineContext &context,
   auto &transforms = context.registry.get_components<component::Transform>();
 
   for (const auto &state : payload.entities) {
-    const auto it = _networkEntities.find(state.entityId);
+    const auto it = _networkEntities.find(state.networkId.get());
     if (it == _networkEntities.end())
       continue;
 
     auto *transform = transforms.get(it->second);
     if (!transform)
       continue;
-    transform->position = {state.x, state.y};
+    transform->position = {protocol::decodePosition(state.positionX),
+                           protocol::decodePosition(state.positionY)};
+    transform->rotation = protocol::decodeRotation(state.rotation);
   }
-  _lastServerTick = payload.serverTick;
+  _lastServerTick = payload.serverTick.get();
   LOG_INFO("[SNAPSHOT APPLIED]");
 }
 

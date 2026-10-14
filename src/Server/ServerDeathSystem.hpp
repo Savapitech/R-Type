@@ -15,8 +15,9 @@ class ServerDeathSystem final : public rtk::ecs::ISystem {
 public:
   ServerDeathSystem(
       Server &server,
-      const std::unordered_map<std::uint32_t, std::size_t> &players)
-      : _server(server), _players(players) {}
+      const std::unordered_map<std::uint32_t, std::size_t> &players,
+      const std::uint32_t &serverTick)
+      : _server(server), _players(players), _serverTick(serverTick) {}
 
   ~ServerDeathSystem() override = default;
 
@@ -34,8 +35,8 @@ public:
     for (auto entity : toDestroy) {
       auto *netEnt = netEntities.get(entity);
       if (netEnt && netEnt->id != 0) {
-        protocol::DestroyEntityPayload payload;
-        payload.entityId = netEnt->id;
+        const auto payload = protocol::destroyEntityPayload(
+            _serverTick, netEnt->id, protocol::DestroyReason::Collision);
         for (const auto &[playerId, dummy] : _players) {
           (void)dummy;
           _server.sendDestroyEntity(playerId, payload);
@@ -51,6 +52,7 @@ public:
 private:
   Server &_server;
   const std::unordered_map<std::uint32_t, std::size_t> &_players;
+  const std::uint32_t &_serverTick;
 };
 
 } // namespace rtype::server

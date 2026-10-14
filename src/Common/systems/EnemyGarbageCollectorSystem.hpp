@@ -13,7 +13,7 @@
 namespace rtk::systems {
 class EnemyGCSystem final : public rtk::ecs::ISystem {
 public:
-  EnemyGCSystem(busEvent &eventBus) : _eventBus(eventBus){};
+  EnemyGCSystem(busEvent &eventBus) : _eventBus(eventBus) {};
   ~EnemyGCSystem() override = default;
 
   void onStart(rtk::ecs::Registry &) override {}

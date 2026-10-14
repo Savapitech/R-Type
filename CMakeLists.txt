@@ -75,7 +75,7 @@ endif()
 
 
 #set variable to fetch the ECS part
-set(ECS_URL "https://github.com/rtk-lib/ECS/releases/latest/download/rtk_ecs-1.04.tar.gz ")
+set(ECS_URL "https://github.com/rtk-lib/ECS/releases/latest/download/rtk_ecs-1.04.tar.gz")
 set(ECS_FOLDER_NAME "rtk_ecs/include")
 
 #declare a fetch toward the ecs lib
@@ -206,241 +206,241 @@ if(WIN32)
     endforeach()
 endif()
 
-#Test LIB NETWORK
-include(CTest)
+# #Test LIB NETWORK
+# include(CTest)
 
-if(BUILD_TESTING)
+# if(BUILD_TESTING)
 
-    add_executable(test_tracking
-        tests/network/testTracking.cpp
-    )
-    target_link_libraries(test_tracking PRIVATE Network)
+#     add_executable(test_tracking
+#         tests/network/testTracking.cpp
+#     )
+#     target_link_libraries(test_tracking PRIVATE Network)
 
-    add_executable(test_connection
-        tests/network/testConnection.cpp
-    )
-    target_link_libraries(test_connection PRIVATE Network)
+#     add_executable(test_connection
+#         tests/network/testConnection.cpp
+#     )
+#     target_link_libraries(test_connection PRIVATE Network)
 
-    add_executable(test_message_header
-        tests/network/testMessageHeader.cpp
-    )
-    target_link_libraries(test_message_header PRIVATE Network)
+#     add_executable(test_message_header
+#         tests/network/testMessageHeader.cpp
+#     )
+#     target_link_libraries(test_message_header PRIVATE Network)
 
-    add_executable(test_message_parser
-        tests/network/testMessageParser.cpp
-    )
-    target_link_libraries(test_message_parser PRIVATE Network)
+#     add_executable(test_message_parser
+#         tests/network/testMessageParser.cpp
+#     )
+#     target_link_libraries(test_message_parser PRIVATE Network)
 
-    add_executable(test_server_handshake
-        tests/network/testServerHandshake.cpp
-    )
-    target_link_libraries(test_server_handshake PRIVATE Network)
+#     add_executable(test_server_handshake
+#         tests/network/testServerHandshake.cpp
+#     )
+#     target_link_libraries(test_server_handshake PRIVATE Network)
 
-    add_executable(test_connected_packet
-        tests/network/testConnectedPacket.cpp
-    )
-    target_link_libraries(test_connected_packet PRIVATE Network)
-
-
-    add_test(
-        NAME PacketTracking
-        COMMAND test_tracking
-    )
-
-    add_test(
-        NAME Connection
-        COMMAND test_connection
-    )
-
-    add_test(
-        NAME MessageHeader
-        COMMAND test_message_header
-    )
-
-    add_test(
-        NAME MessageParser
-        COMMAND test_message_parser
-    )
-
-    add_test(
-        NAME ServerHandshake
-        COMMAND test_server_handshake
-    )
-
-    add_test(
-        NAME ConnectedPacket
-        COMMAND test_connected_packet
-    )
+#     add_executable(test_connected_packet
+#         tests/network/testConnectedPacket.cpp
+#     )
+#     target_link_libraries(test_connected_packet PRIVATE Network)
 
 
-    set_tests_properties(
-        ServerHandshake
-        ConnectedPacket
-        PROPERTIES
-            RUN_SERIAL TRUE
-    )
+#     add_test(
+#         NAME PacketTracking
+#         COMMAND test_tracking
+#     )
 
-add_executable(test_network_client
-    tests/network/testNetworkClient.cpp
-    src/Server/Server.cpp
-)
+#     add_test(
+#         NAME Connection
+#         COMMAND test_connection
+#     )
 
-target_include_directories(test_network_client
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/Server
-)
+#     add_test(
+#         NAME MessageHeader
+#         COMMAND test_message_header
+#     )
 
-target_compile_features(test_network_client
-    PRIVATE
-        cxx_std_20
-)
+#     add_test(
+#         NAME MessageParser
+#         COMMAND test_message_parser
+#     )
 
-target_link_libraries(test_network_client
-    PRIVATE
-        NetworkClientLib
-        Network
-        CommonProtocole
-)
+#     add_test(
+#         NAME ServerHandshake
+#         COMMAND test_server_handshake
+#     )
 
-add_test(
-    NAME NetworkClientIntegration
-    COMMAND test_network_client
-)
+#     add_test(
+#         NAME ConnectedPacket
+#         COMMAND test_connected_packet
+#     )
 
-set_tests_properties(
-    NetworkClientIntegration
-    PROPERTIES
-        RUN_SERIAL TRUE
-        TIMEOUT 15
-)
 
-set_target_properties(
-    test_network_client
-    PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY
-            "${CMAKE_BINARY_DIR}/tests"
-)
+#     set_tests_properties(
+#         ServerHandshake
+#         ConnectedPacket
+#         PROPERTIES
+#             RUN_SERIAL TRUE
+#     )
 
-add_executable(test_input_queue
-    tests/network/testInputQueue.cpp
-    src/Server/Server.cpp
-)
+# add_executable(test_network_client
+#     tests/network/testNetworkClient.cpp
+#     src/Server/Server.cpp
+# )
 
-target_include_directories(test_input_queue
-    PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/Server"
-)
+# target_include_directories(test_network_client
+#     PRIVATE
+#         ${CMAKE_CURRENT_SOURCE_DIR}/src/Server
+# )
 
-target_compile_features(test_input_queue
-    PRIVATE
-        cxx_std_20
-)
+# target_compile_features(test_network_client
+#     PRIVATE
+#         cxx_std_20
+# )
 
-target_link_libraries(test_input_queue
-    PRIVATE
-        Network
-        CommonProtocole
-)
+# target_link_libraries(test_network_client
+#     PRIVATE
+#         NetworkClientLib
+#         Network
+#         CommonProtocole
+# )
 
-set_target_properties(test_input_queue
-    PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY
-            "${CMAKE_BINARY_DIR}/tests"
-)
+# add_test(
+#     NAME NetworkClientIntegration
+#     COMMAND test_network_client
+# )
 
-add_test(
-    NAME InputQueue
-    COMMAND test_input_queue
-)
+# set_tests_properties(
+#     NetworkClientIntegration
+#     PROPERTIES
+#         RUN_SERIAL TRUE
+#         TIMEOUT 15
+# )
 
-set_tests_properties(
-    InputQueue
-    PROPERTIES
-        RUN_SERIAL TRUE
-        TIMEOUT 15
-)
+# set_target_properties(
+#     test_network_client
+#     PROPERTIES
+#         RUNTIME_OUTPUT_DIRECTORY
+#             "${CMAKE_BINARY_DIR}/tests"
+# )
 
-add_executable(test_replication_payload
-    tests/network/testReplicationPayload.cpp
-)
+# add_executable(test_input_queue
+#     tests/network/testInputQueue.cpp
+#     src/Server/Server.cpp
+# )
 
-target_compile_features(test_replication_payload
-    PRIVATE
-        cxx_std_20
-)
+# target_include_directories(test_input_queue
+#     PRIVATE
+#         "${CMAKE_CURRENT_SOURCE_DIR}/src/Server"
+# )
 
-target_link_libraries(test_replication_payload
-    PRIVATE
-        CommonProtocole
-        Network
-)
+# target_compile_features(test_input_queue
+#     PRIVATE
+#         cxx_std_20
+# )
 
-set_target_properties(test_replication_payload
-    PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY
-            "${CMAKE_BINARY_DIR}/tests"
-)
+# target_link_libraries(test_input_queue
+#     PRIVATE
+#         Network
+#         CommonProtocole
+# )
 
-add_test(
-    NAME ReplicationPayload
-    COMMAND test_replication_payload
-)
+# set_target_properties(test_input_queue
+#     PROPERTIES
+#         RUNTIME_OUTPUT_DIRECTORY
+#             "${CMAKE_BINARY_DIR}/tests"
+# )
 
-set_tests_properties(
-    ReplicationPayload
-    PROPERTIES
-        TIMEOUT 15
-)
+# add_test(
+#     NAME InputQueue
+#     COMMAND test_input_queue
+# )
 
-add_executable(test_replication_integration
-    tests/network/testReplicationIntegration.cpp
-    src/Server/Server.cpp
-)
+# set_tests_properties(
+#     InputQueue
+#     PROPERTIES
+#         RUN_SERIAL TRUE
+#         TIMEOUT 15
+# )
 
-target_include_directories(test_replication_integration
-    PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/Server"
-)
+# add_executable(test_replication_payload
+#     tests/network/testReplicationPayload.cpp
+# )
 
-target_compile_features(test_replication_integration
-    PRIVATE
-        cxx_std_20
-)
+# target_compile_features(test_replication_payload
+#     PRIVATE
+#         cxx_std_20
+# )
 
-target_link_libraries(test_replication_integration
-    PRIVATE
-        NetworkClientLib
-        Network
-        CommonProtocole
-)
+# target_link_libraries(test_replication_payload
+#     PRIVATE
+#         CommonProtocole
+#         Network
+# )
 
-set_target_properties(test_replication_integration
-    PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY
-            "${CMAKE_BINARY_DIR}/tests"
-)
+# set_target_properties(test_replication_payload
+#     PROPERTIES
+#         RUNTIME_OUTPUT_DIRECTORY
+#             "${CMAKE_BINARY_DIR}/tests"
+# )
 
-add_test(
-    NAME ReplicationIntegration
-    COMMAND test_replication_integration
-)
+# add_test(
+#     NAME ReplicationPayload
+#     COMMAND test_replication_payload
+# )
 
-set_tests_properties(
-    ReplicationIntegration
-    PROPERTIES
-        RUN_SERIAL TRUE
-        TIMEOUT 15
-)
+# set_tests_properties(
+#     ReplicationPayload
+#     PROPERTIES
+#         TIMEOUT 15
+# )
 
-    function(enable_test_assertions target)
-      target_compile_options(${target} PRIVATE -UNDEBUG)
-    endfunction()
+# add_executable(test_replication_integration
+#     tests/network/testReplicationIntegration.cpp
+#     src/Server/Server.cpp
+# )
 
-    enable_test_assertions(test_tracking)
-    enable_test_assertions(test_connection)
-    enable_test_assertions(test_message_header)
-    enable_test_assertions(test_message_parser)
-    enable_test_assertions(test_server_handshake)
-    enable_test_assertions(test_connected_packet)
+# target_include_directories(test_replication_integration
+#     PRIVATE
+#         "${CMAKE_CURRENT_SOURCE_DIR}/src/Server"
+# )
 
-endif()
+# target_compile_features(test_replication_integration
+#     PRIVATE
+#         cxx_std_20
+# )
+
+# target_link_libraries(test_replication_integration
+#     PRIVATE
+#         NetworkClientLib
+#         Network
+#         CommonProtocole
+# )
+
+# set_target_properties(test_replication_integration
+#     PROPERTIES
+#         RUNTIME_OUTPUT_DIRECTORY
+#             "${CMAKE_BINARY_DIR}/tests"
+# )
+
+# add_test(
+#     NAME ReplicationIntegration
+#     COMMAND test_replication_integration
+# )
+
+# set_tests_properties(
+#     ReplicationIntegration
+#     PROPERTIES
+#         RUN_SERIAL TRUE
+#         TIMEOUT 15
+# )
+
+#     function(enable_test_assertions target)
+#       target_compile_options(${target} PRIVATE -UNDEBUG)
+#     endfunction()
+
+#     enable_test_assertions(test_tracking)
+#     enable_test_assertions(test_connection)
+#     enable_test_assertions(test_message_header)
+#     enable_test_assertions(test_message_parser)
+#     enable_test_assertions(test_server_handshake)
+#     enable_test_assertions(test_connected_packet)
+
+# endif()

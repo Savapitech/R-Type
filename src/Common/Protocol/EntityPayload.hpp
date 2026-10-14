@@ -1,151 +1,78 @@
 #pragma once
 
-#include "Protocol/MessageType.hpp"
-#include "config/NetworkConfig.hpp"
-#include "protocol/PacketReader.hpp"
-#include "protocol/PacketWriter.hpp"
-#include <cmath>
-#include <cstddef>
 #include <cstdint>
-#include <iostream>
-#include <limits>
+
+#include "BigEndian.hpp"
+#include "Position.hpp"
 
 namespace rtype::protocol {
 
 using NetworkEntityId = std::uint32_t;
 
-using BlueprintId = std::uint16_t;
-
-inline constexpr float POSITION_SCALE = 4.0f;
-inline constexpr float POSITION_OFFSET = 8192.0f;
-inline constexpr float MIN_POSITION = -POSITION_OFFSET;
-inline constexpr float MAX_POSITION =
-    static_cast<float>(std::numeric_limits<std::uint16_t>::max()) /
-        POSITION_SCALE -
-    POSITION_OFFSET;
-
-inline bool encodePosition(float position, std::uint16_t &encoded) {
-  if (!std::isfinite(position) || position < MIN_POSITION ||
-      position > MAX_POSITION) {
-    return false;
-  }
-
-  const float scaled = (position + POSITION_OFFSET) * POSITION_SCALE;
-  const long rounded = std::lround(scaled);
-
-  if (rounded < 0 || rounded > std::numeric_limits<std::uint16_t>::max()) {
-    return false;
-  }
-
-  encoded = static_cast<std::uint16_t>(rounded);
-  return true;
-}
-
-inline float decodePosition(std::uint16_t encoded) {
-  return static_cast<float>(encoded) / POSITION_SCALE - POSITION_OFFSET;
-}
+enum class DestroyReason : std::uint8_t {
+  Unknown = 0x00,
+  Collision = 0x01,
+  OutOfBounds = 0x02,
+  PlayerDisconnected = 0x03,
+  GameEnded = 0x04
+};
 
 struct CreateEntityPayload {
-  static constexpr std::size_t SIZE = 10;
-
-  NetworkEntityId entityId = 0;
-  BlueprintId blueprintId = 0;
-  float x = 0.0f;
-  float y = 0.0f;
-
-  bool serialize(PacketWriter &writer) const {
-    if (entityId == 0)
-      return false;
-
-    std::uint16_t encodedX = 0;
-    std::uint16_t encodedY = 0;
-    if (!encodePosition(x, encodedX) || !encodePosition(y, encodedY))
-      return false;
-
-    if (writer.getSize() > MAX_PAYLOAD_SIZE ||
-        SIZE > MAX_PAYLOAD_SIZE - writer.getSize())
-      return false;
-
-    return writer.writeUInt32(entityId) &&
-           writer.writeUInt16(static_cast<std::uint16_t>(blueprintId)) &&
-           writer.writeUInt16(encodedX) && writer.writeUInt16(encodedY);
-  }
-
-  bool deserialize(PacketReader &reader) {
-    std::uint32_t id = 0;
-    std::uint16_t blueprint = 0;
-    std::uint16_t encodedX = 0;
-    std::uint16_t encodedY = 0;
-
-    if (!reader.readUInt32(id) || !reader.readUInt16(blueprint) ||
-        !reader.readUInt16(encodedX) || !reader.readUInt16(encodedY))
-      return false;
-
-    const auto decodedBluep = static_cast<BlueprintId>(blueprint);
-
-    if (id == 0)
-      return false;
-
-    entityId = id;
-    blueprintId = decodedBluep;
-    x = decodePosition(encodedX);
-    y = decodePosition(encodedY);
-    return true;
-  }
+  be32 serverTick;
+  be32 networkId;
+  be16 entityType;
+  be16 positionX;
+  be16 positionY;
+  be16 rotation;
 };
 
 struct DestroyEntityPayload {
-  static constexpr std::size_t SIZE = 4;
-
-  NetworkEntityId entityId = 0;
-
-  bool serialize(PacketWriter &writer) const {
-    if (entityId == 0)
-      return false;
-
-    if (writer.getSize() > MAX_PAYLOAD_SIZE ||
-        SIZE > MAX_PAYLOAD_SIZE - writer.getSize())
-      return false;
-
-    return writer.writeUInt32(entityId);
-  }
-
-  bool deserialize(PacketReader &reader) {
-    std::uint32_t id = 0;
-
-    if (!reader.readUInt32(id) || id == 0)
-      return false;
-
-    entityId = id;
-    return true;
-  }
+  be32 serverTick;
+  be32 networkId;
+  DestroyReason reason = DestroyReason::Unknown;
 };
 
 struct QueryEntityPayload {
-  static constexpr std::size_t SIZE = 4;
-
-  NetworkEntityId entityId = 0;
-
-  bool serialize(PacketWriter &writer) const {
-    if (entityId == 0)
-      return false;
-
-    if (writer.getSize() > MAX_PAYLOAD_SIZE ||
-        SIZE > MAX_PAYLOAD_SIZE - writer.getSize())
-      return false;
-
-    return writer.writeUInt32(entityId);
-  }
-
-  bool deserialize(PacketReader &reader) {
-    std::uint32_t id = 0;
-
-    if (!reader.readUInt32(id) || id == 0)
-      return false;
-
-    entityId = id;
-    return true;
-  }
+  be32 networkId;
 };
+
+static_assert(sizeof(CreateEntityPayload) ==
+                  sizeof(be32) * 2 + sizeof(be16) * 4,
+              "CreateEntityPayload must not contain padding");
+static_assert(sizeof(DestroyEntityPayload) ==
+                  sizeof(be32) * 2 + sizeof(DestroyReason),
+              "DestroyEntityPayload must not contain padding");
+static_assert(sizeof(QueryEntityPayload) == sizeof(be32),
+              "QueryEntityPayload must not contain padding");
+
+// The server is the only one to assign network id 0 means no entity
+constexpr bool isValid(const CreateEntityPayload &payload) {
+  return payload.networkId.get() != 0;
+}
+
+constexpr bool isValid(const DestroyEntityPayload &payload) {
+  return payload.networkId.get() != 0 &&
+         static_cast<std::uint8_t>(payload.reason) <=
+             static_cast<std::uint8_t>(DestroyReason::GameEnded);
+}
+
+constexpr bool isValid(const QueryEntityPayload &payload) {
+  return payload.networkId.get() != 0;
+}
+
+inline CreateEntityPayload createEntityPayload(std::uint32_t serverTick,
+                                               std::uint32_t networkId,
+                                               std::uint16_t entityType,
+                                               float x, float y,
+                                               float rotation = 0.0f) {
+  return {serverTick,        networkId,         entityType,
+          encodePosition(x), encodePosition(y), encodeRotation(rotation)};
+}
+
+inline DestroyEntityPayload destroyEntityPayload(std::uint32_t serverTick,
+                                                 std::uint32_t networkId,
+                                                 DestroyReason reason) {
+  return {serverTick, networkId, reason};
+}
 
 } // namespace rtype::protocol

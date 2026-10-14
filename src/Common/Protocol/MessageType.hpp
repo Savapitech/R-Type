@@ -2,18 +2,24 @@
 
 #include <cstdint>
 
+#include "protocol/SystemMessages.hpp"
+
 namespace rtype::protocol {
 
 enum class MessageType : std::uint16_t {
   Invalid = 0,
-  Input = 0x01,
-  Ping = 0x02,
-  Disconnect = 0x03,
-  Pong = 0x04,
-  CreateEntity = 0x10,
-  DestroyEntity = 0x11,
-  Snapshot = 0x12,
-  QueryEntity = 0x13
+
+  // Client -> server
+  Input = 0x02,
+  Ping = 0x03,
+  Disconnect = 0x04,
+  QueryEntity = 0x13,
+
+  // Server -> client
+  Snapshot = 0x83,
+  CreateEntity = 0x84,
+  DestroyEntity = 0x85,
+  Pong = 0x86
 };
 
 constexpr std::uint16_t toMessageId(MessageType type) {

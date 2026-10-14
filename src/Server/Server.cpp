@@ -85,12 +85,13 @@ void Server::handleMessage(std::uint32_t connectionId, MessageId type,
   case protocol::MessageType::QueryEntity: {
     PacketReader reader(payload);
     protocol::QueryEntityPayload query;
-    if (!query.deserialize(reader) || !reader.isEnd()) {
+    if (!protocol::readPayload(reader, query) || !reader.isEnd() ||
+        !protocol::isValid(query)) {
       return;
     }
     {
       std::lock_guard<std::mutex> lock(_queryMutex);
-      _queryQueue.push({connectionId, query.entityId});
+      _queryQueue.push({connectionId, query.networkId.get()});
     }
     break;
   }
@@ -159,7 +160,7 @@ bool Server::sendCreateEntity(std::uint32_t connectionId,
                               const protocol::CreateEntityPayload &payload) {
   PacketWriter writer;
 
-  if (!payload.serialize(writer))
+  if (!protocol::isValid(payload) || !protocol::writePayload(writer, payload))
     return false;
 
   return sendMessage(connectionId, protocol::MessageType::CreateEntity,
@@ -170,7 +171,7 @@ bool Server::sendDestroyEntity(std::uint32_t connectionId,
                                const protocol::DestroyEntityPayload &payload) {
   PacketWriter writer;
 
-  if (!payload.serialize(writer))
+  if (!protocol::isValid(payload) || !protocol::writePayload(writer, payload))
     return false;
 
   return sendMessage(connectionId, protocol::MessageType::DestroyEntity,
@@ -181,7 +182,7 @@ bool Server::sendSnapshot(std::uint32_t connectionId,
                           const protocol::SnapshotPayload &payload) {
   PacketWriter writer;
 
-  if (!payload.serialize(writer))
+  if (!protocol::writeSnapshot(writer, payload))
     return false;
 
   return sendMessage(connectionId, protocol::MessageType::Snapshot,
