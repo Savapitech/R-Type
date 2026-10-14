@@ -1,8 +1,8 @@
 #pragma once
 #include "Logger/Logger.hpp"
-#include "components/Transform.hpp"
 #include "components/Bullet.hpp"
 #include "components/Dead.hpp"
+#include "components/Transform.hpp"
 #include <ISystem.hpp>
 
 namespace rtk::systems {
@@ -21,7 +21,8 @@ public:
 
     for (auto entity : view) {
       auto *transform = transforms.get(entity);
-      if (!transform) continue;
+      if (!transform)
+        continue;
 
       if (transform->position.x > 1920.0f) {
         reg.get_components<component::Dead>().insert_at(entity, {});

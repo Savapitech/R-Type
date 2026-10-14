@@ -7,10 +7,10 @@
 
 #include <ISystem.hpp>
 
+#include "../events/busEvents.hpp"
 #include "collision/collisionBuffer.hpp"
 #include "components/AABBCollider.hpp"
 #include "components/Transform.hpp"
-#include "../events/busEvents.hpp"
 
 namespace rtk::systems {
 class ColliderSystem final : public rtk::ecs::ISystem {
@@ -66,10 +66,13 @@ private:
 
 public:
   ColliderSystem(rtk::collision::CollisionBuffer &collisionBuffer,
-                 float cellSize, busEvent &eventBus )
-      : _collisionBuffer(collisionBuffer), _cellSize(cellSize), _eventBus(eventBus) {}
+                 float cellSize, busEvent &eventBus)
+      : _collisionBuffer(collisionBuffer), _cellSize(cellSize),
+        _eventBus(eventBus) {}
 
-  void onStart(rtk::ecs::Registry &) override { LOG_INFO("Load Collider System"); }
+  void onStart(rtk::ecs::Registry &) override {
+    LOG_INFO("Load Collider System");
+  }
 
   void update(rtk::ecs::Registry &registry, float) override {
     _grid.clear();
@@ -145,7 +148,8 @@ public:
             continue;
 
           _collisionBuffer.push({firstEntity, secondEntity});
-          _eventBus.publish(rtk::collision::Collision{firstEntity, secondEntity});
+          _eventBus.publish(
+              rtk::collision::Collision{firstEntity, secondEntity});
         }
       }
     }

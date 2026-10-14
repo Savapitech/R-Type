@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 
 #include "Protocol/MessageType.hpp"
 #include "config/NetworkConfig.hpp"
@@ -7,8 +7,8 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <iostream>
+#include <limits>
 
 namespace rtype::protocol {
 
@@ -19,10 +19,14 @@ using BlueprintId = std::uint16_t;
 inline constexpr float POSITION_SCALE = 4.0f;
 inline constexpr float POSITION_OFFSET = 8192.0f;
 inline constexpr float MIN_POSITION = -POSITION_OFFSET;
-inline constexpr float MAX_POSITION = static_cast<float>(std::numeric_limits<std::uint16_t>::max()) / POSITION_SCALE - POSITION_OFFSET;
+inline constexpr float MAX_POSITION =
+    static_cast<float>(std::numeric_limits<std::uint16_t>::max()) /
+        POSITION_SCALE -
+    POSITION_OFFSET;
 
 inline bool encodePosition(float position, std::uint16_t &encoded) {
-  if (!std::isfinite(position) || position < MIN_POSITION || position > MAX_POSITION) {
+  if (!std::isfinite(position) || position < MIN_POSITION ||
+      position > MAX_POSITION) {
     return false;
   }
 
@@ -49,7 +53,7 @@ struct CreateEntityPayload {
   float x = 0.0f;
   float y = 0.0f;
 
-  bool serialize(PacketWriter&writer) const {
+  bool serialize(PacketWriter &writer) const {
     if (entityId == 0)
       return false;
 
@@ -58,11 +62,13 @@ struct CreateEntityPayload {
     if (!encodePosition(x, encodedX) || !encodePosition(y, encodedY))
       return false;
 
-    if (writer.getSize() > MAX_PAYLOAD_SIZE || SIZE > MAX_PAYLOAD_SIZE - writer.getSize())
+    if (writer.getSize() > MAX_PAYLOAD_SIZE ||
+        SIZE > MAX_PAYLOAD_SIZE - writer.getSize())
       return false;
 
-    return writer.writeUInt32(entityId) && writer.writeUInt16(static_cast<std::uint16_t>(blueprintId)) &&
-        writer.writeUInt16(encodedX) && writer.writeUInt16(encodedY);
+    return writer.writeUInt32(entityId) &&
+           writer.writeUInt16(static_cast<std::uint16_t>(blueprintId)) &&
+           writer.writeUInt16(encodedX) && writer.writeUInt16(encodedY);
   }
 
   bool deserialize(PacketReader &reader) {
@@ -71,7 +77,8 @@ struct CreateEntityPayload {
     std::uint16_t encodedX = 0;
     std::uint16_t encodedY = 0;
 
-    if (!reader.readUInt32(id) || !reader.readUInt16(blueprint) || !reader.readUInt16(encodedX) || !reader.readUInt16(encodedY))
+    if (!reader.readUInt32(id) || !reader.readUInt16(blueprint) ||
+        !reader.readUInt16(encodedX) || !reader.readUInt16(encodedY))
       return false;
 
     const auto decodedBluep = static_cast<BlueprintId>(blueprint);
@@ -96,14 +103,15 @@ struct DestroyEntityPayload {
     if (entityId == 0)
       return false;
 
-    if (writer.getSize() > MAX_PAYLOAD_SIZE || SIZE > MAX_PAYLOAD_SIZE - writer.getSize())
+    if (writer.getSize() > MAX_PAYLOAD_SIZE ||
+        SIZE > MAX_PAYLOAD_SIZE - writer.getSize())
       return false;
 
     return writer.writeUInt32(entityId);
   }
 
   bool deserialize(PacketReader &reader) {
-    std::uint32_t id =0;
+    std::uint32_t id = 0;
 
     if (!reader.readUInt32(id) || id == 0)
       return false;
@@ -122,7 +130,8 @@ struct QueryEntityPayload {
     if (entityId == 0)
       return false;
 
-    if (writer.getSize() > MAX_PAYLOAD_SIZE || SIZE > MAX_PAYLOAD_SIZE - writer.getSize())
+    if (writer.getSize() > MAX_PAYLOAD_SIZE ||
+        SIZE > MAX_PAYLOAD_SIZE - writer.getSize())
       return false;
 
     return writer.writeUInt32(entityId);
@@ -139,4 +148,4 @@ struct QueryEntityPayload {
   }
 };
 
-} //namespace rtype:protocol
+} // namespace rtype::protocol

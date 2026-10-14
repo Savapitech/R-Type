@@ -1,9 +1,9 @@
 #pragma once
 
 #include <concepts>
+#include <exception>
 #include <string>
 #include <unordered_map>
-#include <exception>
 
 #include <Registry.hpp>
 
@@ -11,57 +11,54 @@
 
 using Json = nlohmann::json;
 
-namespace rtk::ecs
-{
-    class EntityFactory {
-    public:
-        EntityFactory() = default;
+namespace rtk::ecs {
+class EntityFactory {
+public:
+  EntityFactory() = default;
 
-        template<ComponentFromJson T>
-        void register_component(std::string name)
-        {
-            auto [iterator, inserted] = _builders.emplace(
-                std::move(name),
-                &buildComponent<T>
-            );
+  template <ComponentFromJson T> void register_component(std::string name) {
+    auto [iterator, inserted] =
+        _builders.emplace(std::move(name), &buildComponent<T>);
 
-            if (!inserted)
-                throw std::invalid_argument("Component already register " + iterator->first);
+    if (!inserted)
+      throw std::invalid_argument("Component already register " +
+                                  iterator->first);
+  }
+
+  Entity create(Registry &registry, const Json &definition) const {
+    Entity entity = registry.spawn_entity();
+
+    try {
+      const auto &components = definition.at("components");
+
+      for (const auto &[name, data] : components.items()) {
+        auto builder = _builders.find(name);
+
+        if (builder == _builders.end()) {
+          throw std::runtime_error("Composant uknown : " + name);
         }
 
-        Entity create(Registry& registry, const Json& definition) const {
-            Entity entity = registry.spawn_entity();
+        builder->second(registry, entity, data);
+      }
+    } catch (...) {
+      registry.kill_entity(entity);
+      throw;
+    }
 
-            try {
-                const auto& components = definition.at("components");
+    return entity;
+  }
 
-                for (const auto& [name, data] : components.items()) {
-                    auto builder = _builders.find(name);
+private:
+  using Builder = void (*)(Registry &, Entity, const Json &);
 
-                    if (builder == _builders.end()) {
-                        throw std::runtime_error("Composant uknown : " + name);
-                    }
+  std::unordered_map<std::string, Builder> _builders;
 
-                    builder->second(registry, entity, data);
-                }
-            } catch (...) {
-                registry.kill_entity(entity); 
-                throw;
-            }
+  template <ComponentFromJson T>
+  static void buildComponent(Registry &registry, Entity entity,
+                             const Json &data) {
+    T component = data.get<T>();
 
-            return entity;
-        }
-
-    private:
-        using Builder = void (*)(Registry&, Entity, const Json&);
-
-        std::unordered_map<std::string, Builder> _builders;
-
-        template<ComponentFromJson T>
-        static void buildComponent(Registry& registry, Entity entity, const Json& data) {
-            T component = data.get<T>();
-
-            registry.get_components<T>().insert_at(entity, std::move(component));
-        }
-    };
+    registry.get_components<T>().insert_at(entity, std::move(component));
+  }
+};
 } // namespace rtk::ecs

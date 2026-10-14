@@ -5,11 +5,10 @@
 
 using Json = nlohmann::json;
 
-using Entity = std::size_t; 
+using Entity = std::size_t;
 
-template<typename T>
+template <typename T>
 concept ComponentFromJson =
-    std::default_initializable<T> &&
-    requires(const Json& json, T& component) {
-        { from_json(json, component) } -> std::same_as<void>;
-};
+    std::default_initializable<T> && requires(const Json &json, T &component) {
+      { from_json(json, component) } -> std::same_as<void>;
+    };

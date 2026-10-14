@@ -9,12 +9,12 @@
 #include "components/Animator.hpp"
 #include "components/Bullet.hpp"
 #include "components/Controllable.hpp"
+#include "components/NetworkEntity.hpp"
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
-#include "components/NetworkEntity.hpp"
 
-#include "factoryDataDriven/factoryDataDriven.hpp"
 #include "NetworkClient.hpp"
+#include "factoryDataDriven/factoryDataDriven.hpp"
 
 namespace rtk::systems {
 class PlayerSystem final : public rtk::ecs::ISystem {
@@ -28,8 +28,11 @@ private:
   static constexpr float SQUARE_2_DIVIDE_BY_2 = 0.7071f;
 
 public:
-  PlayerSystem(rtk::InputState &inputState, busEvent &eventBus, rtk::factory::EntityFactory &entityFactory, rtype::client::NetworkClient &networkClient)
-      : _inputState(inputState), _eventBus(eventBus), _entityFactory(entityFactory), _networkClient(networkClient) {}
+  PlayerSystem(rtk::InputState &inputState, busEvent &eventBus,
+               rtk::factory::EntityFactory &entityFactory,
+               rtype::client::NetworkClient &networkClient)
+      : _inputState(inputState), _eventBus(eventBus),
+        _entityFactory(entityFactory), _networkClient(networkClient) {}
 
   ~PlayerSystem() override = default;
 
@@ -47,9 +50,11 @@ private:
   bool _isChargingShoot{false};
 
   void sendInputsToServer() {
-    if (!_networkClient.isConnected()) return;
+    if (!_networkClient.isConnected())
+      return;
 
-    rtype::protocol::InputAction networkActions = rtype::protocol::InputAction::NoneAction;
+    rtype::protocol::InputAction networkActions =
+        rtype::protocol::InputAction::NoneAction;
 
     if (rtype::Input::hasAction(_inputState.actionMask, rtype::Action::Up)) {
       networkActions = networkActions | rtype::protocol::InputAction::Up;
@@ -71,7 +76,8 @@ private:
   }
 
   void handleShootingAudio() {
-    bool isShootPressed = rtype::Input::hasAction(_inputState.actionMask, rtype::Action::Shoot);
+    bool isShootPressed =
+        rtype::Input::hasAction(_inputState.actionMask, rtype::Action::Shoot);
 
     if (isShootPressed) {
       _isChargingShoot = true;
