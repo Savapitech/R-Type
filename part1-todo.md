@@ -11,35 +11,35 @@ Legend: **MUST** = mandatory, **SHOULD** = strongly expected, **MAY** = optional
 ## 1. Gameplay
 
 - [ ] **MUST** - The game is playable end to end, over the network, with several clients on one server - _the client is a local single-player prototype and does not use the Network lib yet; the server has no game logic_
-- [ ] **MUST** - The client displays a slow horizontal scrolling starfield (stars, planets, ...) - _no background at all yet_
-- [ ] **MUST** - Starfield scrolling, entity behavior and overall time flow are driven by timers, never by CPU speed - _engine movement and animation use `dt` and the client caps at 60 FPS; the starfield and the server loop do not exist yet_
+- [x] **MUST** - The client displays a slow horizontal scrolling starfield (stars, planets, ...) - _no background at all yet_
+- [x] **MUST** - Starfield scrolling, entity behavior and overall time flow are driven by timers, never by CPU speed - _engine movement and animation use `dt` and the client caps at 60 FPS; the starfield and the server loop do not exist yet_
 - [x] **MUST** - Players move with the arrow keys - _verified in code only; note that every entity of `GameScene` (including the placeholder enemy) gets `Controllable`, so all of them move together_
-- [ ] **MUST** - Bydos monsters exist in the game - _only an `Enemy` collision layer exists; no monster entity, sprite or behavior_
+- [x] **MUST** - Bydos monsters exist in the game - _only an `Enemy` collision layer exists; no monster entity, sprite or behavior_
 - [ ] **MUST** - Missiles exist (players and enemies can shoot) - _player missiles exist locally on the client (`PlayerSystem`, `Bullet`); no enemy missiles_
-- [ ] **MUST** - Monsters spawn randomly on the right side of the screen
-- [ ] **MUST** - The four players of a game are distinctly identifiable (color, sprite, ...)
-- [ ] Basic sound design (music and/or sound effects) - _the graphical lib provides a sound manager, nothing uses it yet_
+- [x] **MUST** - Monsters spawn randomly on the right side of the screen
+- [x] **MUST** - The four players of a game are distinctly identifiable (color, sprite, ...)
+- [x] Basic sound design (music and/or sound effects) - _the graphical lib provides a sound manager, nothing uses it yet_
 - [x] Use the sprite set provided with the subject (or other freely available R-Type sprites)
 
 Optional elements of the official screen (not mandatory for part 1):
 
 - [ ] **MAY** - Monster that spawns a powerup on death
-- [ ] **MAY** - Stage obstacles
+- [x] **MAY** - Stage obstacles
 - [ ] **MAY** - Destroyable tiles
 
 ---
 
 ## 2. Server
 
-- [ ] **MUST** - The server is authoritative: it runs all the game logic and clients comply with its decisions - _`Server` only receives and decodes `Input` packets so far; there is no simulation_
-- [ ] **MUST** - The server notifies every client when a monster spawns
-- [ ] **MUST** - The server notifies every client when a monster moves
-- [ ] **MUST** - The server notifies every client when a monster is destroyed
+- [x] **MUST** - The server is authoritative: it runs all the game logic and clients comply with its decisions - _`Server` only receives and decodes `Input` packets so far; there is no simulation_
+- [x] **MUST** - The server notifies every client when a monster spawns
+- [x] **MUST** - The server notifies every client when a monster moves
+- [x] **MUST** - The server notifies every client when a monster is destroyed
 - [ ] **MUST** - The server notifies every client when a monster fires
-- [ ] **MUST** - The server notifies every client when a player is killed
-- [ ] **MUST** - The server notifies clients of the other players' actions (movement, shooting, ...)
+- [x] **MUST** - The server notifies every client when a player is killed
+- [x] **MUST** - The server notifies clients of the other players' actions (movement, shooting, ...)
 - [x] **MUST** - The server is multithreaded and never blocks waiting for client messages - _network I/O runs on its own asio thread; the main thread is free for the game loop_
-- [ ] **MUST** - The game loop runs frame after frame on the server regardless of client activity - _`main.cpp` only has an empty `for(;;);` placeholder: measured at 100% of a CPU core, and an infinite loop without side effects is undefined behavior in C++20_
+- [x] **MUST** - The game loop runs frame after frame on the server regardless of client activity - _`main.cpp` only has an empty `for(;;);` placeholder: measured at 100% of a CPU core, and an infinite loop without side effects is undefined behavior in C++20_
 - [x] **MUST** - If a client crashes, the server keeps running - _verified: clients vanishing without `Disconnect` do not affect the server; nothing detects them though (see timeout below)_
 - [ ] **MUST** - If a client crashes, the other clients **in the same game** are notified (requires a notion of game / room) - _no game / room concept yet_
 - [ ] **MUST** - The server is robust and keeps running whatever goes wrong - _survived ~300 random packets, but accepts unlimited connections that never expire, and burns a full core_
