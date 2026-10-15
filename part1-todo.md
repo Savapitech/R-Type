@@ -118,13 +118,13 @@ All documentation is written in **English** (**MUST**).
 
 ### README
 
-- [ ] Project purpose
-- [ ] Dependencies, requirements and supported platforms
-- [ ] Build instructions
-- [ ] Usage instructions
-- [ ] License
-- [ ] Authors / contacts
-- [ ] Useful links and quick start
+- [x] Project purpose
+- [x] Dependencies, requirements and supported platforms
+- [x] Build instructions
+- [x] Usage instructions
+- [x] License
+- [x] Authors / contacts
+- [x] Useful links and quick start
 
 ### Developer documentation
 
