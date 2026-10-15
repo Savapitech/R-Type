@@ -1,0 +1,76 @@
+PROJECT_NAME           = "R-Type"
+PROJECT_NUMBER         = 0.1
+PROJECT_BRIEF          =
+OUTPUT_DIRECTORY       = build/docs
+OUTPUT_LANGUAGE        = English
+FULL_PATH_NAMES        = YES
+STRIP_FROM_PATH        = .
+STRIP_FROM_INC_PATH    = lib/GameEngine/include \
+                         lib/Network/src \
+                         src/Common \
+                         src/Client \
+                         src/Server
+MARKDOWN_SUPPORT       = YES
+TOC_INCLUDE_HEADINGS   = 3
+BUILTIN_STL_SUPPORT    = YES
+DISTRIBUTE_GROUP_DOC   = YES
+QUIET                  = NO
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = NO
+EXTRACT_LOCAL_CLASSES  = NO
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_CLASSES     = NO
+HIDE_FRIEND_COMPOUNDS  = YES
+INTERNAL_DOCS          = NO
+SORT_MEMBER_DOCS       = NO
+SHOW_USED_FILES        = NO
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_IF_INCOMPLETE_DOC = YES
+WARN_NO_PARAMDOC       = NO
+WARN_LOGFILE           = build/docs/warnings.log
+INPUT                  = docs/pages \
+                         lib/GameEngine/include \
+                         lib/Network/src \
+                         src
+FILE_PATTERNS          = *.hpp \
+                         *.cpp \
+                         *.md \
+                         *.dox
+RECURSIVE              = YES
+EXCLUDE_SYMBOLS        = detail
+USE_MDFILE_AS_MAINPAGE = docs/pages/index.md
+IMAGE_PATH             = docs/assets
+LAYOUT_FILE            = docs/DoxygenLayout.xml
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+HTML_OUTPUT            = html
+HTML_EXTRA_STYLESHEET  = External/doxygen-awesome-css/doxygen-awesome.css \
+                         External/doxygen-awesome-css/doxygen-awesome-sidebar-only.css \
+                         docs/assets/custom.css
+HTML_COLORSTYLE        = LIGHT
+HTML_DYNAMIC_SECTIONS  = NO
+HTML_CODE_FOLDING      = NO
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
+TREEVIEW_WIDTH         = 335
+SEARCHENGINE           = YES
+SERVER_BASED_SEARCH    = NO
+HAVE_DOT               = YES
+DOT_PATH               = $(DOT_PATH)
+DOT_IMAGE_FORMAT       = svg
+INTERACTIVE_SVG        = NO
+DOT_COMMON_ATTR        = "fontname=Helvetica,fontsize=11"
+DOT_EDGE_ATTR          = "labelfontname=Helvetica,labelfontsize=10"
+CLASS_GRAPH            = YES
+COLLABORATION_GRAPH    = NO
+GROUP_GRAPHS           = NO
+INCLUDE_GRAPH          = NO
+INCLUDED_BY_GRAPH      = NO
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO
+DIRECTORY_GRAPH        = NO
+GRAPHICAL_HIERARCHY    = NO
