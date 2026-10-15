@@ -10,9 +10,22 @@
 #include <vector>
 
 namespace rtype::server {
+/**
+ * @addtogroup api_server
+ * @{
+ */
 
+/**
+ * @brief Destroys dead entities and tells every player with DestroyEntity.
+ */
 class ServerDeathSystem final : public rtk::ecs::ISystem {
 public:
+  /**
+   * @brief Creates the system.
+   * @param server Server used to send DestroyEntity.
+   * @param players Connected players, keyed by connection id.
+   * @param serverTick Current server tick.
+   */
   ServerDeathSystem(
       Server &server,
       const std::unordered_map<std::uint32_t, std::size_t> &players,
@@ -21,8 +34,15 @@ public:
 
   ~ServerDeathSystem() override = default;
 
+  /**
+   * @brief Does nothing.
+   */
   void onStart(rtk::ecs::Registry &) override {}
 
+  /**
+   * @brief Broadcasts and destroys every entity tagged with Dead.
+   * @param reg Registry holding the entities.
+   */
   void update(rtk::ecs::Registry &reg, float) override {
     auto view = reg.view<component::Dead>();
     auto &netEntities = reg.get_components<component::NetworkEntity>();
@@ -47,6 +67,9 @@ public:
     }
   }
 
+  /**
+   * @brief Does nothing.
+   */
   void onStop(rtk::ecs::Registry &) override {}
 
 private:
@@ -55,4 +78,5 @@ private:
   const std::uint32_t &_serverTick;
 };
 
+/** @} */
 } // namespace rtype::server

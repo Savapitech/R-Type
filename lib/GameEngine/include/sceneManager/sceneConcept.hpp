@@ -6,31 +6,35 @@
 #include "GameEngine.hpp"
 
 namespace rtk {
+/**
+ * @addtogroup api_engine
+ * @{
+ */
 
 /**
- * @brief define the Scene Concept who let user use the
- * SceneManger bring by the rtk engine
+ * @brief Requirements for a type used to identify scenes, which must be an
+ * enum.
  *
- * A valid Scene contain :
- * - a static `Type` ;
- * - a method `onEnter()` ;
- * - a method `onUpdate()` ;
- * - a method `onExit()`.
+ * @tparam T Candidate identifier type.
+ */
+template <typename T>
+concept SceneIdentifier = std::is_enum_v<T>;
+
+/**
+ * @brief Requirements for a scene managed by rtk::SceneManager.
  *
- * @tparam TScene Concrete scene type being validated.
+ * A valid scene has a static `Type` identifier and the `onEnter()`,
+ * `onUpdate()` and `onExit()` methods. `onUpdate()` returns the identifier
+ * of the next scene, or `std::nullopt` to stay on the current one.
+ *
+ * @tparam T Concrete scene type being validated.
  * @tparam TSceneId Type used to identify scenes, usually an enum.
  * @tparam TInput Type containing the input state passed to the scene.
- *
- * @note You can do static asset and template your scene implementation
- * for verifying that your implementation is correct
  *
  * @code
  * static_assert(rtk::Scene<MenuScene, SceneType, rtk::InputState>);
  * @endcode
  */
-template <typename T>
-concept SceneIdentifier = std::is_enum_v<T>;
-
 template <typename T, typename TSceneId, typename TInput>
 concept Scene =
     SceneIdentifier<TSceneId> &&
@@ -42,4 +46,6 @@ concept Scene =
       } -> std::same_as<std::optional<TSceneId>>;
       { scene.onExit(context) } -> std::same_as<void>;
     };
+
+/** @} */
 } // namespace rtk

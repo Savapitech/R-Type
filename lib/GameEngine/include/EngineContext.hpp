@@ -9,10 +9,21 @@
 #include "inputAction/InputAction.hpp"
 
 namespace rtk {
+/**
+ * @addtogroup api_engine
+ * @{
+ */
+
+/**
+ * @brief Engine services handed to the game and its scenes.
+ */
 struct EngineContext {
-  ecs::Registry &registry;
-  ecs::Scheduler &scheduler;
-  busEvent &eventBus;
-  rtk::factory::EntityFactory _entityFactory;
+  ecs::Registry &registry;   ///< Entities and components.
+  ecs::Scheduler &scheduler; ///< Systems run every frame.
+  busEvent &eventBus;        ///< Event bus shared by systems.
+  rtk::factory::EntityFactory
+      _entityFactory; ///< Blueprint based entity factory.
 };
+
+/** @} */
 } // namespace rtk

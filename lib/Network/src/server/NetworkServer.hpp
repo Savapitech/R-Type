@@ -1,5 +1,10 @@
 #pragma once
 
+/**
+ * @addtogroup api_network
+ * @{
+ */
+
 #include <asio/io_context.hpp>
 #include <atomic>
 #include <cstdint>
@@ -14,26 +19,68 @@
 #include "../protocol/MessageParser.hpp"
 #include "../transport/UdpTransport.hpp"
 
+/**
+ * @brief UDP server that runs the handshake, tracks connections and
+ * dispatches messages.
+ *
+ * Network I/O runs on a dedicated thread, so every callback is invoked from
+ * that thread and the caller must synchronize any data it shares with the
+ * game loop.
+ */
 class NetworkServer {
 public:
+  /// Callback receiving the id of a connection.
   using ConnectionCallback = std::function<void(std::uint32_t connectionId)>;
+  /// Callback receiving a message that the network layer does not handle.
   using MessageCallback =
       std::function<void(std::uint32_t connectionId, MessageId type,
                          const std::vector<std::uint8_t> &payload)>;
 
+  /**
+   * @brief Creates a server bound to a UDP port, without starting it.
+   * @param port Local port to listen on.
+   */
   NetworkServer(std::uint16_t port);
+
+  /**
+   * @brief Stops the server and joins the network thread.
+   */
   ~NetworkServer();
+
+  /**
+   * @brief Starts receiving datagrams on the network thread.
+   */
   void start();
+
+  /**
+   * @brief Closes the socket and joins the network thread.
+   */
   void stop();
+
+  /**
+   * @brief Sends messages to a client inside a new connected packet.
+   * @param connectionId Destination connection.
+   * @param payload Encoded messages, headers included.
+   */
   void send(std::uint32_t connectionId,
             const std::vector<std::uint8_t> &payload);
 
-  // NOTE: those callbacks are invoked from the internal network thread (asio),
-  // never from the thread that calls start() or stop(). The caller is
-  // responsible for any synchronization needed to use the data on another
-  // thread (eg. the ECS/game loop thread).
+  /**
+   * @brief Sets the function called after a successful handshake.
+   * @param callback Receives the new connection id.
+   */
   void setOnClientConnected(ConnectionCallback callback);
+
+  /**
+   * @brief Sets the function called when a client disconnects.
+   * @param callback Receives the closed connection id.
+   */
   void setOnClientDisconnected(ConnectionCallback callback);
+
+  /**
+   * @brief Sets the function called for every game level message.
+   * @param callback Receives the connection id, message type and payload.
+   */
   void setOnMessage(MessageCallback callback);
 
 private:
@@ -62,3 +109,5 @@ private:
   ConnectionCallback _onClientDisconnected;
   MessageCallback _onMessage;
 };
+
+/** @} */

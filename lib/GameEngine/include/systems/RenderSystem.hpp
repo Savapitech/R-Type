@@ -11,18 +11,38 @@
 #include "systems/RenderConcept.hpp"
 
 namespace rtk::systems {
+/**
+ * @addtogroup api_engine
+ * @{
+ */
+
+/**
+ * @brief Draws every entity that has a Transform and a SpriteData.
+ * @tparam WindowType Window satisfying IsRenderWindow.
+ */
 template <rtk::ecs::concepts::IsRenderWindow WindowType>
 class RenderSystem final : public rtk::ecs::ISystem {
 public:
+  /**
+   * @brief Creates the system.
+   * @param window Window to draw into.
+   */
   RenderSystem(std::reference_wrapper<WindowType> window)
       : _window(window.get()) {}
 
   ~RenderSystem() = default;
 
+  /**
+   * @brief Logs that the system is loaded.
+   */
   void onStart(rtk::ecs::Registry &) override {
     LOG_INFO("Load Render System");
   }
 
+  /**
+   * @brief Copies transforms into sprites and draws one frame.
+   * @param reg Registry holding the entities.
+   */
   void update(rtk::ecs::Registry &reg, float) override {
     _spritesToDraw.clear();
 
@@ -55,10 +75,15 @@ public:
     _window.endFrame();
   }
 
+  /**
+   * @brief Does nothing.
+   */
   void onStop(rtk::ecs::Registry &) override {}
 
 private:
   WindowType &_window;
   std::vector<rtk::ecs::concepts::SpriteData> _spritesToDraw;
 };
+
+/** @} */
 } // namespace rtk::systems

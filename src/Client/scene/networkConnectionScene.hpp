@@ -11,7 +11,15 @@
 #include "scene/sceneType.hpp"
 
 namespace rtype::client {
+/**
+ * @addtogroup api_client
+ * @{
+ */
 
+/**
+ * @brief Connection screen, which sends Hello every second until the server
+ * answers or 10 seconds pass.
+ */
 class NetworkConnectionScene {
 private:
   float _timeoutTimer = 0.0f;
@@ -19,10 +27,18 @@ private:
   bool _isConnected = false;
 
 public:
+  /// Identifier of this scene.
   static constexpr SceneType Type = SceneType::Connection;
 
+  /**
+   * @brief Creates the scene.
+   */
   NetworkConnectionScene(rtk::RenderWindow &) {}
 
+  /**
+   * @brief Subscribes to the connection result events.
+   * @param context Engine services.
+   */
   void onEnter(rtk::EngineContext &context) {
     context.eventBus.subscribe<rtype::events::ConnectedToServerEvent>(
         [this](const rtype::events::ConnectedToServerEvent &) {
@@ -36,6 +52,12 @@ public:
         });
   }
 
+  /**
+   * @brief Retries the handshake and picks the next scene.
+   * @param context Engine services.
+   * @param dt Elapsed time since the last frame, in seconds.
+   * @return Game once connected, Menu after the timeout, else std::nullopt.
+   */
   std::optional<SceneType> onUpdate(rtk::EngineContext &context,
                                     const rtk::InputState &, float dt) {
     if (_isConnected) {
@@ -67,7 +89,11 @@ public:
     return std::nullopt;
   }
 
+  /**
+   * @brief Does nothing.
+   */
   void onExit(rtk::EngineContext &) {}
 };
 
+/** @} */
 } // namespace rtype::client
