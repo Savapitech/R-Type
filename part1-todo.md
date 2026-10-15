@@ -66,7 +66,7 @@ Optional elements of the official screen (not mandatory for part 1):
 - [ ] **MUST** - A malformed packet never causes excessive memory consumption - _verified problem: 200 `Hello` packets from 200 sockets created 200 connections; the map is unbounded and nothing expires entries_
 - [ ] **MUST** - A malformed packet never compromises server security (buffer overflows included)
 - [x] **MUST** - The protocol is documented (an RFC is a good format) - _`src/protocole.md`_
-- [ ] **SHOULD** - The documentation is enough to write a new client without reading the code - _`protocole.md` and the implementation disagree: it defines one `CommandType` enum (`Connect`, `Welcome` with nonce / network id / tick, ...), the lib uses a separate `Hello` / `Welcome` handshake and its own `MessageType` values; the packet envelope (`PacketHeader`, sequence / ack) is not documented_
+- [x] **SHOULD** - The documentation is enough to write a new client without reading the code - _`protocole.md` and the implementation disagree: it defines one `CommandType` enum (`Connect`, `Welcome` with nonce / network id / tick, ...), the lib uses a separate `Hello` / `Welcome` handshake and its own `MessageType` values; the packet envelope (`PacketHeader`, sequence / ack) is not documented_
 
 ---
 
@@ -77,7 +77,7 @@ Optional elements of the official screen (not mandatory for part 1):
 - [x] **MUST** - The engine defines the coordinate system - _`Transform.position` in screen pixels, y pointing down (implicit, to be documented)_
 - [x] **MUST** - The engine defines how systems (graphics, physics, network, ...) communicate - _through components and `CollisionBuffer`; the `busEvent` event bus is in `EngineContext` but nothing publishes or subscribes yet_
 - [x] The rendering system only needs an entity appearance and position, not gameplay data such as damage or speed - _`RenderSystem` reads `Transform` and `SpriteData` only_
-- [ ] Architecture pattern chosen and justified (ECS and Mediator are the recommended ones) - _ECS, event bus and scene manager are chosen; the justification is not written_
+- [x] Architecture pattern chosen and justified (ECS and Mediator are the recommended ones)
 
 ---
 
@@ -130,33 +130,33 @@ All documentation is written in **English** (**MUST**).
 
 Must be higher level than Doxygen-style class and function descriptions.
 
-- [ ] Architecture diagrams (layer / subsystem view)
-- [ ] Overview of the main systems and how they map to the code
-- [ ] Tutorials and how-tos
-- [ ] Contribution guidelines
-- [ ] Coding conventions
+- [x] Architecture diagrams (layer / subsystem view)
+- [x] Overview of the main systems and how they map to the code
+- [x] Tutorials and how-tos
+- [x] Contribution guidelines
+- [x] Coding conventions
 
 ### Technical and comparative study
 
 Justify each technology choice (language, graphics library, algorithms, networking technique, ...).
 
-- [ ] Algorithms, data structures and design patterns: why these ones, and why any custom-designed algorithm was needed
-- [ ] Storage: comparison of techniques (persistence, reliability, constraints)
-- [ ] Security: main vulnerabilities of each technology and data integrity
-- [ ] Security: how security is monitored in the long term
+- [x] Algorithms, data structures and design patterns: why these ones, and why any custom-designed algorithm was needed
+- [x] Storage: comparison of techniques (persistence, reliability, constraints)
+- [x] Security: main vulnerabilities of each technology and data integrity
+- [x] Security: how security is monitored in the long term
 
 ### Publication
 
-- [ ] **MUST** - Documentation available online in a modern way (static site or wiki)
-- [ ] Interlinked pages
-- [ ] Quick-access outline
-- [ ] Search bar
-- [ ] No PDF or docx as the main documentation format
+- [x] **MUST** - Documentation available online in a modern way (static site or wiki)
+- [x] Interlinked pages
+- [x] Quick-access outline
+- [x] Search bar
+- [x] No PDF or docx as the main documentation format
 
 ### Protocol documentation
 
-- [ ] Every command and packet sent between client and server is described - _commands are described in `src/protocole.md`; the packet envelope and handshake are not_
-- [ ] Written so that a third party could implement a new client
+- [x] Every command and packet sent between client and server is described
+- [x] Written so that a third party could implement a new client
 
 ---
 
@@ -167,7 +167,7 @@ The project **and its documentation** must be accessible. Each category needs a 
 - [ ] Physical and motor disabilities: solution defined and implemented - _`InputMapping` allows several bindings per action (keyboard, gamepad button and axis, mouse), but there is no in-game remapping or documented option_
 - [ ] Audio and visual disabilities: solution defined and implemented
 - [ ] Mental and cognitive disabilities: solution defined and implemented
-- [ ] Documentation accessibility handled
+- [x] Documentation accessibility handled
 
 ---
 
