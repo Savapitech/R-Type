@@ -183,8 +183,9 @@ target_include_directories(r-type_client PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/sr
 target_link_libraries(r-type_client PRIVATE GraphicLib ECSLib GameEngine Vulkan::Vulkan Network CommonProtocole  NetworkClientLib)
 
 if (APPLE)
+    get_filename_component(VULKAN_LIB_DIR "${Vulkan_LIBRARY}" DIRECTORY)
     set_property(TARGET r-type_client APPEND PROPERTY
-        BUILD_RPATH "${graphiclib_SOURCE_DIR}/lib"
+        BUILD_RPATH "${graphiclib_SOURCE_DIR}/lib" "${VULKAN_LIB_DIR}"
     )
 endif()
 

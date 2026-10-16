@@ -16,7 +16,7 @@
     },
     {
       "name": "vulkan-loader",
-      "platform": "!linux"
+      "platform": "windows"
     }
   ]
 }
