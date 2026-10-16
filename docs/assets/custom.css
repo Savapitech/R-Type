@@ -1,0 +1,25 @@
+html {
+  --content-maxwidth: 1100px;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+div.contents p,
+div.contents li {
+  line-height: 1.65;
+}
+
+div.dotgraph {
+  overflow-x: auto;
+}
+
+div.contents table.markdownTable {
+  display: block;
+  overflow-x: auto;
+}

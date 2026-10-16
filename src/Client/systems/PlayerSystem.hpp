@@ -1,4 +1,5 @@
 #pragma once
+
 #include <ISystem.hpp>
 
 #include "Logger/Logger.hpp"
@@ -17,6 +18,15 @@
 #include "factoryDataDriven/factoryDataDriven.hpp"
 
 namespace rtk::systems {
+/**
+ * @addtogroup api_client
+ * @{
+ */
+
+/**
+ * @brief Sends the local player actions to the server every frame and
+ * triggers the shot sound.
+ */
 class PlayerSystem final : public rtk::ecs::ISystem {
 private:
   rtk::InputState &_inputState;
@@ -28,6 +38,13 @@ private:
   static constexpr float SQUARE_2_DIVIDE_BY_2 = 0.7071f;
 
 public:
+  /**
+   * @brief Creates the system.
+   * @param inputState Input state of the frame.
+   * @param eventBus Bus on which PlayerShotEvent is published.
+   * @param entityFactory Entity factory of the engine.
+   * @param networkClient Client used to send Input messages.
+   */
   PlayerSystem(rtk::InputState &inputState, busEvent &eventBus,
                rtk::factory::EntityFactory &entityFactory,
                rtype::client::NetworkClient &networkClient)
@@ -36,10 +53,16 @@ public:
 
   ~PlayerSystem() override = default;
 
+  /**
+   * @brief Logs that the system is loaded.
+   */
   void onStart(rtk::ecs::Registry &) override {
     LOG_INFO("Load Player System");
   }
 
+  /**
+   * @brief Sends an Input message and publishes a shot on button release.
+   */
   void update(rtk::ecs::Registry &, float) override {
     sendInputsToServer();
     handleShootingAudio();
@@ -87,6 +110,11 @@ private:
     }
   }
 
+  /**
+   * @brief Does nothing.
+   */
   void onStop(rtk::ecs::Registry &) override {}
 };
+
+/** @} */
 } // namespace rtk::systems

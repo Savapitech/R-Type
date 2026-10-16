@@ -11,20 +11,62 @@
 #include "events/busEvents.hpp"
 
 namespace rtk {
+/**
+ * @addtogroup api_engine
+ * @{
+ */
+
+/**
+ * @brief Owns the ECS world and runs the main loop of a game.
+ */
 class GameEngine {
 public:
+  /// Monotonic clock used to measure frame times.
   using Clock = std::chrono::steady_clock;
 
   GameEngine() = default;
   ~GameEngine() = default;
 
+  /**
+   * @brief Returns the entity and component registry.
+   * @return The registry.
+   */
   ecs::Registry &registry() { return _registry; }
+
+  /**
+   * @brief Returns the system scheduler.
+   * @return The scheduler.
+   */
   ecs::Scheduler &scheduler() { return _scheduler; }
+
+  /**
+   * @brief Returns the event bus shared by the systems.
+   * @return The event bus.
+   */
   busEvent &eventBus() { return _eventBus; }
 
+  /**
+   * @brief Asks the main loop to exit after the current frame.
+   */
   void stop() { _running = false; }
+
+  /**
+   * @brief Sets the frame rate cap.
+   * @param fps Frames per second, 0 for no cap.
+   */
   void setFPS(uint32_t fps) { _targetFps = fps; }
 
+  /**
+   * @brief Loads the game and runs frames until it stops.
+   *
+   * Each frame calls `onUpdate` on the game, runs every system with the
+   * elapsed time clamped to 0.25 s, flushes the registry and then sleeps to
+   * respect the frame rate cap.
+   *
+   * @tparam TGame Type satisfying the rtk::Game concept.
+   * @param game Game to run.
+   * @return 0 when the loop ends normally.
+   */
   template <Game TGame> int run(TGame &game) {
     EngineContext context{
         .registry = _registry,
@@ -131,4 +173,6 @@ private:
   float _fpsTimer = 0.0f;
   int _fpsFrames = 0;
 };
+
+/** @} */
 } // namespace rtk

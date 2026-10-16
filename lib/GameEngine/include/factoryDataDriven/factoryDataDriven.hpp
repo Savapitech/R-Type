@@ -12,11 +12,22 @@
 #include <unordered_map>
 
 namespace rtk {
+/**
+ * @addtogroup api_engine
+ * @{
+ */
 
+/// 16-bit identifier of an entity blueprint, shared by client and server.
 using ArchetypeID = std::uint16_t;
 
 /**
- * @brief Computes 16-bit hash.
+ * @brief Hashes a blueprint name to its archetype id.
+ *
+ * Computes the 32-bit FNV-1a hash of the name and folds it to 16 bits with
+ * `(hash >> 16) ^ (hash & 0xFFFF)`.
+ *
+ * @param name Blueprint name.
+ * @return The archetype id.
  */
 constexpr ArchetypeID hashArchetype(std::string_view name) noexcept {
   std::uint32_t hash = 2166136261u;
@@ -27,12 +38,26 @@ constexpr ArchetypeID hashArchetype(std::string_view name) noexcept {
   return static_cast<ArchetypeID>((hash >> 16) ^ (hash & 0xFFFF));
 }
 
+/**
+ * @brief Data driven entity creation.
+ */
 namespace factory {
+/**
+ * @addtogroup api_engine
+ * @{
+ */
 
+/**
+ * @brief Builds entities from JSON blueprints and registered component
+ * builders.
+ */
 class EntityFactory {
 public:
+  /// 16-bit identifier of an entity blueprint.
   using ArchetypeID = rtk::ArchetypeID;
+  /// JSON document type.
   using json = nlohmann::json;
+  /// Function that adds one component to an entity from its JSON data.
   using ComponentBuilder =
       std::function<void(rtk::ecs::Registry &, std::size_t, const json &)>;
 
@@ -42,10 +67,21 @@ private:
   std::unordered_map<ArchetypeID, std::string> _archetypes;
 
 public:
+  /**
+   * @brief Associates a blueprint component key with a builder.
+   * @param name Key used in the `components` object of a blueprint.
+   * @param builder Function that adds the component.
+   */
   void registerBuilder(const std::string &name, ComponentBuilder builder) {
     _builders[name] = builder;
   }
 
+  /**
+   * @brief Stores a blueprint under a name.
+   * @param blueprintName Blueprint name, hashed to get its archetype id.
+   * @param blueprintJson Blueprint document.
+   * @return The archetype id of the blueprint.
+   */
   ArchetypeID registerBlueprint(const std::string &blueprintName,
                                 const json &blueprintJson) {
     ArchetypeID id = hashArchetype(blueprintName);
@@ -54,6 +90,13 @@ public:
     return id;
   }
 
+  /**
+   * @brief Loads a blueprint from a JSON file and stores it.
+   * @param blueprintName Blueprint name, hashed to get its archetype id.
+   * @param filepath Path of the JSON file.
+   * @return The archetype id of the blueprint.
+   * @throws std::runtime_error If the file cannot be opened.
+   */
   ArchetypeID loadBlueprintFromPath(const std::string &blueprintName,
                                     const std::string &filepath) {
     std::ifstream file(filepath);
@@ -68,11 +111,22 @@ public:
     return registerBlueprint(blueprintName, blueprintJson);
   }
 
+  /**
+   * @brief Returns the archetype id of a blueprint name.
+   * @param blueprintName Blueprint name.
+   * @return The archetype id, whether or not the blueprint is loaded.
+   */
   [[nodiscard]] ArchetypeID
   getArchetypeID(const std::string &blueprintName) const {
     return hashArchetype(blueprintName);
   }
 
+  /**
+   * @brief Returns the blueprint name of an archetype id.
+   * @param archetypeId Archetype id.
+   * @return The blueprint name.
+   * @throws std::runtime_error If no loaded blueprint has this id.
+   */
   [[nodiscard]] const std::string &
   getBlueprintName(ArchetypeID archetypeId) const {
     auto it = _archetypes.find(archetypeId);
@@ -83,14 +137,31 @@ public:
     return it->second;
   }
 
+  /**
+   * @brief Tells whether a blueprint with this archetype id is loaded.
+   * @param archetypeId Archetype id.
+   * @return True if the blueprint is loaded.
+   */
   [[nodiscard]] bool hasArchetype(ArchetypeID archetypeId) const {
     return _archetypes.contains(archetypeId);
   }
 
+  /**
+   * @brief Tells whether a blueprint with this name is loaded.
+   * @param blueprintName Blueprint name.
+   * @return True if the blueprint is loaded.
+   */
   [[nodiscard]] bool hasBlueprint(const std::string &blueprintName) const {
     return _blueprints.contains(blueprintName);
   }
 
+  /**
+   * @brief Adds every component listed in a JSON object, unknown keys are
+   * ignored.
+   * @param reg Registry owning the entity.
+   * @param entity Target entity.
+   * @param componentsJson Object mapping builder keys to component data.
+   */
   void buildComponents(rtk::ecs::Registry &reg, std::size_t entity,
                        const json &componentsJson) {
     for (const auto &[compName, compData] : componentsJson.items()) {
@@ -100,6 +171,12 @@ public:
     }
   }
 
+  /**
+   * @brief Spawns an entity from a blueprint document.
+   * @param reg Registry receiving the entity.
+   * @param entityJson Document with an optional `components` object.
+   * @return The new entity.
+   */
   std::size_t createEntity(rtk::ecs::Registry &reg, const json &entityJson) {
     std::size_t entity = reg.spawn_entity();
 
@@ -108,6 +185,13 @@ public:
     return entity;
   }
 
+  /**
+   * @brief Spawns an entity from a loaded blueprint.
+   * @param reg Registry receiving the entity.
+   * @param blueprintName Blueprint name.
+   * @return The new entity.
+   * @throws std::runtime_error If the blueprint is not loaded.
+   */
   std::size_t createFromBlueprint(rtk::ecs::Registry &reg,
                                   const std::string &blueprintName) {
     if (!_blueprints.contains(blueprintName))
@@ -116,6 +200,13 @@ public:
     return createEntity(reg, _blueprints.at(blueprintName));
   }
 
+  /**
+   * @brief Spawns an entity from a loaded blueprint.
+   * @param reg Registry receiving the entity.
+   * @param archetypeId Archetype id of the blueprint.
+   * @return The new entity.
+   * @throws std::runtime_error If the blueprint is not loaded.
+   */
   std::size_t createFromBlueprint(rtk::ecs::Registry &reg,
                                   ArchetypeID archetypeId) {
     auto it = _archetypes.find(archetypeId);
@@ -126,6 +217,14 @@ public:
     return createFromBlueprint(reg, it->second);
   }
 
+  /**
+   * @brief Spawns a replicated entity and attaches its NetworkEntity.
+   * @param reg Registry receiving the entity.
+   * @param archetypeId Archetype id of the blueprint.
+   * @param networkId Network id of the entity.
+   * @return The new entity.
+   * @throws std::runtime_error If the blueprint is not loaded.
+   */
   std::size_t createNetwork(rtk::ecs::Registry &reg, ArchetypeID archetypeId,
                             std::uint32_t networkId) {
     std::size_t entity = createFromBlueprint(reg, archetypeId);
@@ -134,6 +233,14 @@ public:
     return entity;
   }
 
+  /**
+   * @brief Spawns a replicated entity and attaches its NetworkEntity.
+   * @param reg Registry receiving the entity.
+   * @param blueprintName Blueprint name.
+   * @param networkId Network id of the entity.
+   * @return The new entity.
+   * @throws std::runtime_error If the blueprint is not loaded.
+   */
   std::size_t createNetwork(rtk::ecs::Registry &reg,
                             const std::string &blueprintName,
                             std::uint32_t networkId) {
@@ -145,5 +252,8 @@ public:
   }
 };
 
+/** @} */
 } // namespace factory
+
+/** @} */
 } // namespace rtk

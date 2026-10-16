@@ -1,0 +1,59 @@
+/**
+ * @defgroup api_libraries Libraries
+ * @brief Reusable libraries that know nothing about R-Type.
+ *
+ * They live under `lib/` and could drive another game.
+ */
+
+/**
+ * @defgroup api_engine Game engine
+ * @ingroup api_libraries
+ * @brief Main loop, ECS components and systems, scenes, event bus, entity
+ * factory, input mapping and backend concepts (`lib/GameEngine`).
+ *
+ * See @ref engine for an overview.
+ */
+
+/**
+ * @defgroup api_network Network library
+ * @ingroup api_libraries
+ * @brief UDP transport, packet and message framing, sequence tracking and
+ * connection management (`lib/Network`).
+ *
+ * See @ref networking for an overview.
+ */
+
+/**
+ * @defgroup api_game R-Type game
+ * @brief Code specific to R-Type, built on top of the libraries.
+ */
+
+/**
+ * @defgroup api_protocol Protocol payloads
+ * @ingroup api_game
+ * @brief Message types, payload layouts and value encodings shared by the
+ * client and the server (`src/Common/Protocol`).
+ *
+ * See @ref protocol for the full specification.
+ */
+
+/**
+ * @defgroup api_gameplay Shared gameplay
+ * @ingroup api_game
+ * @brief Gameplay components and systems used by both programs
+ * (`src/Common`).
+ */
+
+/**
+ * @defgroup api_client Client
+ * @ingroup api_game
+ * @brief The `r-type_client` program: scenes, inputs, network client and
+ * backend adapters (`src/Client`).
+ */
+
+/**
+ * @defgroup api_server Server
+ * @ingroup api_game
+ * @brief The `r-type_server` program: authoritative simulation, scenes and
+ * message handling (`src/Server`).
+ */

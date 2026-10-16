@@ -1,5 +1,10 @@
 #pragma once
 
+/**
+ * @addtogroup api_client
+ * @{
+ */
+
 #include <bit>
 #include <span>
 #include <vector>
@@ -8,10 +13,23 @@
 
 #include "systems/RenderConcept.hpp"
 
+/**
+ * @brief Adapts the window of the graphical library to the IsRenderWindow
+ * concept.
+ */
 class RtkWindowAdapter {
 public:
+  /**
+   * @brief Wraps a window.
+   * @param window Window to adapt, which must outlive the adapter.
+   */
   RtkWindowAdapter(rtk::RenderWindow &window) : _window(window) {}
 
+  /**
+   * @brief Polls window events and points the engine Event at them.
+   * @param engineEvent Event filled with the backend queries.
+   * @return False once the window is closed.
+   */
   bool pollEvents(rtk::ecs::concepts::Event &engineEvent) {
     bool isOpen = _window.pollEvents(_rtkEventCache);
 
@@ -68,10 +86,19 @@ public:
     return isOpen;
   }
 
+  /**
+   * @brief Starts a frame cleared with a color.
+   * @param color Clear color, alpha is ignored.
+   * @return False if the frame cannot be drawn.
+   */
   bool beginFrame(rtk::ecs::concepts::ColorRGBA8 color) {
     return _window.beginFrame(rtk::RGB{color.r, color.g, color.b});
   }
 
+  /**
+   * @brief Draws a batch of sprites.
+   * @param sprites Sprites to draw.
+   */
   void draw(std::span<const rtk::ecs::concepts::SpriteData> sprites) {
     _rtkSpritesCache.clear();
 
@@ -84,6 +111,9 @@ public:
     _window.draw(_rtkSpritesCache);
   }
 
+  /**
+   * @brief Presents the frame.
+   */
   void endFrame() { _window.endFrame(); }
 
 private:
@@ -92,3 +122,5 @@ private:
 
   std::vector<rtk::SpriteData> _rtkSpritesCache;
 };
+
+/** @} */

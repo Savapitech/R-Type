@@ -13,8 +13,24 @@
 #include "components/Transform.hpp"
 
 namespace rtk::systems {
+/**
+ * @addtogroup api_engine
+ * @{
+ */
+
+/**
+ * @brief Draws collider outlines while the debug overlay is enabled.
+ *
+ * Outlines of colliding entities are red, the others are green.
+ */
 class DebugCollisionSystem final : public rtk::ecs::ISystem {
 public:
+  /**
+   * @brief Creates the system.
+   * @param collisionBuffer Collisions of the current frame.
+   * @param window Window used to create the outline texture.
+   * @param inputState Input state holding the debug toggle.
+   */
   explicit DebugCollisionSystem(
       const rtk::collision::CollisionBuffer &collisionBuffer,
       rtk::RenderWindow &window, const rtk::InputState &inputState)
@@ -22,6 +38,9 @@ public:
         _inputState(inputState) {}
   ~DebugCollisionSystem() override = default;
 
+  /**
+   * @brief Creates the 1x1 white texture used to draw outlines.
+   */
   void onStart(rtk::ecs::Registry &) override {
     constexpr std::array<std::uint8_t, 4> whitePixel{255, 255, 255, 255};
     const std::span<const std::uint8_t> pixels{whitePixel};
@@ -29,6 +48,10 @@ public:
     _debugTextureId = _window.loadTextureFromMemory(pixels, 1, 1).getHandle();
   }
 
+  /**
+   * @brief Updates one outline entity per collider edge.
+   * @param registry Registry holding the colliders.
+   */
   void update(rtk::ecs::Registry &registry, float) override {
     _collidingEntities.clear();
 
@@ -83,6 +106,10 @@ public:
       updateDebugLine(registry, _debugEntities[index], lines[index]);
   }
 
+  /**
+   * @brief Destroys the outline entities.
+   * @param registry Registry holding the outlines.
+   */
   void onStop(rtk::ecs::Registry &registry) override {
     for (const auto entity : _debugEntities)
       registry.kill_entity(entity);
@@ -161,4 +188,6 @@ private:
   std::vector<std::size_t> _debugEntities;
   std::unordered_set<std::size_t> _collidingEntities;
 };
+
+/** @} */
 } // namespace rtk::systems

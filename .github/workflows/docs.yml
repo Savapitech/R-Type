@@ -1,0 +1,77 @@
+name: Documentation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DOXYGEN_VERSION: 1.12.0
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Graphviz
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz
+
+      - name: Cache Doxygen
+        uses: actions/cache@v4
+        with:
+          path: ~/doxygen
+          key: doxygen-${{ env.DOXYGEN_VERSION }}
+
+      - name: Install Doxygen
+        run: |
+          if [ ! -x ~/doxygen/bin/doxygen ]; then
+            tag="Release_${DOXYGEN_VERSION//./_}"
+            curl -sSfL "https://github.com/doxygen/doxygen/releases/download/${tag}/doxygen-${DOXYGEN_VERSION}.linux.bin.tar.gz" \
+              | tar xz -C ~
+            mv ~/doxygen-"${DOXYGEN_VERSION}" ~/doxygen
+          fi
+          echo "$HOME/doxygen/bin" >> "$GITHUB_PATH"
+
+      - name: Build the documentation
+        run: make docs
+
+      - name: Fail on documentation warnings
+        run: |
+          if [ -s build/docs/warnings.log ]; then
+            cat build/docs/warnings.log
+            exit 1
+          fi
+
+      - name: Upload the website
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/docs/html
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

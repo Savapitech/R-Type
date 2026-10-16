@@ -1,4 +1,9 @@
 #pragma once
+
+/**
+ * @addtogroup api_engine
+ * @{
+ */
 #include <algorithm>
 #include <functional>
 #include <iostream>
@@ -7,6 +12,11 @@
 #include <unordered_map>
 #include <vector>
 
+/**
+ * @brief Type indexed publish and subscribe event bus.
+ *
+ * Handlers run synchronously on the thread that publishes the event.
+ */
 class busEvent {
 private:
   std::unordered_map<std::type_index,
@@ -14,6 +24,11 @@ private:
       _handlers;
 
 public:
+  /**
+   * @brief Registers a handler for one event type.
+   * @tparam E Event type.
+   * @param func Function called with every published event of type E.
+   */
   template <typename E>
   void subscribe(std::function<void(const E &event)> func) {
     auto it = _handlers.find(typeid(E));
@@ -29,6 +44,11 @@ public:
     });
     _handlers.insert({typeid(E), functionList});
   }
+  /**
+   * @brief Calls every handler registered for the event type.
+   * @tparam E Event type.
+   * @param event Event passed to the handlers.
+   */
   template <typename E> void publish(const E &event) {
     auto it = _handlers.find(typeid(E));
     if (it == _handlers.end()) {
@@ -40,3 +60,5 @@ public:
     }
   }
 };
+
+/** @} */

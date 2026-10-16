@@ -13,6 +13,18 @@
 #include "components/Transform.hpp"
 
 namespace rtk::systems {
+/**
+ * @addtogroup api_engine
+ * @{
+ */
+
+/**
+ * @brief Detects overlapping colliders with a uniform spatial hash grid.
+ *
+ * Each pair is reported once per frame in the CollisionBuffer and as a
+ * rtk::collision::Collision event, if each collider mask accepts the other
+ * collider layer.
+ */
 class ColliderSystem final : public rtk::ecs::ISystem {
 private:
   struct Cell {
@@ -65,15 +77,28 @@ private:
   std::unordered_map<Cell, std::vector<std::size_t>, CellHash> _grid;
 
 public:
+  /**
+   * @brief Creates the system.
+   * @param collisionBuffer Buffer filled with the collisions of each frame.
+   * @param cellSize Side of a grid cell, in pixels.
+   * @param eventBus Bus on which collisions are published.
+   */
   ColliderSystem(rtk::collision::CollisionBuffer &collisionBuffer,
                  float cellSize, busEvent &eventBus)
       : _collisionBuffer(collisionBuffer), _cellSize(cellSize),
         _eventBus(eventBus) {}
 
+  /**
+   * @brief Logs that the system is loaded.
+   */
   void onStart(rtk::ecs::Registry &) override {
     LOG_INFO("Load Collider System");
   }
 
+  /**
+   * @brief Rebuilds the grid and reports every overlapping pair.
+   * @param registry Registry holding the colliders.
+   */
   void update(rtk::ecs::Registry &registry, float) override {
     _grid.clear();
     _collisionBuffer.clear();
@@ -155,9 +180,14 @@ public:
     }
   }
 
+  /**
+   * @brief Clears the grid and the collision buffer.
+   */
   void onStop(rtk::ecs::Registry &) override {
     _grid.clear();
     _collisionBuffer.clear();
   }
 };
+
+/** @} */
 } // namespace rtk::systems

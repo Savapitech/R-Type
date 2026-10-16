@@ -1,16 +1,33 @@
 #pragma once
+
 #include "components/Animation.hpp"
 #include "components/Animator.hpp"
 #include <ISystem.hpp>
 
 namespace rtk::systems {
+/**
+ * @addtogroup api_engine
+ * @{
+ */
+
+/**
+ * @brief Loads the clip of the current animator state into the Animation.
+ */
 class AnimatorSystem final : public rtk::ecs::ISystem {
 public:
   AnimatorSystem() = default;
   ~AnimatorSystem() = default;
 
+  /**
+   * @brief Does nothing.
+   */
   void onStart(rtk::ecs::Registry &) override {}
 
+  /**
+   * @brief Restarts the animation with a new clip when the state changed.
+   * @param reg Registry holding the entities.
+   * @param dt Unused.
+   */
   void update(rtk::ecs::Registry &reg, float dt) override {
     auto view = reg.view<component::animator, component::Animation>();
 
@@ -49,6 +66,11 @@ public:
     }
   }
 
+  /**
+   * @brief Does nothing.
+   */
   void onStop(rtk::ecs::Registry &) override {}
 };
+
+/** @} */
 } // namespace rtk::systems

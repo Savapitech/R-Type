@@ -1,19 +1,36 @@
 #pragma once
+
 #include "Logger/Logger.hpp"
 #include "components/Animation.hpp"
 #include "systems/RenderConcept.hpp"
 #include <ISystem.hpp>
 
 namespace rtk::systems {
+/**
+ * @addtogroup api_engine
+ * @{
+ */
+
+/**
+ * @brief Advances sprite sheet animations and updates texture rectangles.
+ */
 class AnimationSystem final : public rtk::ecs::ISystem {
 public:
   AnimationSystem() = default;
   ~AnimationSystem() override = default;
 
+  /**
+   * @brief Logs that the system is loaded.
+   */
   void onStart(rtk::ecs::Registry &) override {
     LOG_INFO("Load Animation System");
   }
 
+  /**
+   * @brief Moves each animation forward by the elapsed time.
+   * @param reg Registry holding the entities.
+   * @param dt Elapsed time since the last frame, in seconds.
+   */
   void update(rtk::ecs::Registry &reg, float dt) override {
     auto view = reg.view<component::Animation, ecs::concepts::SpriteData>();
 
@@ -73,6 +90,11 @@ public:
     }
   }
 
+  /**
+   * @brief Does nothing.
+   */
   void onStop(rtk::ecs::Registry &) override {}
 };
+
+/** @} */
 } // namespace rtk::systems

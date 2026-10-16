@@ -19,18 +19,63 @@
 #include "scene/networkConnectionScene.hpp"
 
 namespace rtype::events {
+/**
+ * @addtogroup api_client
+ * @{
+ */
+
+/**
+ * @brief Published when the local player releases the shoot button.
+ */
 struct PlayerShotEvent {};
+
+/** @} */
 } // namespace rtype::events
 
 namespace rtype::client {
+/**
+ * @addtogroup api_client
+ * @{
+ */
+
+/**
+ * @brief Client side game: window, inputs, scenes and replication of the
+ * server world.
+ */
 class Game {
 public:
+  /**
+   * @brief Opens the 1280x720 window and creates the menu scene.
+   */
   Game();
   ~Game() = default;
 
+  /**
+   * @brief Registers components, loads blueprints, binds inputs, adds the
+   * systems and starts the network client.
+   * @param context Engine services.
+   */
   void onLoad(rtk::EngineContext &context);
+
+  /**
+   * @brief Tells the engine whether to keep running.
+   * @return False once the window must close.
+   */
   bool shouldContinue() const;
+
+  /**
+   * @brief Applies network events and replication messages, then updates the
+   * active scene.
+   * @param context Engine services.
+   * @param dt Elapsed time since the last frame, in seconds.
+   */
   void onUpdate(rtk::EngineContext &context, float dt);
+
+  /**
+   * @brief Destroys replicated entities, exits the scene and stops the
+   * network client.
+   * @param context Engine services.
+   */
   void onUnload(rtk::EngineContext &context);
 
 private:
@@ -65,4 +110,6 @@ private:
                     NetworkConnectionScene, GameScene>
       _sceneManager;
 };
+
+/** @} */
 } // namespace rtype::client

@@ -21,17 +21,47 @@
 #include "sceneType.hpp"
 
 namespace rtype::client {
+/**
+ * @addtogroup api_client
+ * @{
+ */
+
+/**
+ * @brief In game scene, which shows the scrolling starfield.
+ */
 class GameScene {
 public:
+  /**
+   * @brief Creates the scene.
+   * @param window Window of the client.
+   */
   explicit GameScene(rtk::RenderWindow &window);
   ~GameScene() = default;
 
+  /// Identifier of this scene.
   static constexpr SceneType Type = SceneType::Game;
 
+  /**
+   * @brief Creates the two parallax starfield layers.
+   * @param context Engine services.
+   */
   void onEnter(rtk::EngineContext &context);
+
+  /**
+   * @brief Does nothing, the game stays in this scene.
+   * @param context Engine services.
+   * @param inputState Input state of the frame.
+   * @param dt Elapsed time since the last frame, in seconds.
+   * @return The next scene, or std::nullopt to stay.
+   */
   std::optional<SceneType> onUpdate(rtk::EngineContext &context,
                                     const rtk::InputState &inputState,
                                     float dt);
+
+  /**
+   * @brief Destroys the entities created by the scene.
+   * @param context Engine services.
+   */
   void onExit(rtk::EngineContext &context);
 
 private:
@@ -250,4 +280,6 @@ private:
 
   std::uint16_t _bulletPressedByTick = 0;
 };
+
+/** @} */
 } // namespace rtype::client

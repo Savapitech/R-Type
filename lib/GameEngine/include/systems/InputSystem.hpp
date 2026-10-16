@@ -1,4 +1,5 @@
 #pragma once
+
 #include "inputAction/inputMapping.hpp"
 #include "systems/RenderConcept.hpp"
 #include <ISystem.hpp>
@@ -6,10 +7,28 @@
 #include <stdexcept>
 
 namespace rtk::systems {
+/**
+ * @addtogroup api_engine
+ * @{
+ */
 
+/**
+ * @brief Polls window events and turns bound controls into action bits.
+ *
+ * Escape requests the window to close, and F3 held with B toggles the debug
+ * overlay.
+ *
+ * @tparam WindowType Window satisfying IsRenderWindow.
+ */
 template <ecs::concepts::IsRenderWindow WindowType>
 class InputSystem final : public rtk::ecs::ISystem {
 public:
+  /**
+   * @brief Creates the system.
+   * @param window Window to poll.
+   * @param inputState State written every frame.
+   * @param mapping Bindings between controls and actions.
+   */
   InputSystem(std::reference_wrapper<WindowType> window,
               rtk::InputState &inputState,
               const rtk::Input::InputMapping &mapping)
@@ -17,12 +36,21 @@ public:
 
   ~InputSystem() override = default;
 
+  /**
+   * @brief Logs that the system is loaded.
+   */
   void onStart(rtk::ecs::Registry &) override {
     LOG_DEBUG("Load Input System");
   }
 
+  /**
+   * @brief Does nothing.
+   */
   void onStop(rtk::ecs::Registry &) override {}
 
+  /**
+   * @brief Rebuilds the action mask from the current controls.
+   */
   void update([[maybe_unused]] rtk::ecs::Registry &reg, float) override {
     _inputState.actionMask = 0;
     _inputState.closeRequested = false;
@@ -80,4 +108,5 @@ private:
   const rtk::Input::InputMapping &_mapping;
 };
 
+/** @} */
 } // namespace rtk::systems

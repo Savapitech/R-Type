@@ -137,6 +137,7 @@ cached for the following builds.
 | `make fclean`| Also remove the fetched libraries and the binaries        |
 | `make re`    | Full rebuild                                              |
 | `make format`| Format the sources with `clang-format`                    |
+| `make docs`  | Build the documentation website in `build/docs/html`      |
 
 ### With CMake directly
 
@@ -196,8 +197,8 @@ distinct ship color.
 ├── src/
 │   ├── Client/          r-type_client: scenes, input, rendering adapters
 │   ├── Server/          r-type_server: game simulation and replication
-│   ├── Common/          Code shared by both sides: protocol payloads, gameplay systems
-│   └── protocole.md     Network protocol specification
+│   └── Common/          Code shared by both sides: protocol payloads, gameplay systems
+├── docs/                Documentation website: Doxygen configuration and guides
 ├── tests/               Unit and functionnals tests
 ├── CMakeLists.txt       Build definition
 ├── Makefile             Build shortcuts
@@ -206,8 +207,12 @@ distinct ship color.
 
 ## Documentation and useful links
 
-- [Network protocol specification](src/protocole.md): message types and
-  payload formats exchanged between clients and the server.
+- [Developer documentation](https://savapitech.github.io/R-Type/):
+  architecture, engine and network guides, tutorials, technical study and
+  API reference. Build it locally with `make docs` (requires Doxygen and
+  Graphviz), the result is written to `build/docs/html`.
+- [Network protocol specification](https://savapitech.github.io/R-Type/protocol.html):
+  every packet and message exchanged between clients and the server.
 - [Issue tracker](https://github.com/Savapitech/R-Type/issues): bug reports
   and feature requests.
 - [Pull requests](https://github.com/Savapitech/R-Type/pulls): ongoing work.
