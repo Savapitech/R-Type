@@ -207,11 +207,11 @@ distinct ship color.
 
 ## Documentation and useful links
 
-- [Developer documentation](https://savapitech.github.io/R-Type/):
+- [Developer documentation](https://r-type.savalet.dev/):
   architecture, engine and network guides, tutorials, technical study and
   API reference. Build it locally with `make docs` (requires Doxygen and
   Graphviz), the result is written to `build/docs/html`.
-- [Network protocol specification](https://savapitech.github.io/R-Type/protocol.html):
+- [Network protocol specification](https://r-type.savalet.dev/protocol.html):
   every packet and message exchanged between clients and the server.
 - [Issue tracker](https://github.com/Savapitech/R-Type/issues): bug reports
   and feature requests.
