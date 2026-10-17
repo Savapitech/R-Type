@@ -5,6 +5,7 @@
 #include "components/AABBCollider.hpp"
 #include "components/Animation.hpp"
 #include "components/Animator.hpp"
+#include "components/AttachedTo.hpp"
 #include "components/Bullet.hpp"
 #include "components/Controllable.hpp"
 #include "components/Dead.hpp"
@@ -14,7 +15,6 @@
 #include "components/SoundRequest.hpp"
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
-#include "systems/AnimatorSystem.hpp"
 
 #include "systems/AnimationSystem.hpp"
 #include "systems/AnimatorSystem.hpp"
@@ -33,6 +33,7 @@
 #include "components/Enemy.hpp"
 #include "components/EnemyEvent.hpp"
 #include "components/NetworkEntity.hpp"
+#include "systems/AttachmentSystem.hpp"
 #include "systems/AudioSystem.hpp"
 #include "systems/BulletSystem.hpp"
 #include "systems/DeadSystem.hpp"
@@ -105,6 +106,8 @@ void Game::loadEntityBluePrint(rtk::EngineContext &context) {
   context._entityFactory.loadBlueprintFromPath(
       "background_fast_stars",
       "assets/descriptionEntity/background_fast_star.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "thruster", "assets/descriptionEntity/thruster.json");
 }
 
 void Game::registerBuilders(rtk::EngineContext &context) {
@@ -185,6 +188,10 @@ void Game::registerBuilders(rtk::EngineContext &context) {
         reg.get_components<rtk::ecs::concepts::SpriteData>().insert_at(entity,
                                                                        sprite);
       });
+  context._entityFactory.registerBuilder("attachedTo",
+                                         component::attachedToFromJson);
+  context._entityFactory.registerBuilder("AttachedTo",
+                                         component::attachedToFromJson);
 }
 
 void Game::registerComponents(rtk::EngineContext &context) {
@@ -202,6 +209,7 @@ void Game::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::animator>();
   context.registry.register_component<rtype::events::EnemyEscapedEvent>();
   context.registry.register_component<component::Parallax>();
+  context.registry.register_component<component::AttachedTo>();
 }
 
 void Game::createBindings() {
@@ -299,6 +307,8 @@ void Game::addSystems(rtk::EngineContext &context) {
       rtk::ecs::Order::Update, std::ref(_adapterAudioManager));
   context.scheduler.add<rtk::systems::AnimatorSystem>(rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::ParallaxSystem>(rtk::ecs::Order::Update);
+  context.scheduler.add<rtk::systems::AttachmentSystem>(
+      rtk::ecs::Order::Update);
 }
 
 bool Game::shouldContinue() const { return !_inputState.closeRequested; }
@@ -340,6 +350,20 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           createPayload.networkId.get());
       _networkEntities[createPayload.networkId.get()] = entity;
 
+      uint32_t type = createPayload.entityType.get();
+      if (type == context._entityFactory.getArchetypeID("player") ||
+          type == context._entityFactory.getArchetypeID("player_red") ||
+          type == context._entityFactory.getArchetypeID("player_green") ||
+          type == context._entityFactory.getArchetypeID("player_blue") ||
+          type == context._entityFactory.getArchetypeID("player_pink")) {
+        std::size_t thrusterEntity = context._entityFactory.createFromBlueprint(
+            context.registry, "thruster");
+        auto *attached =
+            context.registry.get_components<component::AttachedTo>().get(
+                thrusterEntity);
+        if (attached)
+          attached->targetEntity = entity;
+      }
       auto *transform =
           context.registry.get_components<component::Transform>().get(entity);
       if (transform) {
