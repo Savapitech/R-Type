@@ -4,6 +4,8 @@
 ![C++20](https://img.shields.io/badge/C%2B%2B-20-informational.svg)
 ![Platform: Linux, Windows, MacOS](https://img.shields.io/badge/platform-Linux-lightgrey.svg)
 [![CI](https://github.com/Savapitech/R-Type/actions/workflows/ci.yml/badge.svg)](https://github.com/Savapitech/R-Type/actions/workflows/ci.yml)
+[![Documentation](https://github.com/Savapitech/R-Type/actions/workflows/docs.yml/badge.svg)](https://github.com/Savapitech/R-Type/actions/workflows/docs.yml)
+[![Build](https://github.com/Savapitech/R-Type/actions/workflows/build.yml/badge.svg)](https://github.com/Savapitech/R-Type/actions/workflows/build.yml)
 
 A networked, multiplayer remake of the classic horizontal shoot'em up R-Type,
 built in C++20 on top of a custom game engine.
