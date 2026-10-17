@@ -1,3 +1,5 @@
+#include <cstdint>
+
 #include "components/Transform.hpp"
 #include "systems/RenderConcept.hpp"
 
@@ -42,7 +44,7 @@ void IntroScene::onEnter(rtk::EngineContext &context) {
   rtk::ecs::concepts::SpriteData bgSprite{};
   bgSprite.size = {windowSize.x, windowSize.y};
   bgSprite.origin = {0.f, 0.f};
-  bgSprite.textureRect = {0, 0, static_cast<int>(windowSize.x), static_cast<int>(windowSize.y)};
+  bgSprite.textureRect = {0, 0, static_cast<uint16_t>(windowSize.x), static_cast<uint16_t>(windowSize.y)};
   bgSprite.color = {50, 50, 255, 255};
   bgSprite.textureId = _window.loadTexture("assets/entityTexture/Background/withe.jpg").getHandle();
 
