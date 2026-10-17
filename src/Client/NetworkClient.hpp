@@ -2,6 +2,7 @@
 
 #include <array>
 #include <asio.hpp>
+#include <asio/steady_timer.hpp>
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
@@ -74,6 +75,7 @@ private:
   asio::ip::udp::socket _socket;
   asio::ip::udp::endpoint _serverEndpoint;
   asio::ip::udp::endpoint _receiveEndpoint;
+  asio::steady_timer _flushTimer;
   std::thread _networkThread;
   PacketTracker _tracker;
   std::array<std::uint8_t, 2048> _receiveBuffer{};
@@ -93,6 +95,9 @@ private:
                                 protocol::MessageType type,
                                 const std::vector<std::uint8_t> &payload);
   void doSend(std::vector<std::uint8_t> data);
+  void enqueue(std::vector<std::uint8_t> payload, PacketPriority priority);
+  void flush();
+  void startFlushTimer();
   void pushEvent(NetworkEvent event);
 
 public:

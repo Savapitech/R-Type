@@ -11,12 +11,14 @@
 #include "protocol/MessageParser.hpp"
 #include "protocol/PacketHeader.hpp"
 #include "protocol/PacketReader.hpp"
+#include "protocol/SystemMessages.hpp"
 #include "tracking/PacketTracker.hpp"
 
 #include <asio/error.hpp>
 #include <asio/error_code.hpp>
 #include <asio/post.hpp>
 #include <asio/registered_buffer.hpp>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
@@ -25,7 +27,7 @@
 
 namespace rtype::client {
 
-NetworkClient::NetworkClient() : _socket(_ioContext) {}
+NetworkClient::NetworkClient() : _socket(_ioContext), _flushTimer(_ioContext) {}
 
 NetworkClient::~NetworkClient() { stop(); }
 
@@ -47,6 +49,7 @@ bool NetworkClient::connect(const std::string &host, const std::string &port) {
     _running.store(true);
 
     startReceive();
+    startFlushTimer();
 
     _networkThread = std::thread([this]() { _ioContext.run(); });
     return true;
@@ -81,40 +84,31 @@ void NetworkClient::sendInput(std::uint32_t clientTick,
   if (!_running.load() || !_connected.load())
     return;
 
-  asio::post(_ioContext, [this, clientTick, actions]() {
+  PacketWriter writer;
+
+  MessageHeader messageHeader;
+  messageHeader.setType(protocol::toMessageId(protocol::MessageType::Input));
+  messageHeader.size =
+      static_cast<std::uint16_t>(sizeof(rtype::protocol::InputPayload));
+
+  if (!messageHeader.serialize(writer))
+    return;
+
+  asio::post(_ioContext, [this, clientTick, actions,
+                          writer = std::move(writer)]() mutable {
     if (!_running.load() || !_connected.load())
-      return;
-
-    PacketWriter writer;
-
-    PacketHeader packetHeader;
-    packetHeader.connectionId = _connectionId.load();
-    packetHeader.sequence = _tracker.getNextSequence();
-    packetHeader.ack = _tracker.getAck();
-    packetHeader.ackBits = _tracker.getAckBits();
-
-    if (!packetHeader.serialize(writer))
-      return;
-
-    MessageHeader messageHeader;
-    messageHeader.setType(protocol::toMessageId(protocol::MessageType::Input));
-    messageHeader.size =
-        static_cast<std::uint16_t>(sizeof(rtype::protocol::InputPayload));
-
-    if (!messageHeader.serialize(writer))
       return;
 
     rtype::protocol::InputPayload input{
         rtype::protocol::be32(_nextInputSequence),
         rtype::protocol::be32(clientTick), actions};
 
-    if (!rtype::protocol::writePayload(writer, input)) {
+    if (!rtype::protocol::writePayload(writer, input))
       return;
-    }
 
     ++_nextInputSequence;
 
-    doSend(writer.getData());
+    enqueue(writer.getData(), PacketPriority::Unreliable);
   });
 }
 
@@ -122,36 +116,57 @@ void NetworkClient::sendQueryEntity(std::uint32_t networkId) {
   if (!_running.load() || !_connected.load())
     return;
 
-  asio::post(_ioContext, [this, networkId]() {
+  PacketWriter writer;
+
+  MessageHeader messageHeader;
+  messageHeader.setType(
+      protocol::toMessageId(protocol::MessageType::QueryEntity));
+  messageHeader.size =
+      static_cast<std::uint16_t>(sizeof(protocol::QueryEntityPayload));
+
+  if (!messageHeader.serialize(writer))
+    return;
+
+  protocol::QueryEntityPayload payload;
+  payload.networkId = networkId;
+  if (!protocol::writePayload(writer, payload))
+    return;
+
+  asio::post(_ioContext, [this, data = writer.getData()]() mutable {
     if (!_running.load() || !_connected.load())
       return;
+    enqueue(std::move(data), PacketPriority::Reliable);
+  });
+}
 
-    PacketWriter writer;
+void NetworkClient::enqueue(std::vector<std::uint8_t> payload,
+                            PacketPriority priority) {
+  if (_tracker.enqueue(std::move(payload), priority))
+    flush();
+}
 
-    PacketHeader packetHeader;
-    packetHeader.connectionId = _connectionId.load();
-    packetHeader.sequence = _tracker.getNextSequence();
-    packetHeader.ack = _tracker.getAck();
-    packetHeader.ackBits = _tracker.getAckBits();
+void NetworkClient::flush() {
+  if (!_running.load() || !_connected.load())
+    return;
 
-    if (!packetHeader.serialize(writer))
+  for (auto &datagram : _tracker.collectOutgoing(
+           std::chrono::steady_clock::now(), _connectionId.load()))
+    doSend(std::move(datagram));
+}
+
+void NetworkClient::startFlushTimer() {
+  _flushTimer.expires_after(FLUSH_INTERVAL);
+  _flushTimer.async_wait([this](const asio::error_code &error) {
+    if (error || !_running.load())
       return;
 
-    MessageHeader messageHeader;
-    messageHeader.setType(
-        protocol::toMessageId(protocol::MessageType::QueryEntity));
-    messageHeader.size =
-        static_cast<std::uint16_t>(sizeof(protocol::QueryEntityPayload));
-
-    if (!messageHeader.serialize(writer))
-      return;
-
-    protocol::QueryEntityPayload payload;
-    payload.networkId = networkId;
-    if (!protocol::writePayload(writer, payload))
-      return;
-
-    doSend(writer.getData());
+    if (_connected.load() && _tracker.isTimedOut()) {
+      _connected.store(false);
+      pushEvent({.type = NetworkEventType::Disconnected,
+                 .connectionId = _connectionId.load()});
+    }
+    flush();
+    startFlushTimer();
   });
 }
 
@@ -287,11 +302,17 @@ void NetworkClient::handleConnectedPackets(const std::uint8_t *data,
   if (!MessageParser::parse(reader, messages))
     return;
 
-  const PacketReceiveRes result = _tracker.onPacketReceived(header.sequence);
-  if (result == PacketReceiveRes::Dup || result == PacketReceiveRes::TooOld)
+  if (!_tracker.onPacketReceived(header, std::chrono::steady_clock::now()))
     return;
 
   for (auto &message : messages) {
+    if (message.type == systemMessage::Disconnect) {
+      _connected.store(false);
+      pushEvent({.type = NetworkEventType::Disconnected,
+                 .connectionId = header.connectionId});
+      return;
+    }
+
     const auto type = static_cast<protocol::MessageType>(message.type);
 
     switch (type) {
@@ -347,6 +368,7 @@ void NetworkClient::stop() {
 
   asio::post(_ioContext, [this]() {
     asio::error_code ignored;
+    _flushTimer.cancel();
     _socket.cancel(ignored);
     _socket.close(ignored);
   });
