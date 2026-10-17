@@ -17,10 +17,19 @@ foreach(CONFIG_NAME DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 endforeach()
 
+if(MSVC AND VCPKG_TARGET_TRIPLET MATCHES "static")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 set(CMAKE_MACOSX_RPATH TRUE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 
-find_package(Vulkan REQUIRED)
+option(RTYPE_BUILD_CLIENT "Build the client (needs Vulkan and GraphicLib)" ON)
+option(RTYPE_EMBEDDED "Also fetch what the embedded client needs (static GraphicLib)" OFF)
+
+if(RTYPE_BUILD_CLIENT)
+    find_package(Vulkan REQUIRED)
+endif()
 
 #load fetchContent module
 include(FetchContent)
@@ -33,52 +42,67 @@ if(WIN32)
   )
 endif()
 
-#set all the url and the bin name
-if(WIN32)
-    set(GRAPHIC_URL "https://github.com/rtk-lib/graphical/releases/latest/download/rtk_graphical-windows.zip")
-    set(GRAPHIC_BIN_NAME "bin/rtk_graphical.dll")
-    set(GRAPHIC_IMPLIB_NAME "lib/rtk_graphical.lib")
-elseif(APPLE)
-    set(GRAPHIC_URL "https://github.com/rtk-lib/graphical/releases/latest/download/rtk_graphical-macos.tar.gz")
-    set(GRAPHIC_BIN_NAME "lib/librtk_graphical.dylib")
-elseif(UNIX AND NOT APPLE)
-    set(GRAPHIC_URL "https://github.com/rtk-lib/graphical/releases/latest/download/rtk_graphical-linux.tar.gz")
-    set(GRAPHIC_BIN_NAME "lib/librtk_graphical.so")
-endif()
+if(RTYPE_BUILD_CLIENT)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|ARM64|aarch64)$")
+        set(GRAPHIC_ARCH "arm64")
+    else()
+        set(GRAPHIC_ARCH "x86_64")
+    endif()
 
-#declare a fetch toward the graphical lib
-FetchContent_Declare(
-    GraphicLib
-    URL ${GRAPHIC_URL}
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/External/GraphicLib
-)
+    set(GRAPHIC_URL_BASE "https://github.com/rtk-lib/graphical/releases/latest/download" CACHE STRING "Where the prebuilt graphical lib are downloaded from")
+    if(WIN32)
+        set(GRAPHIC_PLATFORM "windows-${GRAPHIC_ARCH}")
+        set(GRAPHIC_ARCHIVE_EXT "zip")
+        set(GRAPHIC_BIN_NAME "bin/rtk_graphical.dll")
+        set(GRAPHIC_IMPLIB_NAME "lib/rtk_graphical.lib")
+        set(GRAPHIC_STATIC_NAME "lib/rtk_graphical_static.lib")
+    elseif(APPLE)
+        set(GRAPHIC_PLATFORM "macos-${GRAPHIC_ARCH}")
+        set(GRAPHIC_ARCHIVE_EXT "tar.gz")
+        set(GRAPHIC_BIN_NAME "lib/librtk_graphical.dylib")
+        set(GRAPHIC_STATIC_NAME "lib/librtk_graphical.a")
+    elseif(UNIX AND NOT APPLE)
+        set(GRAPHIC_PLATFORM "linux-${GRAPHIC_ARCH}")
+        set(GRAPHIC_ARCHIVE_EXT "tar.gz")
+        set(GRAPHIC_BIN_NAME "lib/librtk_graphical.so")
+        set(GRAPHIC_STATIC_NAME "lib/librtk_graphical.a")
+    endif()
+    set(GRAPHIC_URL "${GRAPHIC_URL_BASE}/rtk_graphical-${GRAPHIC_PLATFORM}.${GRAPHIC_ARCHIVE_EXT}")
+    set(GRAPHIC_STATIC_URL "${GRAPHIC_URL_BASE}/rtk_graphical-${GRAPHIC_PLATFORM}-static.${GRAPHIC_ARCHIVE_EXT}")
 
-#Get variable defined by the FetchContent_Declare
-FetchContent_GetProperties(GraphicLib)
-
-#check if the lib is already dowload
-if(NOT graphiclib_POPULATED)
-    FetchContent_Populate(GraphicLib)
-endif()
-
-#add dynamic lib
-add_library(GraphicLib SHARED IMPORTED)
-
-if(WIN32)
-    set_target_properties(GraphicLib PROPERTIES
-        IMPORTED_IMPLIB "${graphiclib_SOURCE_DIR}/${GRAPHIC_IMPLIB_NAME}"
+    FetchContent_Declare(
+        GraphicLib
+        URL ${GRAPHIC_URL}
+        SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/External/GraphicLib
     )
-endif()
 
-set_target_properties(GraphicLib PROPERTIES
-     IMPORTED_LOCATION "${graphiclib_SOURCE_DIR}/${GRAPHIC_BIN_NAME}"
-    INTERFACE_INCLUDE_DIRECTORIES "${graphiclib_SOURCE_DIR}/include"
-)
+    #Get variable defined by the FetchContent_Declare
+    FetchContent_GetProperties(GraphicLib)
 
-# Only add the vcpkg include path when vcpkg is actually used
-if(DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
-    set_property(TARGET GraphicLib APPEND PROPERTY
-        INTERFACE_INCLUDE_DIRECTORIES "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include")
+    #check if the lib is already dowload
+    if(NOT graphiclib_POPULATED)
+        FetchContent_Populate(GraphicLib)
+    endif()
+
+    #add dynamic lib
+    add_library(GraphicLib SHARED IMPORTED)
+
+    if(WIN32)
+        set_target_properties(GraphicLib PROPERTIES
+            IMPORTED_IMPLIB "${graphiclib_SOURCE_DIR}/${GRAPHIC_IMPLIB_NAME}"
+        )
+    endif()
+
+    set_target_properties(GraphicLib PROPERTIES
+         IMPORTED_LOCATION "${graphiclib_SOURCE_DIR}/${GRAPHIC_BIN_NAME}"
+        INTERFACE_INCLUDE_DIRECTORIES "${graphiclib_SOURCE_DIR}/include"
+    )
+
+    # Only add the vcpkg include path when vcpkg is actually used
+    if(DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
+        set_property(TARGET GraphicLib APPEND PROPERTY
+            INTERFACE_INCLUDE_DIRECTORIES "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include")
+    endif()
 endif()
 
 
@@ -150,6 +174,12 @@ target_link_libraries(Network
 
 #JSON LOADER
 find_package(nlohmann_json CONFIG REQUIRED)
+
+#Resources: reads assets from disk (dev builds)
+add_library(Resources STATIC src/Common/Resources/Resources.cpp)
+target_include_directories(Resources PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/Common")
+target_link_libraries(Resources PUBLIC nlohmann_json::nlohmann_json)
+
 #NetworkClient
 add_library(NetworkClientLib STATIC
     src/Client/NetworkClient.cpp
@@ -180,21 +210,23 @@ add_library(CommonProtocole INTERFACE)
 target_include_directories(CommonProtocole  INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/Common/)
 target_link_libraries(CommonProtocole INTERFACE Network)
 
-#CLIENT
-file(GLOB_RECURSE CLIENT_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Client/*.cpp")
-list(REMOVE_ITEM CLIENT_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/Client/NetworkClient.cpp"
-)
-add_executable(r-type_client ${CLIENT_SOURCES})
-target_include_directories(r-type_client PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/Client")
-
-target_link_libraries(r-type_client PRIVATE GraphicLib ECSLib GameEngine Vulkan::Vulkan Network CommonProtocole  NetworkClientLib)
-
-if (APPLE)
-    get_filename_component(VULKAN_LIB_DIR "${Vulkan_LIBRARY}" DIRECTORY)
-    set_property(TARGET r-type_client APPEND PROPERTY
-        BUILD_RPATH "${graphiclib_SOURCE_DIR}/lib" "${VULKAN_LIB_DIR}"
+if(RTYPE_BUILD_CLIENT)
+    #CLIENT
+    file(GLOB_RECURSE CLIENT_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Client/*.cpp")
+    list(REMOVE_ITEM CLIENT_SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/Client/NetworkClient.cpp"
     )
+    add_executable(r-type_client ${CLIENT_SOURCES})
+    target_include_directories(r-type_client PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/Client")
+
+    target_link_libraries(r-type_client PRIVATE GraphicLib ECSLib GameEngine Vulkan::Vulkan Network CommonProtocole  NetworkClientLib Resources)
+
+    if (APPLE)
+        get_filename_component(VULKAN_LIB_DIR "${Vulkan_LIBRARY}" DIRECTORY)
+        set_property(TARGET r-type_client APPEND PROPERTY
+            BUILD_RPATH "${graphiclib_SOURCE_DIR}/lib" "${VULKAN_LIB_DIR}"
+        )
+    endif()
 endif()
 
 #SERVER
@@ -203,9 +235,80 @@ file(GLOB_RECURSE SERVER_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/
 add_executable(r-type_server ${SERVER_SOURCES})
 target_include_directories(r-type_server PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/Server")
 
-target_link_libraries(r-type_server PRIVATE ECSLib GameEngine Network CommonProtocole)
+target_link_libraries(r-type_server PRIVATE ECSLib GameEngine Network CommonProtocole Resources)
 
-if(WIN32)
+#EMBEDDED: same sources, but assets are linked in the binary
+set(EMBEDDED_ASSETS_CPP ${CMAKE_BINARY_DIR}/generated/EmbeddedAssets.cpp)
+file(GLOB_RECURSE EMBEDDED_ASSET_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/assets/*")
+
+add_custom_command(
+    OUTPUT ${EMBEDDED_ASSETS_CPP}
+    COMMAND ${CMAKE_COMMAND}
+        -DROOT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DASSETS_DIR=assets
+        -DOUTPUT=${EMBEDDED_ASSETS_CPP}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedAssets.cmake
+    DEPENDS ${EMBEDDED_ASSET_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedAssets.cmake
+    COMMENT "Embedding assets"
+)
+
+add_library(ResourcesEmbedded STATIC
+    src/Common/Resources/Resources.cpp
+    ${EMBEDDED_ASSETS_CPP}
+)
+target_include_directories(ResourcesEmbedded PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/Common")
+target_compile_definitions(ResourcesEmbedded PUBLIC RTYPE_EMBED_ASSETS)
+target_link_libraries(ResourcesEmbedded PUBLIC nlohmann_json::nlohmann_json)
+
+# the C++ runtime is linked statically too, so nothing but system libs is needed
+function(rtype_static_runtime target)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+        target_link_options(${target} PRIVATE -static-libstdc++ -static-libgcc)
+    endif()
+endfunction()
+
+add_executable(r-type_server_embedded EXCLUDE_FROM_ALL ${SERVER_SOURCES})
+target_include_directories(r-type_server_embedded PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/Server")
+target_link_libraries(r-type_server_embedded PRIVATE ECSLib GameEngine Network CommonProtocole ResourcesEmbedded)
+rtype_static_runtime(r-type_server_embedded)
+
+if(RTYPE_BUILD_CLIENT AND RTYPE_EMBEDDED)
+    # the static build of the graphical lib, it does not carry its system deps
+    FetchContent_Declare(
+        GraphicLibStatic
+        URL ${GRAPHIC_STATIC_URL}
+        SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/External/GraphicLibStatic
+    )
+    FetchContent_GetProperties(GraphicLibStatic)
+    if(NOT graphiclibstatic_POPULATED)
+        FetchContent_Populate(GraphicLibStatic)
+    endif()
+
+    add_library(GraphicLibStatic STATIC IMPORTED)
+    set_target_properties(GraphicLibStatic PROPERTIES
+        IMPORTED_LOCATION "${graphiclibstatic_SOURCE_DIR}/${GRAPHIC_STATIC_NAME}"
+        INTERFACE_INCLUDE_DIRECTORIES "${graphiclibstatic_SOURCE_DIR}/include"
+    )
+    if(DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
+        set_property(TARGET GraphicLibStatic APPEND PROPERTY
+            INTERFACE_INCLUDE_DIRECTORIES "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include")
+    endif()
+    if(APPLE)
+        set_property(TARGET GraphicLibStatic APPEND PROPERTY INTERFACE_LINK_LIBRARIES
+            "-framework Cocoa" "-framework QuartzCore" "-framework CoreGraphics" "-framework Metal" "-framework GameController")
+    elseif(WIN32)
+        set_property(TARGET GraphicLibStatic APPEND PROPERTY INTERFACE_LINK_LIBRARIES user32 gdi32 xinput)
+    else()
+        find_package(X11 REQUIRED)
+        set_property(TARGET GraphicLibStatic APPEND PROPERTY INTERFACE_LINK_LIBRARIES X11::X11)
+    endif()
+
+    add_executable(r-type_client_embedded EXCLUDE_FROM_ALL ${CLIENT_SOURCES})
+    target_include_directories(r-type_client_embedded PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/Client")
+    target_link_libraries(r-type_client_embedded PRIVATE GraphicLibStatic ECSLib GameEngine Vulkan::Vulkan Network CommonProtocole NetworkClientLib ResourcesEmbedded)
+    rtype_static_runtime(r-type_client_embedded)
+endif()
+
+if(WIN32 AND RTYPE_BUILD_CLIENT)
     foreach(TARGET_NAME r-type_client r-type_server)
         add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different

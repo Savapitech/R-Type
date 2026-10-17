@@ -1,0 +1,99 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: ${{ matrix.target }} / ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [ server, client ]
+        include:
+          - { name: linux-x86_64,   os: ubuntu-24.04 }
+          - { name: linux-arm64,    os: ubuntu-24.04-arm }
+          - { name: macos-arm64,    os: macos-15 }
+          - { name: macos-x86_64,   os: macos-15-intel }
+          - { name: windows-x86_64, os: windows-2025, ext: .exe, triplet: x64-windows-static }
+
+    env:
+      EMBED_TRIPLET: ${{ matrix.triplet }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install system dependencies (Linux client)
+        if: runner.os == 'Linux' && matrix.target == 'client'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libvulkan-dev libx11-dev libxrandr-dev libxcursor-dev libxi-dev libxinerama-dev libwayland-dev libxkbcommon-dev
+
+      - name: Install system dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install ninja
+          if [ "${{ matrix.target }}" = "client" ]; then
+            brew install vulkan-headers vulkan-loader molten-vk
+          fi
+
+      - name: Install Vulkan SDK (Windows client)
+        if: runner.os == 'Windows' && matrix.target == 'client'
+        uses: jakoch/install-vulkan-sdk-action@v1
+
+      - name: Install make (Windows)
+        if: runner.os == 'Windows'
+        run: choco install make -y --no-progress
+
+      - name: Setup vcpkg (with GitHub Actions binary cache)
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgJsonGlob: vcpkg.json
+
+      - name: Build ${{ matrix.target }}
+        shell: bash
+        run: make ${{ matrix.target }}_embedded
+
+      - name: Collect the binary
+        shell: bash
+        run: |
+          mkdir dist
+          cp "bin/r-type_${{ matrix.target }}_embedded${{ matrix.ext }}" \
+             "dist/r-type_${{ matrix.target }}-${{ matrix.name }}${{ matrix.ext }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: r-type_${{ matrix.target }}-${{ matrix.name }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
