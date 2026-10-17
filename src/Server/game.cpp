@@ -7,7 +7,6 @@
 #include "NetworkIdGenerator.hpp"
 
 #include "EngineContext.hpp"
-#include "Resources/Resources.hpp"
 #include "Protocol/EntityPayload.hpp"
 #include "Protocol/SnapshotPayload.hpp"
 #include "components/AABBCollider.hpp"
@@ -106,31 +105,31 @@ void Game::registerBuilders(rtk::EngineContext &context) {
 }
 
 void Game::loadEntityBlueprints(rtk::EngineContext &context) {
-  _playerArchetypes[0] = rtype::res::loadBlueprint(context._entityFactory,
+  _playerArchetypes[0] = context._entityFactory.loadBlueprintFromPath(
       "player_blue", "assets/descriptionEntity/player_blue.json");
-  _playerArchetypes[1] = rtype::res::loadBlueprint(context._entityFactory,
+  _playerArchetypes[1] = context._entityFactory.loadBlueprintFromPath(
       "player_green", "assets/descriptionEntity/player_green.json");
-  _playerArchetypes[2] = rtype::res::loadBlueprint(context._entityFactory,
+  _playerArchetypes[2] = context._entityFactory.loadBlueprintFromPath(
       "player_pink", "assets/descriptionEntity/player_pink.json");
-  _playerArchetypes[3] = rtype::res::loadBlueprint(context._entityFactory,
+  _playerArchetypes[3] = context._entityFactory.loadBlueprintFromPath(
       "player_red", "assets/descriptionEntity/player_red.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "player", "assets/descriptionEntity/player.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "bullet", "assets/descriptionEntity/bullet.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "enemyBidos", "assets/descriptionEntity/enemyBidos.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "gate", "assets/descriptionEntity/gate.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "ramp", "assets/descriptionEntity/ramp.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "reactor", "assets/descriptionEntity/reactor.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "high_ground", "assets/descriptionEntity/high_ground.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "low_ground", "assets/descriptionEntity/low_ground.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "medium_ground", "assets/descriptionEntity/medium_ground.json");
   rtype::res::loadBlueprint(context._entityFactory,
     "enemy_bullet", "assets/descriptionEntity/enemy_bullet.json");

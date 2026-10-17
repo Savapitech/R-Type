@@ -178,7 +178,6 @@ find_package(nlohmann_json CONFIG REQUIRED)
 #Resources: reads assets from disk (dev builds)
 add_library(Resources STATIC src/Common/Resources/Resources.cpp)
 target_include_directories(Resources PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/Common")
-target_link_libraries(Resources PUBLIC nlohmann_json::nlohmann_json)
 
 #NetworkClient
 add_library(NetworkClientLib STATIC
@@ -257,7 +256,6 @@ add_library(ResourcesEmbedded STATIC
 )
 target_include_directories(ResourcesEmbedded PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/Common")
 target_compile_definitions(ResourcesEmbedded PUBLIC RTYPE_EMBED_ASSETS)
-target_link_libraries(ResourcesEmbedded PUBLIC nlohmann_json::nlohmann_json)
 
 # the C++ runtime is linked statically too, so nothing but system libs is needed
 function(rtype_static_runtime target)

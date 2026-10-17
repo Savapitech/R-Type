@@ -1,12 +1,6 @@
 #include "game.hpp"
 
-#ifdef RTYPE_EMBED_ASSETS
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-#endif
-
 #include "EngineContext.hpp"
-#include "Resources/Resources.hpp"
 #include "NetworkClient.hpp"
 #include "components/AABBCollider.hpp"
 #include "components/Animation.hpp"
@@ -53,7 +47,6 @@
 #include "Protocol/SnapshotPayload.hpp"
 #include "factoryDataDriven/factoryDataDriven.hpp"
 
-#include <stdexcept>
 #include <type_traits>
 #include <variant>
 
@@ -73,7 +66,7 @@ void Game::onLoad(rtk::EngineContext &context) {
 
   _networkClient.connect("127.0.0.1", "4242");
 
-  uint32_t shootSoundId = _adapterAudioManager.addSound(rtype::res::materialize("assets/shoot.wav"));
+  uint32_t shootSoundId = _adapterAudioManager.addSound("assets/shoot.wav");
 
   subscribeEvents(context, shootSoundId);
   addSystems(context);
@@ -81,63 +74,36 @@ void Game::onLoad(rtk::EngineContext &context) {
   _sceneManager.start(context);
 }
 
-rtk::Texture Game::loadTexture(const std::string &path) {
-  const auto cached = _textures.find(path);
-
-  if (cached != _textures.end())
-    return cached->second;
-#ifdef RTYPE_EMBED_ASSETS
-  const auto file = rtype::res::read(path);
-  int width = 0;
-  int height = 0;
-  int channels = 0;
-  stbi_uc *pixels =
-      stbi_load_from_memory(file.data(), static_cast<int>(file.size()), &width,
-                            &height, &channels, STBI_rgb_alpha);
-
-  if (!pixels)
-    throw std::runtime_error("Failed to decode texture: " + path);
-  const auto texture = _window.loadTextureFromMemory(
-      {pixels, static_cast<std::size_t>(width) * height * 4},
-      static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-  stbi_image_free(pixels);
-#else
-  const auto texture = _window.loadTexture(path.c_str());
-#endif
-  _textures.emplace(path, texture);
-  return texture;
-}
-
 void Game::loadEntityBluePrint(rtk::EngineContext &context) {
-  _playerArchetypes[0] = rtype::res::loadBlueprint(context._entityFactory,
+  _playerArchetypes[0] = context._entityFactory.loadBlueprintFromPath(
       "player_blue", "assets/descriptionEntity/player_blue.json");
-  _playerArchetypes[1] = rtype::res::loadBlueprint(context._entityFactory,
+  _playerArchetypes[1] = context._entityFactory.loadBlueprintFromPath(
       "player_green", "assets/descriptionEntity/player_green.json");
-  _playerArchetypes[2] = rtype::res::loadBlueprint(context._entityFactory,
+  _playerArchetypes[2] = context._entityFactory.loadBlueprintFromPath(
       "player_pink", "assets/descriptionEntity/player_pink.json");
-  _playerArchetypes[3] = rtype::res::loadBlueprint(context._entityFactory,
+  _playerArchetypes[3] = context._entityFactory.loadBlueprintFromPath(
       "player_red", "assets/descriptionEntity/player_red.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "player", "assets/descriptionEntity/player.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "gate", "assets/descriptionEntity/gate.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "ramp", "assets/descriptionEntity/ramp.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "reactor", "assets/descriptionEntity/reactor.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "high_ground", "assets/descriptionEntity/high_ground.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "low_ground", "assets/descriptionEntity/low_ground.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "medium_ground", "assets/descriptionEntity/medium_ground.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "bullet", "assets/descriptionEntity/bullet.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "enemyBidos", "assets/descriptionEntity/enemyBidos.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "background_stars", "assets/descriptionEntity/background_star.json");
-  rtype::res::loadBlueprint(context._entityFactory,
+  context._entityFactory.loadBlueprintFromPath(
       "background_fast_stars",
       "assets/descriptionEntity/background_fast_star.json");
   context._entityFactory.loadBlueprintFromPath(
@@ -208,7 +174,7 @@ void Game::registerBuilders(rtk::EngineContext &context) {
         rtk::ecs::concepts::SpriteData sprite{};
         const std::string texPath = data.value("texture", "default.png");
 
-        sprite.textureId = loadTexture(texPath).getHandle();
+        sprite.textureId = _window.loadTexture(texPath.data()).getHandle();
         sprite.size = {data["size"].value("w", 0.f),
                        data["size"].value("h", 0.f)};
         sprite.origin = {data["origin"].value("x", 0.f),

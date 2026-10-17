@@ -88,7 +88,6 @@ private:
   void subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId);
   void addSystems(rtk::EngineContext &context);
   void loadEntityBluePrint(rtk::EngineContext &context);
-  rtk::Texture loadTexture(const std::string &path);
   void handleReplication(rtk::EngineContext &context);
   void createReplicatedEntity(rtk::EngineContext &context,
                               const protocol::CreateEntityPayload &payload);
@@ -100,7 +99,6 @@ private:
   std::unordered_map<protocol::NetworkEntityId, std::size_t> _networkEntities;
   std::unordered_set<std::uint32_t> _pendingEntityQueries;
   std::unordered_set<std::uint32_t> _destroyedEntities;
-  std::unordered_map<std::string, rtk::Texture> _textures;
   std::array<std::uint16_t, 4> _playerArchetypes{};
   std::uint32_t _lastServerTick = 0;
   rtk::RenderWindow _window;

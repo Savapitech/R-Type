@@ -10,10 +10,12 @@
 #include "systems/InputSystem.hpp"
 #include "systems/RenderSystem.hpp"
 
+#include "Resources/Resources.hpp"
 #include "game.hpp"
 
 int main() {
   try {
+    rtype::res::mount();
     rtype::client::Game game;
     rtk::GameEngine engine;
 

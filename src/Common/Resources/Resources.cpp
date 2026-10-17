@@ -1,73 +1,55 @@
 #include "Resources.hpp"
 
+#ifdef RTYPE_EMBED_ASSETS
+
 #include <filesystem>
 #include <fstream>
-#include <iterator>
-#include <map>
-#include <mutex>
 #include <stdexcept>
-#include <vector>
+#include <string>
 
 namespace rtype::res {
 
-#ifdef RTYPE_EMBED_ASSETS
+void mount() {
+  namespace fs = std::filesystem;
+  const fs::path root =
+      fs::temp_directory_path() / ("rtype-" + std::string(embeddedBuildId()));
+  std::error_code error;
 
-std::span<const std::uint8_t> read(const std::string &path) {
-  std::span<const std::uint8_t> data;
+  for (const auto &asset : embeddedAssets()) {
+    const fs::path target = root / asset.path;
 
-  if (!embeddedLookup(path, data))
-    throw std::runtime_error("Unknown embedded resource: " + path);
-  return data;
-}
+    if (fs::exists(target, error) && fs::file_size(target, error) == asset.size)
+      continue;
+    fs::create_directories(target.parent_path(), error);
 
-std::string materialize(const std::string &path) {
-  static std::mutex mutex;
-  const auto target = std::filesystem::temp_directory_path() / "rtype" / path;
-  const auto data = read(path);
-
-  std::lock_guard lock(mutex);
-  if (!std::filesystem::exists(target) ||
-      std::filesystem::file_size(target) != data.size()) {
-    std::filesystem::create_directories(target.parent_path());
-    std::ofstream file(target, std::ios::binary | std::ios::trunc);
-    file.write(reinterpret_cast<const char *>(data.data()),
-               static_cast<std::streamsize>(data.size()));
-    if (!file)
-      throw std::runtime_error("Failed to extract resource: " + path);
+    fs::path partial = target;
+    partial += ".part";
+    {
+      std::ofstream file(partial, std::ios::binary | std::ios::trunc);
+      file.write(reinterpret_cast<const char *>(asset.data),
+                 static_cast<std::streamsize>(asset.size));
+      if (!file)
+        throw std::runtime_error("Failed to extract asset: " +
+                                 std::string(asset.path));
+    }
+    fs::rename(partial, target, error);
+    if (error)
+      throw std::runtime_error("Failed to extract asset: " +
+                               std::string(asset.path));
   }
-  return target.string();
-}
-
-#else
-
-std::span<const std::uint8_t> read(const std::string &path) {
-  static std::mutex mutex;
-  static std::map<std::string, std::vector<std::uint8_t>> cache;
-
-  std::lock_guard lock(mutex);
-  auto it = cache.find(path);
-  if (it == cache.end()) {
-    std::ifstream file(path, std::ios::binary);
-    if (!file.is_open())
-      throw std::runtime_error("Failed to open resource: " + path);
-    it = cache
-             .emplace(path, std::vector<std::uint8_t>(
-                                std::istreambuf_iterator<char>(file), {}))
-             .first;
-  }
-  return it->second;
-}
-
-std::string materialize(const std::string &path) {
-  return path;
-}
-
-#endif
-
-nlohmann::json readJson(const std::string &path) {
-  const auto data = read(path);
-
-  return nlohmann::json::parse(data.begin(), data.end());
+  fs::current_path(root, error);
+  if (error)
+    throw std::runtime_error("Failed to enter " + root.string());
 }
 
 } // namespace rtype::res
+
+#else
+
+namespace rtype::res {
+
+void mount() {}
+
+} // namespace rtype::res
+
+#endif

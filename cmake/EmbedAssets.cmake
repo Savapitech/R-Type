@@ -7,7 +7,10 @@ string(APPEND CONTENT "#include <cstring>\n\nnamespace {\n\n")
 
 set(TABLE "")
 set(INDEX 0)
+set(HASHES "")
 foreach(ASSET ${ASSET_FILES})
+    file(MD5 "${ROOT_DIR}/${ASSET}" ASSET_HASH)
+    string(APPEND HASHES "${ASSET}:${ASSET_HASH};")
     file(READ "${ROOT_DIR}/${ASSET}" HEX_DATA HEX)
     string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," HEX_DATA "${HEX_DATA}")
     string(APPEND CONTENT "const unsigned char asset${INDEX}[] = {${HEX_DATA}0};\n")
@@ -15,29 +18,22 @@ foreach(ASSET ${ASSET_FILES})
     math(EXPR INDEX "${INDEX} + 1")
 endforeach()
 
-string(APPEND CONTENT "
-struct Entry {
-  const char *path;
-  const unsigned char *data;
-  std::size_t size;
-};
+string(MD5 BUILD_ID "${HASHES}")
 
-const Entry entries[] = {
-${TABLE}    {nullptr, nullptr, 0},
-};
+string(APPEND CONTENT "
+const rtype::res::EmbeddedAsset entries[] = {
+${TABLE}};
 
 } // namespace
 
 namespace rtype::res {
 
-bool embeddedLookup(std::string_view path, std::span<const std::uint8_t> &out) {
-  for (const Entry *entry = entries; entry->path; ++entry) {
-    if (path == entry->path) {
-      out = {entry->data, entry->size};
-      return true;
-    }
-  }
-  return false;
+std::span<const EmbeddedAsset> embeddedAssets() {
+  return entries;
+}
+
+std::string_view embeddedBuildId() {
+  return \"${BUILD_ID}\";
 }
 
 } // namespace rtype::res
