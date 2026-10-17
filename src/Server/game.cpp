@@ -131,8 +131,8 @@ void Game::loadEntityBlueprints(rtk::EngineContext &context) {
       "low_ground", "assets/descriptionEntity/low_ground.json");
   context._entityFactory.loadBlueprintFromPath(
       "medium_ground", "assets/descriptionEntity/medium_ground.json");
-  rtype::res::loadBlueprint(context._entityFactory,
-    "enemy_bullet", "assets/descriptionEntity/enemy_bullet.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "enemy_bullet", "assets/descriptionEntity/enemy_bullet.json");
 }
 
 void Game::subscribeEvents(rtk::EngineContext &context) {
