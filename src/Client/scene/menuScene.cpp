@@ -9,14 +9,14 @@ namespace rtype::client {
 MenuScene::MenuScene(rtk::RenderWindow &window) : _window(window) {}
 
 void MenuScene::onEnter(rtk::EngineContext &context) {
-  _textureId = _window.loadTexture("menu.png").getHandle();
+  _textureId = _window.loadTexture("assets/menu_assets/texture/R-Type_logo.png").getHandle();
 
   const auto entity = context.registry.spawn_entity();
 
   component::Transform transform{};
-  transform.position = {0.f, 0.f};
+  transform.position = {50.f, 50.f};
   transform.rotation = 0.f;
-  transform.scale = {1.f, 1.f};
+  transform.scale = {0.4f, 0.4f};
 
   rtk::ecs::concepts::SpriteData sprite{};
   sprite.size = {1280.f, 720.f};

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <array>
+#include <unordered_set>
+
 #include "GameEngine.hpp"
 #include "collision/collisionBuffer.hpp"
 #include "inputAction/InputAction.hpp"
@@ -7,16 +10,16 @@
 
 #include "factoryDataDriven/factoryDataDriven.hpp"
 #include "sceneManager/sceneManager.hpp"
-#include <array>
-#include <unordered_set>
 
 #include "rtkAudiManagerAdapter.hpp"
 #include "rtkWindowAdapter.hpp"
 
 #include "NetworkClient.hpp"
-#include "scene/gameScene.hpp"
+#include "scene/introScene.hpp"
 #include "scene/menuScene.hpp"
 #include "scene/networkConnectionScene.hpp"
+#include "scene/gameScene.hpp"
+
 
 namespace rtype::events {
 /**
@@ -106,9 +109,11 @@ private:
   rtk::Input::InputMapping _inputMapping;
   rtype::client::NetworkClient _networkClient;
 
-  rtk::SceneManager<SceneType, rtk::RenderWindow, rtk::InputState, MenuScene,
+  rtk::SceneManager<SceneType, rtk::RenderWindow, rtk::InputState, IntroScene, MenuScene,
                     NetworkConnectionScene, GameScene>
       _sceneManager;
+
+  rtk::Font _fontRtype;
 };
 
 /** @} */

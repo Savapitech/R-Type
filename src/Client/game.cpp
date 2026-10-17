@@ -52,13 +52,16 @@
 namespace rtype::client {
 Game::Game()
     : _window({1280.f, 720.f}, "R-Type"), _adapter(_window),
-      _sceneManager(_window, std::in_place_type<MenuScene>) {}
+      _sceneManager(_window, std::in_place_type<IntroScene>) {}
+
 void Game::onLoad(rtk::EngineContext &context) {
   registerComponents(context);
   createBindings();
 
   registerBuilders(context);
   loadEntityBluePrint(context);
+
+  _fontRtype = _window.loadFont("./assets/font/r-type.otf", 1);
 
   _networkClient.connect("127.0.0.1", "4242");
 
