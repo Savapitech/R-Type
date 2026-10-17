@@ -34,7 +34,7 @@ git clone https://github.com/microsoft/vcpkg.git ~/vcpkg
 ~/vcpkg/bootstrap-vcpkg.sh
 export VCPKG_ROOT=~/vcpkg
 
-git clone git@github.com:Savapitech/R-Type.git
+git clone https://github.com/Savapitech/R-Type.git
 cd R-Type
 make
 ```

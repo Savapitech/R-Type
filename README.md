@@ -112,7 +112,7 @@ git clone https://github.com/microsoft/vcpkg.git ~/vcpkg
 export VCPKG_ROOT=~/vcpkg
 
 # 2. Clone and build
-git clone git@github.com:Savapitech/R-Type.git
+git clone https://github.com/Savapitech/R-Type.git
 cd R-Type
 make
 
