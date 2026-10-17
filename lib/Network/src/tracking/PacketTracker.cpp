@@ -78,10 +78,11 @@ bool PacketTracker::enqueue(std::vector<std::uint8_t> payload,
   return true;
 }
 
-std::vector<std::uint8_t> PacketTracker::buildPacket(
-    std::uint32_t connectionId, PacketPriority priority,
-    std::uint16_t reliableId, const std::vector<std::uint8_t> &body,
-    std::uint32_t &sequence) {
+std::vector<std::uint8_t>
+PacketTracker::buildPacket(std::uint32_t connectionId, PacketPriority priority,
+                           std::uint16_t reliableId,
+                           const std::vector<std::uint8_t> &body,
+                           std::uint32_t &sequence) {
   PacketHeader header;
   header.connectionId = connectionId;
   header.sequence = getNextSequence();
@@ -92,15 +93,14 @@ std::vector<std::uint8_t> PacketTracker::buildPacket(
   sequence = header.sequence;
 
   PacketWriter writer;
-  if (!header.serialize(writer) ||
-      !writer.writeBytes(body.data(), body.size()))
+  if (!header.serialize(writer) || !writer.writeBytes(body.data(), body.size()))
     return {};
   return writer.getData();
 }
 
 std::chrono::milliseconds PacketTracker::resendDelay() const {
-  const auto rtt = std::chrono::duration_cast<std::chrono::milliseconds>(
-      _roundTrip * 3 / 2);
+  const auto rtt =
+      std::chrono::duration_cast<std::chrono::milliseconds>(_roundTrip * 3 / 2);
   return std::max(RESEND_TIMEOUT, rtt);
 }
 
@@ -108,8 +108,8 @@ std::vector<std::vector<std::uint8_t>>
 PacketTracker::collectOutgoing(TimePoint now, std::uint32_t connectionId) {
   std::vector<std::vector<std::uint8_t>> out;
 
-  if (CRITICAL_LOSS_DECAY.count() > 0 && _criticalLosses > 0 &&
-      !isTimedOut() && now - _lastLossChange >= CRITICAL_LOSS_DECAY) {
+  if (CRITICAL_LOSS_DECAY.count() > 0 && _criticalLosses > 0 && !isTimedOut() &&
+      now - _lastLossChange >= CRITICAL_LOSS_DECAY) {
     --_criticalLosses;
     _lastLossChange = now;
   }
@@ -171,8 +171,8 @@ PacketTracker::collectOutgoing(TimePoint now, std::uint32_t connectionId) {
       }
 
       std::uint32_t sequence = 0;
-      auto packet = buildPacket(connectionId, priority, reliableId, body,
-                                sequence);
+      auto packet =
+          buildPacket(connectionId, priority, reliableId, body, sequence);
       if (packet.empty())
         continue;
 
@@ -194,8 +194,8 @@ PacketTracker::collectOutgoing(TimePoint now, std::uint32_t connectionId) {
     _ackDue = false;
   } else if (_ackDue && now - _ackDueSince >= ACK_ONLY_DELAY) {
     std::uint32_t sequence = 0;
-    auto packet = buildPacket(connectionId, PacketPriority::Unreliable, 0, {},
-                              sequence);
+    auto packet =
+        buildPacket(connectionId, PacketPriority::Unreliable, 0, {}, sequence);
     if (!packet.empty())
       out.push_back(std::move(packet));
     _ackDue = false;
@@ -209,11 +209,11 @@ void PacketTracker::acknowledge(std::uint32_t ack, std::uint32_t ackBits,
     return;
 
   for (auto it = _pending.begin(); it != _pending.end();) {
-    const bool acked = std::any_of(
-        it->second.sequences.begin(), it->second.sequences.end(),
-        [&](std::uint32_t sequence) {
-          return isPacketinAck(sequence, ack, ackBits);
-        });
+    const bool acked =
+        std::any_of(it->second.sequences.begin(), it->second.sequences.end(),
+                    [&](std::uint32_t sequence) {
+                      return isPacketinAck(sequence, ack, ackBits);
+                    });
     if (!acked) {
       ++it;
       continue;
@@ -222,8 +222,8 @@ void PacketTracker::acknowledge(std::uint32_t ack, std::uint32_t ackBits,
     if (it->second.resends == 0) {
       const auto sample = std::chrono::duration_cast<std::chrono::microseconds>(
           now - it->second.lastSend);
-      _roundTrip = _roundTrip.count() == 0 ? sample
-                                           : (_roundTrip * 7 + sample) / 8;
+      _roundTrip =
+          _roundTrip.count() == 0 ? sample : (_roundTrip * 7 + sample) / 8;
     }
     it = _pending.erase(it);
   }
@@ -238,8 +238,7 @@ bool PacketTracker::markReliableReceived(std::uint16_t reliableId) {
     return true;
   }
 
-  const auto diff =
-      static_cast<std::int16_t>(reliableId - _highestReliable);
+  const auto diff = static_cast<std::int16_t>(reliableId - _highestReliable);
   if (diff > 0) {
     if (static_cast<std::size_t>(diff) >= RELIABLE_WINDOW)
       _reliableSeen.reset();

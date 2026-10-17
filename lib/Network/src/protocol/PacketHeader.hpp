@@ -21,7 +21,8 @@
  * | 8      | 4    | `ack`          | Latest sequence received from the peer.  |
  * | 12     | 4    | `ackBits`      | Bit i set if `ack - 1 - i` was received. |
  * | 16     | 1    | `priority`     | PacketPriority of the packet (0 to 2).   |
- * | 17     | 2    | `reliableId`   | Id kept by every resend, 0 if priority 2. |
+ * | 17     | 2    | `reliableId`   | Id kept by every resend, 0 if priority 2.
+ * |
  */
 struct PacketHeader {
   std::uint32_t connectionId = 0; ///< Connection the packet belongs to.
@@ -30,7 +31,7 @@ struct PacketHeader {
   std::uint32_t ackBits = 0;      ///< Bitfield of the 32 previous sequences.
   /// Delivery guarantee requested for the packet.
   PacketPriority priority = PacketPriority::Unreliable;
-  std::uint16_t reliableId = 0;   ///< Same value on every resend of a packet.
+  std::uint16_t reliableId = 0; ///< Same value on every resend of a packet.
 
   /// Encoded size of the header, in bytes.
   static constexpr std::size_t HEADER_SIZE = 19;
@@ -45,7 +46,8 @@ struct PacketHeader {
   /**
    * @brief Reads the header from a buffer.
    * @param reader Source buffer.
-   * @return True on success, false if fewer than 19 bytes, or if the priority is invalid remain.
+   * @return True on success, false if fewer than 19 bytes, or if the priority
+   * is invalid remain.
    */
   bool deserialize(PacketReader &reader);
 };

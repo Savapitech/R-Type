@@ -94,22 +94,22 @@ void NetworkClient::sendInput(std::uint32_t clientTick,
   if (!messageHeader.serialize(writer))
     return;
 
-  asio::post(_ioContext, [this, clientTick, actions,
-                          writer = std::move(writer)]() mutable {
-    if (!_running.load() || !_connected.load())
-      return;
+  asio::post(_ioContext,
+             [this, clientTick, actions, writer = std::move(writer)]() mutable {
+               if (!_running.load() || !_connected.load())
+                 return;
 
-    rtype::protocol::InputPayload input{
-        rtype::protocol::be32(_nextInputSequence),
-        rtype::protocol::be32(clientTick), actions};
+               rtype::protocol::InputPayload input{
+                   rtype::protocol::be32(_nextInputSequence),
+                   rtype::protocol::be32(clientTick), actions};
 
-    if (!rtype::protocol::writePayload(writer, input))
-      return;
+               if (!rtype::protocol::writePayload(writer, input))
+                 return;
 
-    ++_nextInputSequence;
+               ++_nextInputSequence;
 
-    enqueue(writer.getData(), PacketPriority::Unreliable);
-  });
+               enqueue(writer.getData(), PacketPriority::Unreliable);
+             });
 }
 
 void NetworkClient::sendQueryEntity(std::uint32_t networkId) {
