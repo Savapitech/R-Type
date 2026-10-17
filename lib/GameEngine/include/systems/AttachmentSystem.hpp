@@ -6,9 +6,26 @@
 #include <iostream>
 
 namespace rtk::systems {
+/**
+ * @addtogroup api_engine
+ * @{
+ */
+
+/**
+ * @brief Moves every AttachedTo entity with its target, and kills it once
+ * the target is gone.
+ */
 class AttachmentSystem final : public rtk::ecs::ISystem {
 public:
+  /**
+   * @brief Does nothing.
+   */
   void onStart(rtk::ecs::Registry &) override {}
+
+  /**
+   * @brief Places each attached entity at its target position plus offset.
+   * @param reg Registry holding the entities.
+   */
   void update(rtk::ecs::Registry &reg, float) override {
     auto view = reg.view<component::Transform, component::AttachedTo>();
     auto &transforms = reg.get_components<component::Transform>();
@@ -28,6 +45,11 @@ public:
       }
     }
   }
+  /**
+   * @brief Does nothing.
+   */
   void onStop(rtk::ecs::Registry &) override {}
 };
+
+/** @} */
 } // namespace rtk::systems

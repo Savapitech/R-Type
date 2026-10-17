@@ -11,7 +11,15 @@
 #include <vector>
 
 namespace rtk::systems {
+/**
+ * @addtogroup api_server
+ * @{
+ */
 
+/**
+ * @brief Makes every enemy fire at its own rate, and tell to every players
+ * about each new enemy bullet with CreateEntity
+ */
 class EnemyShootSystem final : public rtk::ecs::ISystem {
 private:
   rtk::factory::EntityFactory &_factory;
@@ -25,13 +33,28 @@ private:
   };
 
 public:
+  /**
+   * @brief Creates the system.
+   * @param factory Factory used to build the `enemy_bullet` blueprint.
+   * @param server Server used to send CreateEntity.
+   * @param players Connected players
+   */
   EnemyShootSystem(rtk::factory::EntityFactory &factory,
                    rtype::server::Server &server,
                    const std::unordered_map<std::uint32_t, std::size_t> &players)
       : _factory(factory), _server(server), _players(players) {}
 
+  /**
+   * @brief Does nothing.
+   */
   void onStart(rtk::ecs::Registry &) override {}
 
+  /**
+   * @brief Counts down each enemy fire timer and spawns a bullet when it
+   * runs out.
+   * @param reg Registry holding the entities.
+   * @param dt Elpsed time since the last frame, in seconds
+   */
   void update(rtk::ecs::Registry &reg, float dt) override {
     _serverTick++;
 
@@ -78,7 +101,11 @@ public:
     }
   }
 
+  /**
+   * @brief Does nothing.
+   */
   void onStop(rtk::ecs::Registry &) override {}
 };
 
+/** @} */
 } // namespace rtk::systems

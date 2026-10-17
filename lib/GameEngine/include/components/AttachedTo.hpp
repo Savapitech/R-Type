@@ -4,12 +4,27 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 namespace component {
+/**
+ * @addtogroup api_engine
+ * @{
+ */
 
+/**
+ * @brief Keeps an entity at a fixed offs.
+ */
 struct AttachedTo {
-  std::size_t targetEntity{0};
-  float offsetX{0.0f};
-  float offsetY{0.0f};
+  std::size_t targetEntity{0}; ///< Entity followed.
+  float offsetX{0.0f};         ///< Horizontal offset from the target.
+  float offsetY{0.0f};         ///< Vertical offset from the target.
 };
+
+/**
+ * @brief Add an AttachedTo to an entity from its blueprint data.
+ * @param reg Registry owning the entity.
+ * @param entity Target entity.
+ * @param data JSON object with optional `targetEntity`, `offsetX` and
+ * `offsetY` fields.
+ */
 
 inline void attachedToFromJson(rtk::ecs::Registry &reg, std::size_t entity,
                                const nlohmann::json &data) {
@@ -22,4 +37,6 @@ inline void attachedToFromJson(rtk::ecs::Registry &reg, std::size_t entity,
 
   reg.get_components<component::AttachedTo>().insert_at(entity, attached);
 }
+
+/** @} */
 } // namespace component
