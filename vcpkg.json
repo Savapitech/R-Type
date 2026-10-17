@@ -7,16 +7,22 @@
     "miniaudio",
     "stb",
     "vulkan-headers",
-    "asio",
-    "nlohmann-json",
-    {
-      "name": "vulkan-loader",
-      "platform": "linux",
-      "features": ["xlib", "xcb", "wayland"]
-    },
-    {
-      "name": "vulkan-loader",
-      "platform": "windows"
+    "nlohmann-json"
+  ],
+  "features": {
+    "client": {
+      "description": "Vulkan loader for the client (needs X11/xcb/wayland headers on Linux)",
+      "dependencies": [
+        {
+          "name": "vulkan-loader",
+          "platform": "linux",
+          "features": ["xlib", "xcb", "wayland"]
+        },
+        {
+          "name": "vulkan-loader",
+          "platform": "windows"
+        }
+      ]
     }
-  ]
+  }
 }

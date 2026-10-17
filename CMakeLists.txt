@@ -1,5 +1,11 @@
     cmake_minimum_required(VERSION 3.20)
 
+option(RTYPE_BUILD_CLIENT "Build the client (needs Vulkan and GraphicLib)" ON)
+
+if(RTYPE_BUILD_CLIENT)
+    list(APPEND VCPKG_MANIFEST_FEATURES "client")
+endif()
+
 project(R-Type VERSION 0.1 LANGUAGES CXX)
 #force CMP0135 new force a timestamps on fetch
 cmake_policy(SET CMP0135 NEW)
@@ -24,7 +30,6 @@ endif()
 set(CMAKE_MACOSX_RPATH TRUE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 
-option(RTYPE_BUILD_CLIENT "Build the client (needs Vulkan and GraphicLib)" ON)
 option(RTYPE_EMBEDDED "Also fetch what the embedded client needs (static GraphicLib)" OFF)
 
 if(RTYPE_BUILD_CLIENT)
