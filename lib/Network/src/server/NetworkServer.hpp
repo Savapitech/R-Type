@@ -6,6 +6,7 @@
  */
 
 #include <asio/io_context.hpp>
+#include <asio/steady_timer.hpp>
 #include <atomic>
 #include <cstdint>
 #include <functional>
@@ -61,9 +62,12 @@ public:
    * @brief Sends messages to a client inside a new connected packet.
    * @param connectionId Destination connection.
    * @param payload Encoded messages, headers included.
+   * @param priority Delivery guarantee, Critical packets are sent first and
+   * resent until acknowledged.
    */
   void send(std::uint32_t connectionId,
-            const std::vector<std::uint8_t> &payload);
+            const std::vector<std::uint8_t> &payload,
+            PacketPriority priority = PacketPriority::Unreliable);
 
   /**
    * @brief Sets the function called after a successful handshake.
@@ -93,13 +97,17 @@ private:
                       const std::vector<std::uint8_t> &data);
   void sendWelcome(Connection &connection);
   void doSend(std::uint32_t connectionId,
-              const std::vector<std::uint8_t> &payload);
+              const std::vector<std::uint8_t> &payload,
+              PacketPriority priority = PacketPriority::Unreliable);
+  void flush(std::uint32_t connectionId);
+  void startFlushTimer();
   void handleMessage(std::uint32_t connectionId, const ParsedMessage &message);
   void disconnectClient(std::uint32_t connectionId);
 
   asio::io_context _io;
   NetworkMetrics _metrics;
   UdpTransport _transport;
+  asio::steady_timer _flushTimer;
   std::thread _networkThread;
   std::unordered_map<std::uint32_t, std::unique_ptr<Connection>> _connections;
   std::uint32_t _nextId = 1;

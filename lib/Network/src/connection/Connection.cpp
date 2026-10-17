@@ -24,3 +24,5 @@ PacketHeader Connection::makeHeader() {
 PacketReceiveRes Connection::onPacketReceived(const PacketHeader &header) {
   return _tracker.onPacketReceived(header.sequence);
 }
+
+PacketTracker &Connection::getTracker() { return _tracker; }
