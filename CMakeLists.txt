@@ -25,6 +25,7 @@ set(CMAKE_MACOSX_RPATH TRUE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 
 option(RTYPE_BUILD_CLIENT "Build the client (needs Vulkan and GraphicLib)" ON)
+option(RTYPE_EMBEDDED "Also fetch what the embedded client needs (static GraphicLib)" OFF)
 
 if(RTYPE_BUILD_CLIENT)
     find_package(Vulkan REQUIRED)
@@ -42,17 +43,32 @@ if(WIN32)
 endif()
 
 if(RTYPE_BUILD_CLIENT)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|ARM64|aarch64)$")
+        set(GRAPHIC_ARCH "arm64")
+    else()
+        set(GRAPHIC_ARCH "x86_64")
+    endif()
+
+    set(GRAPHIC_URL_BASE "https://github.com/rtk-lib/graphical/releases/latest/download" CACHE STRING "Where the prebuilt graphical lib are downloaded from")
     if(WIN32)
-        set(GRAPHIC_URL "https://github.com/rtk-lib/graphical/releases/latest/download/rtk_graphical-windows.zip")
+        set(GRAPHIC_PLATFORM "windows-${GRAPHIC_ARCH}")
+        set(GRAPHIC_ARCHIVE_EXT "zip")
         set(GRAPHIC_BIN_NAME "bin/rtk_graphical.dll")
         set(GRAPHIC_IMPLIB_NAME "lib/rtk_graphical.lib")
+        set(GRAPHIC_STATIC_NAME "lib/rtk_graphical_static.lib")
     elseif(APPLE)
-        set(GRAPHIC_URL "https://github.com/rtk-lib/graphical/releases/latest/download/rtk_graphical-macos.tar.gz")
+        set(GRAPHIC_PLATFORM "macos-${GRAPHIC_ARCH}")
+        set(GRAPHIC_ARCHIVE_EXT "tar.gz")
         set(GRAPHIC_BIN_NAME "lib/librtk_graphical.dylib")
+        set(GRAPHIC_STATIC_NAME "lib/librtk_graphical.a")
     elseif(UNIX AND NOT APPLE)
-        set(GRAPHIC_URL "https://github.com/rtk-lib/graphical/releases/latest/download/rtk_graphical-linux.tar.gz")
+        set(GRAPHIC_PLATFORM "linux-${GRAPHIC_ARCH}")
+        set(GRAPHIC_ARCHIVE_EXT "tar.gz")
         set(GRAPHIC_BIN_NAME "lib/librtk_graphical.so")
+        set(GRAPHIC_STATIC_NAME "lib/librtk_graphical.a")
     endif()
+    set(GRAPHIC_URL "${GRAPHIC_URL_BASE}/rtk_graphical-${GRAPHIC_PLATFORM}.${GRAPHIC_ARCHIVE_EXT}")
+    set(GRAPHIC_STATIC_URL "${GRAPHIC_URL_BASE}/rtk_graphical-${GRAPHIC_PLATFORM}-static.${GRAPHIC_ARCHIVE_EXT}")
 
     FetchContent_Declare(
         GraphicLib
@@ -255,33 +271,41 @@ target_include_directories(r-type_server_embedded PRIVATE "${CMAKE_CURRENT_SOURC
 target_link_libraries(r-type_server_embedded PRIVATE ECSLib GameEngine Network CommonProtocole ResourcesEmbedded)
 rtype_static_runtime(r-type_server_embedded)
 
-if(RTYPE_BUILD_CLIENT)
-    # needs a static build of the graphical lib (and its own dependencies)
-    if(WIN32)
-        set(GRAPHIC_STATIC_NAME "lib/rtk_graphical_static.lib")
-    else()
-        set(GRAPHIC_STATIC_NAME "lib/librtk_graphical.a")
+if(RTYPE_BUILD_CLIENT AND RTYPE_EMBEDDED)
+    # the static build of the graphical lib, it does not carry its system deps
+    FetchContent_Declare(
+        GraphicLibStatic
+        URL ${GRAPHIC_STATIC_URL}
+        SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/External/GraphicLibStatic
+    )
+    FetchContent_GetProperties(GraphicLibStatic)
+    if(NOT graphiclibstatic_POPULATED)
+        FetchContent_Populate(GraphicLibStatic)
     endif()
-    set(GRAPHIC_STATIC_PATH "${graphiclib_SOURCE_DIR}/${GRAPHIC_STATIC_NAME}")
 
     add_library(GraphicLibStatic STATIC IMPORTED)
     set_target_properties(GraphicLibStatic PROPERTIES
-        IMPORTED_LOCATION "${GRAPHIC_STATIC_PATH}"
-        INTERFACE_INCLUDE_DIRECTORIES "${graphiclib_SOURCE_DIR}/include"
+        IMPORTED_LOCATION "${graphiclibstatic_SOURCE_DIR}/${GRAPHIC_STATIC_NAME}"
+        INTERFACE_INCLUDE_DIRECTORIES "${graphiclibstatic_SOURCE_DIR}/include"
     )
     if(DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
         set_property(TARGET GraphicLibStatic APPEND PROPERTY
             INTERFACE_INCLUDE_DIRECTORIES "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include")
+    endif()
+    if(APPLE)
+        set_property(TARGET GraphicLibStatic APPEND PROPERTY INTERFACE_LINK_LIBRARIES
+            "-framework Cocoa" "-framework QuartzCore" "-framework CoreGraphics" "-framework Metal" "-framework GameController")
+    elseif(WIN32)
+        set_property(TARGET GraphicLibStatic APPEND PROPERTY INTERFACE_LINK_LIBRARIES user32 gdi32 xinput)
+    else()
+        find_package(X11 REQUIRED)
+        set_property(TARGET GraphicLibStatic APPEND PROPERTY INTERFACE_LINK_LIBRARIES X11::X11)
     endif()
 
     add_executable(r-type_client_embedded EXCLUDE_FROM_ALL ${CLIENT_SOURCES})
     target_include_directories(r-type_client_embedded PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/Client")
     target_link_libraries(r-type_client_embedded PRIVATE GraphicLibStatic ECSLib GameEngine Vulkan::Vulkan Network CommonProtocole NetworkClientLib ResourcesEmbedded)
     rtype_static_runtime(r-type_client_embedded)
-
-    if(NOT EXISTS "${GRAPHIC_STATIC_PATH}")
-        message(WARNING "${GRAPHIC_STATIC_PATH} not found: r-type_client_embedded needs a static build of rtk_graphical")
-    endif()
 endif()
 
 if(WIN32 AND RTYPE_BUILD_CLIENT)

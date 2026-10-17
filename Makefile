@@ -42,7 +42,7 @@ server_embedded: check_vcpkg
 	$(call cmake_build,$(EMBED_DIR)-server,r-type_server_embedded,-DRTYPE_BUILD_CLIENT=OFF $(if $(EMBED_TRIPLET),-DVCPKG_TARGET_TRIPLET=$(EMBED_TRIPLET)))
 
 client_embedded: check_vcpkg
-	$(call cmake_build,$(EMBED_DIR)-client,r-type_client_embedded,-DRTYPE_BUILD_CLIENT=ON $(if $(EMBED_TRIPLET),-DVCPKG_TARGET_TRIPLET=$(EMBED_TRIPLET)))
+	$(call cmake_build,$(EMBED_DIR)-client,r-type_client_embedded,-DRTYPE_BUILD_CLIENT=ON -DRTYPE_EMBEDDED=ON $(if $(EMBED_TRIPLET),-DVCPKG_TARGET_TRIPLET=$(EMBED_TRIPLET)))
 
 check_vcpkg:
 ifndef VCPKG_ROOT
