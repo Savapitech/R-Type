@@ -44,9 +44,9 @@ structure.
 | Limit | Value | Meaning |
 | ----- | ----: | ------- |
 | Maximum datagram | 548 bytes | 576 byte minimum IPv4 reassembly size, minus 20 bytes of IPv4 header and 8 bytes of UDP header. |
-| Packet header | 16 bytes | Start of every connected packet. |
-| Maximum message area | 532 bytes | Room for message headers and payloads in one packet. |
-| Maximum payload of one message | 528 bytes | Message area minus one 4 byte message header. |
+| Packet header | 19 bytes | Start of every connected packet. |
+| Maximum message area | 529 bytes | Room for message headers and payloads in one packet. |
+| Maximum payload of one message | 525 bytes | Message area minus one 4 byte message header. |
 
 A sender MUST NOT send a datagram larger than 548 bytes. A receiver MUST
 discard any datagram larger than 548 bytes. Keeping datagrams under this size
@@ -134,6 +134,8 @@ this header.
 | 4 | 4 | `sequence` | `u32` | Sequence number of this packet. |
 | 8 | 4 | `ack` | `u32` | Highest sequence number received from the peer, 0 if none. |
 | 12 | 4 | `ackBits` | `u32` | Bit `i` set when sequence `ack - 1 - i` was received. |
+| 16 | 1 | `priority` | `u8` | 0 critical, 1 reliable, 2 unreliable. Other values make the packet invalid. |
+| 17 | 2 | `reliableId` | `u16` | Identifies a priority 0 or 1 packet, kept by its resends. 0 for priority 2. |
 
 The header is followed by zero or more messages (section 5.3) that fill the
 rest of the datagram exactly.
@@ -177,10 +179,10 @@ with no message is valid.
 
 The server MUST drop a connected packet if:
 
-- it is shorter than 16 bytes,
+- it is shorter than 19 bytes or its `priority` is greater than 2,
 - `connectionId` does not match an open connection,
 - the connection with that id is bound to another address,
-- its sequence number is a duplicate or too old.
+- its sequence number is a duplicate or too old, or its `reliableId` was already delivered.
 
 The client MUST drop a connected packet whose `connectionId` is not its own.
 
@@ -502,6 +504,8 @@ Shoot held.
 00 00 00 05   sequence     = 5
 00 00 00 78   ack          = 120
 FF FF FF FF   ackBits      = all 32 previous packets received
+02            priority     = unreliable
+00 00         reliableId   = 0
 00 02         message type = Input
 00 09         payload size = 9
 00 00 00 2A   inputSequence = 42

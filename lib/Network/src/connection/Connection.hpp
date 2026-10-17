@@ -49,6 +49,12 @@ public:
    */
   PacketReceiveRes onPacketReceived(const PacketHeader &header);
 
+  /**
+   * @brief Returns the tracker that queues, resends and acknowledges packets.
+   * @return The tracker of this connection.
+   */
+  PacketTracker &getTracker();
+
 private:
   std::uint32_t _id;
   asio::ip::udp::endpoint _endpoint;

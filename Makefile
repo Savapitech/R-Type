@@ -29,9 +29,10 @@ clean:
 	@ $(LOG_TIME) "$(C_YELLOW) RM $(C_PURPLE) cmake generated files $(C_RESET)"
 
 fclean: clean
-	@ cmake -E rm -rf External $(BINS)
+	@ cmake -E rm -rf External build $(BINS)
 	@ $(LOG_TIME) "$(C_YELLOW) RM $(C_PURPLE) External and binaries $(C_RESET)"
 
+.NOTPARALLEL:
 re: fclean all
 
 format:

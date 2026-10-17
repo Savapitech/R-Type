@@ -7,6 +7,7 @@
 #include "../protocol/SystemMessages.hpp"
 
 #include <asio/post.hpp>
+#include <chrono>
 #include <cstdint>
 #include <iostream>
 #include <iterator>
@@ -16,7 +17,7 @@
 #include <vector>
 
 NetworkServer::NetworkServer(std::uint16_t port)
-    : _io(), _metrics(), _transport(_io, port, _metrics) {}
+    : _io(), _metrics(), _transport(_io, port, _metrics), _flushTimer(_io) {}
 
 NetworkServer::~NetworkServer() { stop(); }
 
@@ -30,6 +31,7 @@ void NetworkServer::start() {
   });
 
   _transport.startReceive();
+  startFlushTimer();
 
   _networkThread = std::thread([this]() { _io.run(); });
 }
@@ -39,6 +41,7 @@ void NetworkServer::stop() {
     return;
 
   _transport.close();
+  _flushTimer.cancel();
 
   if (_networkThread.joinable())
     _networkThread.join();
@@ -102,9 +105,8 @@ void NetworkServer::handleConnectedPacket(
   if (connection.getEndpoint() != endpoint)
     return;
 
-  PacketReceiveRes res = connection.onPacketReceived(header);
-
-  if (res == PacketReceiveRes::TooOld || res == PacketReceiveRes::Dup)
+  if (!connection.getTracker().onPacketReceived(
+          header, std::chrono::steady_clock::now()))
     return;
 
   std::vector<ParsedMessage> messages;
@@ -147,33 +149,74 @@ void NetworkServer::sendWelcome(Connection &connection) {
 }
 
 void NetworkServer::doSend(std::uint32_t connectionId,
-                           const std::vector<std::uint8_t> &payload) {
+                           const std::vector<std::uint8_t> &payload,
+                           PacketPriority priority) {
+  auto it = _connections.find(connectionId);
+  if (it == _connections.end())
+    return;
+
+  if (!it->second->getTracker().enqueue(payload, priority))
+    return;
+
+  flush(connectionId);
+}
+
+void NetworkServer::flush(std::uint32_t connectionId) {
   auto it = _connections.find(connectionId);
   if (it == _connections.end())
     return;
 
   Connection &connection = *it->second;
+  for (const auto &datagram : connection.getTracker().collectOutgoing(
+           std::chrono::steady_clock::now(), connectionId))
+    _transport.send(connection.getEndpoint(), datagram);
+}
 
-  if (payload.size() > MAX_MESSAGE_SIZE)
-    return;
+void NetworkServer::startFlushTimer() {
+  _flushTimer.expires_after(FLUSH_INTERVAL);
+  _flushTimer.async_wait([this](const asio::error_code &error) {
+    if (error || !_running.load())
+      return;
 
-  PacketWriter writer;
-  PacketHeader header = connection.makeHeader();
-  if (!header.serialize(writer))
-    return;
+    std::vector<std::uint32_t> ids;
+    ids.reserve(_connections.size());
+    for (const auto &[id, _] : _connections)
+      ids.push_back(id);
 
-  if (!writer.writeBytes(payload.data(), payload.size()))
-    return;
+    for (std::uint32_t id : ids) {
+      auto it = _connections.find(id);
+      if (it == _connections.end())
+        continue;
 
-  _transport.send(connection.getEndpoint(), writer.getData());
+      if (it->second->getTracker().isTimedOut()) {
+        std::cerr << "Connection " << id << " timed out, network too unstable"
+                  << std::endl;
+        PacketWriter writer;
+        MessageHeader header;
+        header.setType(systemMessage::Disconnect);
+        header.size = 0;
+        if (header.serialize(writer)) {
+          it->second->getTracker().enqueue(writer.getData(),
+                                           PacketPriority::Unreliable);
+          flush(id);
+        }
+        disconnectClient(id);
+        continue;
+      }
+      flush(id);
+    }
+    startFlushTimer();
+  });
 }
 
 void NetworkServer::send(std::uint32_t connectionId,
-                         const std::vector<std::uint8_t> &payload) {
+                         const std::vector<std::uint8_t> &payload,
+                         PacketPriority priority) {
   if (!_running.load())
     return;
-  asio::post(
-      _io, [this, connectionId, payload]() { doSend(connectionId, payload); });
+  asio::post(_io, [this, connectionId, payload, priority]() {
+    doSend(connectionId, payload, priority);
+  });
 }
 
 void NetworkServer::disconnectClient(std::uint32_t connectionId) {

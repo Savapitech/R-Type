@@ -53,10 +53,10 @@ deals with bytes, connections and message framing, never with entities.
 | PacketReader | Reads big-endian integers and byte ranges. Every read checks the remaining size first and fails instead of overflowing. |
 | PacketWriter | Appends big-endian integers. Refuses to grow past MAX_PAYLOAD_SIZE (548 bytes). |
 | HandshakeHeader | Header of `Hello`, `Welcome` and `Rejected`. Checks the magic number and the type. |
-| PacketHeader | 16 byte header of every connected packet: connection id, sequence, ack, ack bits. |
+| PacketHeader | 19 byte header of every connected packet: connection id, sequence, ack, ack bits, priority, reliable id. |
 | MessageHeader | 4 byte header of every message: type and payload size. |
 | MessageParser | Splits a packet body into messages. Rejects the whole packet if any size is inconsistent. |
-| PacketTracker | Numbers outgoing packets and classifies incoming ones as new, duplicate, out of order or too old. |
+| PacketTracker | Numbers outgoing packets, classifies incoming ones as new, duplicate, out of order or too old, queues outgoing packets by priority and resends the unacknowledged ones. |
 | Connection | Connection id, client endpoint and tracker of one client. |
 | UdpTransport | Asynchronous IPv4 UDP socket with a receive loop and a send queue. |
 | NetworkServer | Owns the network thread, the transport and the connection table. |
@@ -157,8 +157,30 @@ follows:
 - **Lost snapshots** do not matter: the next one carries the full state.
 - **Lost creations** are repaired with `QueryEntity`.
 - **Acknowledgements** (`ack` and `ackBits`) are sent in every packet so that
-  each side knows which of the last 33 packets the peer received. They are the
-  basis for future selective retransmission.
+  each side knows which of the last 33 packets the peer received. PacketTracker
+  uses them to stop resending packets the peer has received.
+
+### Packet priorities
+
+Every packet carries a `priority` (PacketPriority) and a `reliableId` in its
+PacketHeader. The outgoing queues are served from the lowest value to the
+highest, so a priority 0 packet always leaves before a priority 1 packet.
+
+| Priority | Name | Behaviour |
+| -------: | ---- | --------- |
+| 0 | `Critical` | Resent until acknowledged. A packet still unacknowledged after `CRITICAL_RESENDS_BEFORE_LOSS` resends counts as a loss, and when `MAX_CRITICAL_LOSSES` losses are reached the connection is closed because the network is too unstable. One loss is forgiven each time `CRITICAL_LOSS_DECAY` passes without a new one (30 s by default, 0 disables it). |
+| 1 | `Reliable` | Resent at most `RELIABLE_MAX_RESENDS` times (20 by default), then ignored. |
+| 2 | `Unreliable` | Sent once, never resent. This is the default. |
+
+A resend gets a new `sequence` so it stays inside the acknowledgement window,
+but keeps the same `reliableId`: the receiver uses it to deliver a packet only
+once when both the original and a resend arrive. When a side has priority 0 or 1
+packets to acknowledge and nothing to send, it sends an empty packet carrying the
+acks after `ACK_ONLY_DELAY`. The delays and limits are the `constexpr` values of `NetworkConfig.hpp`. The
+server sends `CreateEntity` and `DestroyEntity` with priority 0, `QueryEntity`
+uses priority 1, and snapshots and inputs use priority 2. On a timeout the server
+sends a `Disconnect` message (type 0x04, empty payload) and the client reports
+a `Disconnected` event.
 
 ## Robustness
 

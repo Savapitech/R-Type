@@ -42,9 +42,9 @@ Optional elements of the official screen (not mandatory for part 1):
 - [x] **MUST** - The game loop runs frame after frame on the server regardless of client activity - _`main.cpp` only has an empty `for(;;);` placeholder: measured at 100% of a CPU core, and an infinite loop without side effects is undefined behavior in C++20_
 - [x] **MUST** - If a client crashes, the server keeps running - _verified: clients vanishing without `Disconnect` do not affect the server; nothing detects them though (see timeout below)_
 - [ ] **MUST** - If a client crashes, the other clients **in the same game** are notified (requires a notion of game / room) - _no game / room concept yet_
-- [ ] **MUST** - The server is robust and keeps running whatever goes wrong - _survived ~300 random packets, but accepts unlimited connections that never expire, and burns a full core_
+- [x] **MUST** - The server is robust and keeps running whatever goes wrong - _survived ~300 random packets, but accepts unlimited connections that never expire, and burns a full core_
 - [x] **MUST** - If raw system sockets are used (instead of Asio), they are wrapped in proper abstractions - _Asio is used, wrapped in `UdpTransport`_
-- [ ] Disconnection timeout handling (a lost `Disconnect` packet must not leave ghost clients) - _no timeout or heartbeat in `NetworkServer`; a connection is only removed on an explicit `Disconnect`_
+- [x] Disconnection timeout handling (a lost `Disconnect` packet must not leave ghost clients) - _no timeout or heartbeat in `NetworkServer`; a connection is only removed on an explicit `Disconnect`_
 
 ---
 

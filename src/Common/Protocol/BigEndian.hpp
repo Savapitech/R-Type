@@ -34,7 +34,7 @@ template <std::unsigned_integral T> constexpr T byteswap(T value) {
     }
     return result;
   }
-} 
+}
 
 template <std::unsigned_integral T> constexpr T hostToBig(T value) {
   if constexpr (std::endian::native == std::endian::little)

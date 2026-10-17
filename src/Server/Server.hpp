@@ -86,9 +86,11 @@ public:
    * @brief Sends already encoded messages to a client.
    * @param connectionId Destination connection.
    * @param payload Messages, headers included.
+   * @param priority Delivery guarantee of the packet.
    */
   void send(std::uint32_t connectionId,
-            const std::vector<std::uint8_t> &payload);
+            const std::vector<std::uint8_t> &payload,
+            PacketPriority priority = PacketPriority::Unreliable);
 
   /**
    * @brief Pops the oldest Input message.
