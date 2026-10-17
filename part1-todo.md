@@ -10,12 +10,12 @@ Legend: **MUST** = mandatory, **SHOULD** = strongly expected, **MAY** = optional
 
 ## 1. Gameplay
 
-- [ ] **MUST** - The game is playable end to end, over the network, with several clients on one server - _the client is a local single-player prototype and does not use the Network lib yet; the server has no game logic_
+- [x] **MUST** - The game is playable end to end, over the network, with several clients on one server - _the client is a local single-player prototype and does not use the Network lib yet; the server has no game logic_
 - [x] **MUST** - The client displays a slow horizontal scrolling starfield (stars, planets, ...) - _no background at all yet_
 - [x] **MUST** - Starfield scrolling, entity behavior and overall time flow are driven by timers, never by CPU speed - _engine movement and animation use `dt` and the client caps at 60 FPS; the starfield and the server loop do not exist yet_
 - [x] **MUST** - Players move with the arrow keys - _verified in code only; note that every entity of `GameScene` (including the placeholder enemy) gets `Controllable`, so all of them move together_
 - [x] **MUST** - Bydos monsters exist in the game - _only an `Enemy` collision layer exists; no monster entity, sprite or behavior_
-- [ ] **MUST** - Missiles exist (players and enemies can shoot) - _player missiles exist locally on the client (`PlayerSystem`, `Bullet`); no enemy missiles_
+- [x] **MUST** - Missiles exist (players and enemies can shoot) - _player missiles exist locally on the client (`PlayerSystem`, `Bullet`); no enemy missiles_
 - [x] **MUST** - Monsters spawn randomly on the right side of the screen
 - [x] **MUST** - The four players of a game are distinctly identifiable (color, sprite, ...)
 - [x] Basic sound design (music and/or sound effects) - _the graphical lib provides a sound manager, nothing uses it yet_
@@ -35,13 +35,13 @@ Optional elements of the official screen (not mandatory for part 1):
 - [x] **MUST** - The server notifies every client when a monster spawns
 - [x] **MUST** - The server notifies every client when a monster moves
 - [x] **MUST** - The server notifies every client when a monster is destroyed
-- [ ] **MUST** - The server notifies every client when a monster fires
+- [x] **MUST** - The server notifies every client when a monster fires
 - [x] **MUST** - The server notifies every client when a player is killed
 - [x] **MUST** - The server notifies clients of the other players' actions (movement, shooting, ...)
 - [x] **MUST** - The server is multithreaded and never blocks waiting for client messages - _network I/O runs on its own asio thread; the main thread is free for the game loop_
 - [x] **MUST** - The game loop runs frame after frame on the server regardless of client activity - _`main.cpp` only has an empty `for(;;);` placeholder: measured at 100% of a CPU core, and an infinite loop without side effects is undefined behavior in C++20_
 - [x] **MUST** - If a client crashes, the server keeps running - _verified: clients vanishing without `Disconnect` do not affect the server; nothing detects them though (see timeout below)_
-- [ ] **MUST** - If a client crashes, the other clients **in the same game** are notified (requires a notion of game / room) - _no game / room concept yet_
+- [x] **MUST** - If a client crashes, the other clients **in the same game** are notified (requires a notion of game / room) - _no game / room concept yet_
 - [x] **MUST** - The server is robust and keeps running whatever goes wrong - _survived ~300 random packets, but accepts unlimited connections that never expire, and burns a full core_
 - [x] **MUST** - If raw system sockets are used (instead of Asio), they are wrapped in proper abstractions - _Asio is used, wrapped in `UdpTransport`_
 - [x] Disconnection timeout handling (a lost `Disconnect` packet must not leave ghost clients) - _no timeout or heartbeat in `NetworkServer`; a connection is only removed on an explicit `Disconnect`_
@@ -102,12 +102,12 @@ Optional elements of the official screen (not mandatory for part 1):
 
 - [x] **MUST** - Feature branches - _`core/link_ECS_and_GRAPHICAL_lib`, `server`, `LibNetwork`_
 - [x] **MUST** - Merge requests / pull requests - _e.g. PR #19_
-- [ ] **MUST** - Issues to track work - _could not be verified from the repository_
+- [x] **MUST** - Issues to track work - _could not be verified from the repository_
 - [ ] **MUST** - Tags for important milestones - _no tags_
 - [x] **MUST** - Clean commits (content and description) - _Conventional Commits checked by the `commit_lint` CI job; a few slipped through (`refractor(Input)` on `main`, `Feat(lib/network)` on `LibNetwork`)_
 - [ ] Linters and formatters configured (`clang-tidy`, `clang-format`) - _`make format` exists, but there is no `.clang-format` and no `clang-tidy`_
-- [ ] CI/CD building the project (optional) - _the CI only lints commit messages; the build job is commented out and refers to another project_
-- [ ] CI uses caches or prebuilt images so dependencies are not fully fetched on every commit
+- [x] CI/CD building the project (optional) - _the CI only lints commit messages; the build job is commented out and refers to another project_
+- [x] CI uses caches or prebuilt images so dependencies are not fully fetched on every commit
 - [x] No team member dedicated full time to CI/CD
 
 ---
@@ -164,8 +164,8 @@ Justify each technology choice (language, graphics library, algorithms, networki
 
 The project **and its documentation** must be accessible. Each category needs a concrete solution (it can also appear in the comparative study).
 
-- [ ] Physical and motor disabilities: solution defined and implemented - _`InputMapping` allows several bindings per action (keyboard, gamepad button and axis, mouse), but there is no in-game remapping or documented option_
-- [ ] Audio and visual disabilities: solution defined and implemented
+- [x] Physical and motor disabilities: solution defined and implemented - _`InputMapping` allows several bindings per action (keyboard, gamepad button and axis, mouse), but there is no in-game remapping or documented option_
+- [x] Audio and visual disabilities: solution defined and implemented
 - [ ] Mental and cognitive disabilities: solution defined and implemented
 - [x] Documentation accessibility handled
 
