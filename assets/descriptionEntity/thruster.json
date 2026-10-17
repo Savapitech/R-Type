@@ -1,0 +1,56 @@
+{
+    "components": {
+        "transform": {
+            "position": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "scale": {
+                "x": 1.0,
+                "y": 1.0
+            },
+            "rotation": 0.0
+        },
+        "sprite": {
+            "texture": "assets/entityTexture/thruster.png",
+            "size": {
+                "w": 32.0,
+                "h": 32.0
+            },
+            "origin": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "textureRect": {
+                "x": 0,
+                "y": 0,
+                "w": 32,
+                "h": 32
+            },
+            "color": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 255
+            },
+            "layer": 0
+        },
+        "animation": {
+            "frameDuration": 0.1,
+            "totalFrames": 4,
+            "frameWidth": 32,
+            "frameHeight": 32,
+            "startX": 0,
+            "startY": 0,
+            "columns": 4,
+            "loop": true,
+            "playing": true,
+            "paddingX": 3
+        },
+        "attachedTo": {
+            "targetEntity": 0,
+            "offsetX": -28.0,
+            "offsetY": 1.0
+        }
+    }
+}
