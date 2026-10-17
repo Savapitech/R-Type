@@ -8,7 +8,7 @@
 namespace component {
 /**
  * @addtogroup api_gameplay
- * @
+ * @{
  */
 
 /**

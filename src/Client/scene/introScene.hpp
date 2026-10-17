@@ -28,6 +28,7 @@ public:
   explicit IntroScene(rtk::RenderWindow &window);
   ~IntroScene() = default;
 
+  /// Identifier of this scene.
   static constexpr SceneType Type = SceneType::Intro;
 
   /**
