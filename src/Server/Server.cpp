@@ -49,8 +49,9 @@ void Server::start() { _network.start(); }
 void Server::stop() { _network.stop(); }
 
 void Server::send(std::uint32_t connectionId,
-                  const std::vector<std::uint8_t> &payload) {
-  _network.send(connectionId, payload);
+                  const std::vector<std::uint8_t> &payload,
+                  PacketPriority priority) {
+  _network.send(connectionId, payload, priority);
 }
 
 void Server::handleMessage(std::uint32_t connectionId, MessageId type,
@@ -152,7 +153,12 @@ bool Server::sendMessage(std::uint32_t connectionId, protocol::MessageType type,
   if (!writer.writeBytes(payload.data(), payload.size()))
     return false;
 
-  send(connectionId, writer.getData());
+  PacketPriority priority = PacketPriority::Unreliable;
+  if (type == protocol::MessageType::CreateEntity ||
+      type == protocol::MessageType::DestroyEntity)
+    priority = PacketPriority::Critical;
+
+  send(connectionId, writer.getData(), priority);
   return true;
 }
 
