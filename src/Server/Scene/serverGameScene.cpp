@@ -37,9 +37,22 @@ ServerGameScene::onUpdate(rtk::EngineContext &context, const ServerInput &input,
   }
 
   if (_dependency.game.getPlayerCount() == 0) {
-    std::cout
-        << "[Server InGame] All players disconnected. Returning to Lobby..."
-        << std::endl;
+    std::cout << "[Server InGame] All players disconnected. Returning to Lobby..." << std::endl;
+    return ServerSceneType::Lobby;
+  }
+
+  bool isAnyPlayerAlive = false;
+  auto &transforms = context.registry.get_components<component::Transform>();
+
+  for (const auto &[connId, entity] : _dependency.game.getPlayers()) {
+    if (transforms.get(entity) != nullptr) {
+      isAnyPlayerAlive = true;
+      break;
+    }
+  }
+
+  if (!isAnyPlayerAlive) {
+    std::cout << "[Server InGame] GAME OVER" << std::endl;
     return ServerSceneType::Lobby;
   }
   return std::nullopt;
