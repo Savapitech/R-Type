@@ -25,6 +25,14 @@ find_package(Vulkan REQUIRED)
 #load fetchContent module
 include(FetchContent)
 
+if(WIN32)
+  add_compile_definitions(
+    _WIN32_WINNT=0x0A00
+    WIN32_LEAN_AND_MEAN
+    NOMINMAX
+  )
+endif()
+
 #set all the url and the bin name
 if(WIN32)
     set(GRAPHIC_URL "https://github.com/rtk-lib/graphical/releases/latest/download/rtk_graphical-windows.zip")

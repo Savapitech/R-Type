@@ -26,14 +26,15 @@ namespace detail {
 template <std::unsigned_integral T> constexpr T byteswap(T value) {
   if constexpr (sizeof(T) == 1) {
     return value;
-  } else if constexpr (sizeof(T) == 2) {
-    return __builtin_bswap16(value);
-  } else if constexpr (sizeof(T) == 4) {
-    return __builtin_bswap32(value);
   } else {
-    return __builtin_bswap64(value);
+    T result = 0;
+    for (std::size_t i = 0; i < sizeof(T); ++i) {
+      result = static_cast<T>((result << 8) | (value & 0xFFu));
+      value = static_cast<T>(value >> 8);
+    }
+    return result;
   }
-}
+} 
 
 template <std::unsigned_integral T> constexpr T hostToBig(T value) {
   if constexpr (std::endian::native == std::endian::little)
