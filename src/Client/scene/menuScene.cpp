@@ -9,7 +9,8 @@ namespace rtype::client {
 MenuScene::MenuScene(rtk::RenderWindow &window) : _window(window) {}
 
 void MenuScene::onEnter(rtk::EngineContext &context) {
-  _textureId = _window.loadTexture("assets/menu_assets/texture/R-Type_logo.png").getHandle();
+  _textureId = _window.loadTexture("assets/menu_assets/texture/R-Type_logo.png")
+                   .getHandle();
 
   const auto entity = context.registry.spawn_entity();
 

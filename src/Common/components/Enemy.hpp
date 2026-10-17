@@ -15,9 +15,9 @@ namespace component {
  * @brief Marks an entity as a Bydos enemy.
  */
 struct Enemy {
-  float health{100.0f}; ///< Remaining health points.
-  float fireTimer{0.0f};///< Timer to open fire
-  float fireRate{2.0f}; ///< Fire rate in second
+  float health{100.0f};  ///< Remaining health points.
+  float fireTimer{0.0f}; ///< Timer to open fire
+  float fireRate{2.0f};  ///< Fire rate in second
 };
 
 /**

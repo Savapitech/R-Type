@@ -25,9 +25,9 @@
 #include "systems/ColliderSystem.hpp"
 #include "systems/DeadSystem.hpp"
 #include "systems/EnemyGarbageCollectorSystem.hpp"
+#include "systems/EnemyShootSystem.hpp"
 #include "systems/EnemySpawnerSystem.hpp"
 #include "systems/MovementSystem.hpp"
-#include "systems/EnemyShootSystem.hpp"
 
 namespace rtype::server {
 
@@ -101,7 +101,6 @@ void Game::registerBuilders(rtk::EngineContext &context) {
       "enemyEscapedEvent", rtype::events::enemyEscapedEventFromJson);
   context._entityFactory.registerBuilder(
       "EnemyEscapedEvent", rtype::events::enemyEscapedEventFromJson);
-      
 }
 
 void Game::loadEntityBlueprints(rtk::EngineContext &context) {
@@ -170,8 +169,9 @@ void Game::subscribeEvents(rtk::EngineContext &context) {
             Collider::CollisionLayer::Player | Collider::CollisionLayer::Enemy;
         std::uint32_t playerVsEnv = Collider::CollisionLayer::Player |
                                     Collider::CollisionLayer::Environment;
-        std::uint32_t playerVsEnemyProj = Collider::CollisionLayer::Player |
-                                    Collider::CollisionLayer::EnemyProjectile;
+        std::uint32_t playerVsEnemyProj =
+            Collider::CollisionLayer::Player |
+            Collider::CollisionLayer::EnemyProjectile;
 
         auto &deads = context.registry.get_components<component::Dead>();
 
@@ -195,11 +195,11 @@ void Game::subscribeEvents(rtk::EngineContext &context) {
             deads.insert_at(event.secondEntity, {});
           }
         } else if (collisionPair == playerVsEnemyProj) {
-            if (colA->layer == Collider::CollisionLayer::Player) {
-                deads.insert_at(event.firstEntity, {});
-            } else {
-                deads.insert_at(event.secondEntity, {});
-            }
+          if (colA->layer == Collider::CollisionLayer::Player) {
+            deads.insert_at(event.firstEntity, {});
+          } else {
+            deads.insert_at(event.secondEntity, {});
+          }
           deads.insert_at(event.firstEntity, {});
           deads.insert_at(event.secondEntity, {});
           std::cout << "[SERVER] Player hit by enemy bullet!" << std::endl;
@@ -223,8 +223,9 @@ void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
   context.scheduler.add<rtk::systems::ColliderSystem>(
       rtk::ecs::Order::Physics, _collisionBuffer, 64.f, context.eventBus);
-  context.scheduler.add<rtk::systems::EnemyShootSystem>(rtk::ecs::Order::Update,
-      std::ref(context._entityFactory), std::ref(_server), std::ref(_players));
+  context.scheduler.add<rtk::systems::EnemyShootSystem>(
+      rtk::ecs::Order::Update, std::ref(context._entityFactory),
+      std::ref(_server), std::ref(_players));
 }
 
 void Game::handleConnections(rtk::EngineContext &context) {

@@ -109,7 +109,7 @@ void Game::loadEntityBluePrint(rtk::EngineContext &context) {
   context._entityFactory.loadBlueprintFromPath(
       "thruster", "assets/descriptionEntity/thruster.json");
   context._entityFactory.loadBlueprintFromPath(
-    "enemy_bullet", "assets/descriptionEntity/enemy_bullet.json");
+      "enemy_bullet", "assets/descriptionEntity/enemy_bullet.json");
 }
 
 void Game::registerBuilders(rtk::EngineContext &context) {

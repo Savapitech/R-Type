@@ -37,7 +37,9 @@ ServerGameScene::onUpdate(rtk::EngineContext &context, const ServerInput &input,
   }
 
   if (_dependency.game.getPlayerCount() == 0) {
-    std::cout << "[Server InGame] All players disconnected. Returning to Lobby..." << std::endl;
+    std::cout
+        << "[Server InGame] All players disconnected. Returning to Lobby..."
+        << std::endl;
     return ServerSceneType::Lobby;
   }
 

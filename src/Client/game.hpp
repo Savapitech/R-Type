@@ -15,11 +15,10 @@
 #include "rtkWindowAdapter.hpp"
 
 #include "NetworkClient.hpp"
+#include "scene/gameScene.hpp"
 #include "scene/introScene.hpp"
 #include "scene/menuScene.hpp"
 #include "scene/networkConnectionScene.hpp"
-#include "scene/gameScene.hpp"
-
 
 namespace rtype::events {
 /**
@@ -109,8 +108,8 @@ private:
   rtk::Input::InputMapping _inputMapping;
   rtype::client::NetworkClient _networkClient;
 
-  rtk::SceneManager<SceneType, rtk::RenderWindow, rtk::InputState, IntroScene, MenuScene,
-                    NetworkConnectionScene, GameScene>
+  rtk::SceneManager<SceneType, rtk::RenderWindow, rtk::InputState, IntroScene,
+                    MenuScene, NetworkConnectionScene, GameScene>
       _sceneManager;
 
   rtk::Font _fontRtype;
