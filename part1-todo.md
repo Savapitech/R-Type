@@ -169,8 +169,8 @@ The project **and its documentation** must be accessible. Each category needs a 
 
 ## 9. Before the defense
 
-- [ ] Everything is merged on the evaluated branch before Sunday 11:42 PM
-- [ ] Fresh clone builds and runs on Linux with the documented instructions only
+- [x] Everything is merged on the evaluated branch before Sunday 11:42 PM
+- [x] Fresh clone builds and runs on Linux with the documented instructions only
 - [x] A full game with several clients was played and works
 - [x] A client crash was tested, and the server and other clients survived
 - [x] Malformed packets were tested, and neither the server nor the client crashed

@@ -244,6 +244,7 @@ target_link_libraries(r-type_server PRIVATE ECSLib GameEngine Network CommonProt
 #EMBEDDED: same sources, but assets are linked in the binary
 set(EMBEDDED_ASSETS_CPP ${CMAKE_BINARY_DIR}/generated/EmbeddedAssets.cpp)
 file(GLOB_RECURSE EMBEDDED_ASSET_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/assets/*")
+list(FILTER EMBEDDED_ASSET_FILES EXCLUDE REGEX ":[^/]*$")
 
 add_custom_command(
     OUTPUT ${EMBEDDED_ASSETS_CPP}
@@ -253,6 +254,7 @@ add_custom_command(
         -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedAssets.cmake
     DEPENDS ${EMBEDDED_ASSET_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedAssets.cmake
     COMMENT "Embedding assets"
+    VERBATIM
 )
 
 add_library(ResourcesEmbedded STATIC
