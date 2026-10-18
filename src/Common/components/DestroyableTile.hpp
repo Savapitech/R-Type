@@ -15,8 +15,9 @@ namespace component {
  * @brief Marks an entity as a destroyable tile, potentially explosive.
  */
 struct DestroyableTile {
-    float explosionDamage{20.0f}; ///< Damage dealt to surrounding entities.
-    bool isTriggered{false};      ///< Flag to know if the explosion animation/effect started.
+  float explosionDamage{20.0f}; ///< Damage dealt to surrounding entities.
+  bool isTriggered{
+      false}; ///< Flag to know if the explosion animation/effect started.
 };
 
 /**
@@ -28,11 +29,11 @@ struct DestroyableTile {
  */
 inline void destroyableTileFromJson(rtk::ecs::Registry &reg, std::size_t entity,
                                     const nlohmann::json &data) {
-    component::DestroyableTile tile{};
-    tile.explosionDamage = data.value("explosionDamage", 20.0f);
-    tile.isTriggered = data.value("isTriggered", false);
+  component::DestroyableTile tile{};
+  tile.explosionDamage = data.value("explosionDamage", 20.0f);
+  tile.isTriggered = data.value("isTriggered", false);
 
-    reg.get_components<component::DestroyableTile>().insert_at(entity, tile);
+  reg.get_components<component::DestroyableTile>().insert_at(entity, tile);
 }
 
 /** @} */

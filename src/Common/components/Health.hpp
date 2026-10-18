@@ -15,8 +15,8 @@ namespace component {
  * @brief Represents the health of an entity.
  */
 struct Health {
-    float current{100.0f}; ///< Current health points.
-    float max{100.0f};     ///< Maximum health points.
+  float current{100.0f}; ///< Current health points.
+  float max{100.0f};     ///< Maximum health points.
 };
 
 /**
@@ -28,11 +28,11 @@ struct Health {
  */
 inline void healthFromJson(rtk::ecs::Registry &reg, std::size_t entity,
                            const nlohmann::json &data) {
-    component::Health health{};
-    health.max = data.value("max", 100.0f);
-    health.current = data.value("current", health.max);
+  component::Health health{};
+  health.max = data.value("max", 100.0f);
+  health.current = data.value("current", health.max);
 
-    reg.get_components<component::Health>().insert_at(entity, health);
+  reg.get_components<component::Health>().insert_at(entity, health);
 }
 
 /** @} */

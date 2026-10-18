@@ -9,14 +9,14 @@
 #include "components/Bullet.hpp"
 #include "components/Controllable.hpp"
 #include "components/Dead.hpp"
+#include "components/DestroyableTile.hpp"
 #include "components/Enemy.hpp"
 #include "components/EnemyEvent.hpp"
+#include "components/Health.hpp"
 #include "components/NetworkEntity.hpp"
 #include "components/SoundRequest.hpp"
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
-#include "components/Health.hpp"
-#include "components/DestroyableTile.hpp"
 
 #include "systems/AnimationSystem.hpp"
 #include "systems/AnimatorSystem.hpp"
@@ -186,8 +186,10 @@ void Game::registerBuilders(rtk::EngineContext &context) {
                                          component::attachedToFromJson);
   context._entityFactory.registerBuilder("AttachedTo",
                                          component::attachedToFromJson);
-  context._entityFactory.registerBuilder("destroyableTile", component::destroyableTileFromJson);
-  context._entityFactory.registerBuilder("DestroyableTile", component::destroyableTileFromJson);
+  context._entityFactory.registerBuilder("destroyableTile",
+                                         component::destroyableTileFromJson);
+  context._entityFactory.registerBuilder("DestroyableTile",
+                                         component::destroyableTileFromJson);
   context._entityFactory.registerBuilder("health", component::healthFromJson);
   context._entityFactory.registerBuilder("Health", component::healthFromJson);
 }

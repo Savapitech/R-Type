@@ -17,10 +17,10 @@
 
 #include "components/Bullet.hpp"
 #include "components/Controllable.hpp"
+#include "components/DestroyableTile.hpp"
 #include "components/Enemy.hpp"
 #include "components/EnemyEvent.hpp"
 #include "components/Health.hpp"
-#include "components/DestroyableTile.hpp"
 
 #include "ServerDeathSystem.hpp"
 #include "systems/BulletSystem.hpp"
@@ -101,8 +101,10 @@ void Game::registerBuilders(rtk::EngineContext &context) {
                                          component::enemyEventFromJson);
   context._entityFactory.registerBuilder("EnemyEvent",
                                          component::enemyEventFromJson);
-  context._entityFactory.registerBuilder("destroyableTile", component::destroyableTileFromJson);
-  context._entityFactory.registerBuilder("DestroyableTile", component::destroyableTileFromJson);
+  context._entityFactory.registerBuilder("destroyableTile",
+                                         component::destroyableTileFromJson);
+  context._entityFactory.registerBuilder("DestroyableTile",
+                                         component::destroyableTileFromJson);
   context._entityFactory.registerBuilder("health", component::healthFromJson);
   context._entityFactory.registerBuilder("Health", component::healthFromJson);
   context._entityFactory.registerBuilder(
@@ -218,26 +220,31 @@ void Game::subscribeEvents(rtk::EngineContext &context) {
         if (collisionPair == bulletVsEnemy) {
           deads.insert_at(event.firstEntity, {});
           deads.insert_at(event.secondEntity, {});
-        }
-        else if (collisionPair == bulletVsEnv) {
+        } else if (collisionPair == bulletVsEnv) {
           if (colA->layer == Collider::CollisionLayer::PlayerProjectile) {
             deads.insert_at(event.firstEntity, {});
           } else {
             deads.insert_at(event.secondEntity, {});
           }
 
-          std::size_t bulletEnt = (colA->layer == Collider::CollisionLayer::PlayerProjectile) ? event.firstEntity : event.secondEntity;
-          std::size_t tileEnt = (colA->layer == Collider::CollisionLayer::Environment) ? event.firstEntity : event.secondEntity;
+          std::size_t bulletEnt =
+              (colA->layer == Collider::CollisionLayer::PlayerProjectile)
+                  ? event.firstEntity
+                  : event.secondEntity;
+          std::size_t tileEnt =
+              (colA->layer == Collider::CollisionLayer::Environment)
+                  ? event.firstEntity
+                  : event.secondEntity;
 
           auto *bulletComp = bullets.get(bulletEnt);
           auto *healthComp = healths.get(tileEnt);
 
           if (healthComp && bulletComp) {
-              healthComp->current -= bulletComp->damage;
-              if (healthComp->current <= 0.0f) {
-                  deads.insert_at(tileEnt, {});
-                  std::cout << "[SERVER] Tile destroyed!" << std::endl;
-              }
+            healthComp->current -= bulletComp->damage;
+            if (healthComp->current <= 0.0f) {
+              deads.insert_at(tileEnt, {});
+              std::cout << "[SERVER] Tile destroyed!" << std::endl;
+            }
           }
         }
       });
@@ -262,7 +269,8 @@ void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<rtk::systems::EnemyShootSystem>(
       rtk::ecs::Order::Update, std::ref(context._entityFactory),
       std::ref(_server), std::ref(_players));
-    //context.scheduler.add<rtk::systems::DestroyableSystem>(rtk::ecs::Order::SecondUpdate, context.eventBus);
+  // context.scheduler.add<rtk::systems::DestroyableSystem>(rtk::ecs::Order::SecondUpdate,
+  // context.eventBus);
 }
 
 void Game::handleConnections(rtk::EngineContext &context) {
