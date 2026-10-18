@@ -18,30 +18,16 @@
 
 #include "systems/AnimationSystem.hpp"
 #include "systems/AnimatorSystem.hpp"
-#include "systems/BulletSystem.hpp"
+#include "systems/AttachmentSystem.hpp"
+#include "systems/AudioSystem.hpp"
 #include "systems/ColliderSystem.hpp"
-#include "systems/DeadSystem.hpp"
 #include "systems/DebugCollisionSystem.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/MovementSystem.hpp"
+#include "systems/ParallaxSystem.hpp"
 #include "systems/PlayerSystem.hpp"
 #include "systems/RenderConcept.hpp"
 #include "systems/RenderSystem.hpp"
-
-#include "components/Controllable.hpp"
-#include "components/Dead.hpp"
-#include "components/Enemy.hpp"
-#include "components/EnemyEvent.hpp"
-#include "components/NetworkEntity.hpp"
-#include "systems/AttachmentSystem.hpp"
-#include "systems/AudioSystem.hpp"
-#include "systems/BulletSystem.hpp"
-#include "systems/DeadSystem.hpp"
-#include "systems/EnemyGarbageCollectorSystem.hpp"
-#include "systems/EnemySpawnerSystem.hpp"
-#include "systems/MovementSystem.hpp"
-#include "systems/ParallaxSystem.hpp"
-#include "systems/PlayerSystem.hpp"
 
 #include "Protocol/EntityPayload.hpp"
 #include "Protocol/SnapshotPayload.hpp"
@@ -51,9 +37,10 @@
 #include <variant>
 
 namespace rtype::client {
-Game::Game()
+Game::Game(std::string host, std::string port)
     : _window({1280.f, 720.f}, "R-Type"), _adapter(_window),
-      _sceneManager(_window, std::in_place_type<IntroScene>) {}
+      _sceneManager(_window, std::in_place_type<IntroScene>),
+      _host(std::move(host)), _port(std::move(port)) {}
 
 void Game::onLoad(rtk::EngineContext &context) {
   registerComponents(context);
@@ -64,7 +51,7 @@ void Game::onLoad(rtk::EngineContext &context) {
 
   _fontRtype = _window.loadFont("./assets/font/r-type.otf", 1);
 
-  _networkClient.connect("127.0.0.1", "4242");
+  _networkClient.connect(_host, _port);
 
   uint32_t shootSoundId = _adapterAudioManager.addSound("assets/shoot.wav");
 
@@ -183,7 +170,10 @@ void Game::registerBuilders(rtk::EngineContext &context) {
                               data["textureRect"].value<uint16_t>("y", 0),
                               data["textureRect"].value<uint16_t>("w", 0),
                               data["textureRect"].value<uint16_t>("h", 0)};
-        sprite.color = {255, 255, 255, 255};
+        sprite.color = {data["color"].value<uint8_t>("r", 255),
+                        data["color"].value<uint8_t>("g", 255),
+                        data["color"].value<uint8_t>("b", 255),
+                        data["color"].value<uint8_t>("a", 255)};
         sprite.layer = data.value("layer", -1);
         sprite.flags = data.value("flags", 0);
 
@@ -216,11 +206,13 @@ void Game::registerComponents(rtk::EngineContext &context) {
 
 void Game::createBindings() {
   _inputMapping.bindKey(0, rtk::ecs::concepts::Key::Up);
+  _inputMapping.bindKey(0, rtk::ecs::concepts::Key::Z);
   _inputMapping.bindGamepad(0, rtk::ecs::concepts::GamepadButton::DpadUp);
   _inputMapping.bindGamepadAxis(0, rtk::ecs::concepts::GamepadAxis::LeftY,
                                 -0.30f);
 
   _inputMapping.bindKey(1, rtk::ecs::concepts::Key::Down);
+  _inputMapping.bindKey(1, rtk::ecs::concepts::Key::S);
   _inputMapping.bindGamepad(1, rtk::ecs::concepts::GamepadButton::DpadDown);
   _inputMapping.bindGamepadAxis(1, rtk::ecs::concepts::GamepadAxis::LeftY,
                                 0.30f);
@@ -239,6 +231,7 @@ void Game::createBindings() {
   _inputMapping.bindGamepadAxis(4, rtk::ecs::concepts::GamepadAxis::R2, 0.30f);
 
   _inputMapping.bindKey(5, rtk::ecs::concepts::Key::Enter);
+  _inputMapping.bindKey(5, rtk::ecs::concepts::Key::Space);
   _inputMapping.bindGamepad(5, rtk::ecs::concepts::GamepadButton::Cross);
 
   _inputMapping.bindKey(6, rtk::ecs::concepts::Key::F3);
@@ -261,41 +254,19 @@ void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
         _adapterAudioManager.playSound(shootSoundId);
       });
 
-  context.eventBus.subscribe<rtk::collision::Collision>(
-      [&context](const rtk::collision::Collision &event) {
-        auto &colliders =
-            context.registry.get_components<component::AABBCollider>();
-        auto *colA = colliders.get(event.firstEntity);
-        auto *colB = colliders.get(event.secondEntity);
-
-        if (!colA || !colB)
-          return;
-
-        std::uint32_t collisionPair = colA->layer | colB->layer;
-        std::uint32_t bulletVsEnemy =
-            Collider::CollisionLayer::PlayerProjectile |
-            Collider::CollisionLayer::Enemy;
-
-        if (collisionPair == bulletVsEnemy) {
-          auto &deads = context.registry.get_components<component::Dead>();
-          deads.insert_at(event.firstEntity, {});
-          deads.insert_at(event.secondEntity, {});
-        }
+  context.eventBus.subscribe<rtype::events::QuitGameEvent>(
+      [this](const rtype::events::QuitGameEvent &) {
+        _shouldQuit = true;
+        _inputState.closeRequested = true;
       });
 }
 
 void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<rtk::systems::AnimationSystem>(rtk::ecs::Order::Render);
-  context.scheduler.add<rtk::systems::DeathSystem>(rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::PlayerSystem>(
       rtk::ecs::Order::Update, std::ref(_inputState),
       std::ref(context.eventBus), std::ref(context._entityFactory),
       std::ref(_networkClient));
-  // context.scheduler.add<rtk::systems::BulletSystem>(rtk::ecs::Order::Update);
-  // context.scheduler.add<rtk::systems::EnemySpawnerSystem>(rtk::ecs::Order::Update,
-  // std::ref(context._entityFactory));
-  context.scheduler.add<rtk::systems::EnemyGCSystem>(
-      rtk::ecs::Order::SecondUpdate, context.eventBus);
   context.scheduler.add<rtk::systems::InputSystem<RtkWindowAdapter>>(
       rtk::ecs::Order::Input, std::ref(_adapter), _inputState, _inputMapping);
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
@@ -313,7 +284,9 @@ void Game::addSystems(rtk::EngineContext &context) {
       rtk::ecs::Order::Update);
 }
 
-bool Game::shouldContinue() const { return !_inputState.closeRequested; }
+bool Game::shouldContinue() const {
+  return !_inputState.closeRequested && !_shouldQuit;
+}
 
 void Game::onUpdate(rtk::EngineContext &context, float dt) {
   NetworkEvent netEvent;

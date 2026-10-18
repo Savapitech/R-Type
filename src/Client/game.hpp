@@ -31,6 +31,11 @@ namespace rtype::events {
  */
 struct PlayerShotEvent {};
 
+/**
+ * @brief Published when a quit request is triggered from the menu or game.
+ */
+struct QuitGameEvent {};
+
 /** @} */
 } // namespace rtype::events
 
@@ -48,8 +53,10 @@ class Game {
 public:
   /**
    * @brief Opens the 1280x720 window and creates the menu scene.
+   * @param host Server hostname or IP address.
+   * @param port Server UDP port.
    */
-  Game();
+  explicit Game(std::string host = "127.0.0.1", std::string port = "4242");
   ~Game() = default;
 
   /**
@@ -113,6 +120,9 @@ private:
       _sceneManager;
 
   rtk::Font _fontRtype;
+  bool _shouldQuit = false;
+  std::string _host = "127.0.0.1";
+  std::string _port = "4242";
 };
 
 /** @} */

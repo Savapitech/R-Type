@@ -51,7 +51,7 @@ Optional elements of the official screen (not mandatory for part 1):
 ## 3. Client
 
 - [x] **MUST** - The client contains everything needed to display the game and handle player input - _window, rendering, input mapping (keyboard and gamepad), scenes_
-- [ ] **MUST** - No authoritative gameplay logic in the client (death of an enemy or a player, item pickup, ... are decided by the server) - _movement, shooting and collisions all run locally today_
+- [x] **MUST** - No authoritative gameplay logic in the client (death of an enemy or a player, item pickup, ... are decided by the server)
 - [ ] **MAY** - Local prediction of the local player movement and missile movement, always overridden by the server
 - [x] Graphics library is not a game engine and not too broad in scope (no UE, Unity, Godot, ...) - _custom Vulkan sprite renderer (`rtk_graphical`)_
 
@@ -65,8 +65,8 @@ Optional elements of the official screen (not mandatory for part 1):
 - [x] **MUST** - A malformed packet never crashes the client or the server - _server verified with truncated, oversized and ~300 random packets; the client has no network code yet, re-test once it does_
 - [ ] **MUST** - A malformed packet never causes excessive memory consumption - _verified problem: 200 `Hello` packets from 200 sockets created 200 connections; the map is unbounded and nothing expires entries_
 - [ ] **MUST** - A malformed packet never compromises server security (buffer overflows included)
-- [x] **MUST** - The protocol is documented (an RFC is a good format) - _`src/protocole.md`_
-- [x] **SHOULD** - The documentation is enough to write a new client without reading the code - _`protocole.md` and the implementation disagree: it defines one `CommandType` enum (`Connect`, `Welcome` with nonce / network id / tick, ...), the lib uses a separate `Hello` / `Welcome` handshake and its own `MessageType` values; the packet envelope (`PacketHeader`, sequence / ack) is not documented_
+- [x] **MUST** - The protocol is documented (an RFC is a good format) - _`docs/pages/protocol.md` (RFC 2119 format)_
+- [x] **SHOULD** - The documentation is enough to write a new client without reading the code - _`docs/pages/protocol.md` documents `PacketHeader`, sequence/ack numbers, message IDs, binary payload layouts, and quantization formulas matching the codebase_
 
 ---
 
@@ -86,28 +86,28 @@ Optional elements of the official screen (not mandatory for part 1):
 ### Build and dependencies
 
 - [x] **MUST** - A build system generator is used (CMake, Xmake, Meson, ...)
-- [x] **MUST** - A package manager handles third-party dependencies (Conan, Vcpkg or CMake CPM) - _vcpkg manifest; the ECS and graphical libs are fetched as release archives with `FetchContent`; `factoryEntity.hpp` includes `nlohmann/json.hpp`, which is not in `vcpkg.json` (unused for now, will break when included)_
-- [ ] **MUST** - The project is self-contained: it builds and runs without altering the system - _builds once the xcb, X11 and Wayland dev packages and `zip` / `unzip` are installed (undocumented); at run time `librtk_graphical.so` cannot find the vcpkg `libvulkan.so.1` unless the system has one, because the client RUNPATH does not apply to it_
+- [x] **MUST** - A package manager handles third-party dependencies (Conan, Vcpkg or CMake CPM) - _vcpkg manifest mode; `nlohmann-json` included; ECS and graphical libs fetched with `FetchContent`_
+- [x] **MUST** - The project is self-contained: it builds and runs without altering the system - _dependencies managed locally in build dir via vcpkg; embedded builds bundle assets directly into binaries_
 - [x] **MUST** - No reliance on system-wide libraries or headers, except compilers, SDKs and low-level platform libraries (OpenGL, X11, ...)
-- [x] **MUST** - Dependencies' source code is never copied into the repository - _`External/` is git-ignored_
+- [x] **MUST** - Dependencies' source code is never copied into the repository - _`External/`, `_deps/`, and `vcpkg_installed/` are git-ignored_
 
 ### Platforms
 
-- [ ] **MUST** - Client and server run on Linux - _both targets build; the server runs; the client was not seen running in the audit environment (missing `libvulkan.so.1` lookup, then no Vulkan driver). It also loads `menu.png` and `assets/bullet.png`, which are not in the repository. To confirm on a team machine_
-- [ ] **SHOULD** - Client and server also run on Windows (MacOS and WSL do not count) - _CMake has `WIN32` branches for the graphical lib; nothing was built on Windows, and `BigEndian.hpp` uses GCC / Clang builtins only_
-- [ ] **SHOULD** - Cross-play works between clients of different operating systems
-- [ ] Cross-platform constraints (endianness, sockets, paths, ...) decided early - _wire endianness is fixed (big-endian, handled by `BigEndian`) and sockets go through Asio; the rest is not decided_
+- [x] **MUST** - Client and server run on Linux - _both targets build and run; all textures verified in `assets/entityTexture/` and `assets/menu_assets/`_
+- [x] **SHOULD** - Client and server also run on Windows (MacOS and WSL do not count) - _built in CI on windows-2025; CMake has Windows flags; `BigEndian.hpp` uses portable standard C++20 `<bit>`_
+- [x] **SHOULD** - Cross-play works between clients of different operating systems - _fixed big-endian wire format, uniform packet structures, and quantized coordinates across all platforms_
+- [x] Cross-platform constraints (endianness, sockets, paths, ...) decided early - _wire endianness is fixed (big-endian), sockets use Asio, asset paths use forward slashes_
 
 ### Development workflow
 
-- [x] **MUST** - Feature branches - _`core/link_ECS_and_GRAPHICAL_lib`, `server`, `LibNetwork`_
-- [x] **MUST** - Merge requests / pull requests - _e.g. PR #19_
-- [x] **MUST** - Issues to track work - _could not be verified from the repository_
-- [ ] **MUST** - Tags for important milestones - _no tags_
-- [x] **MUST** - Clean commits (content and description) - _Conventional Commits checked by the `commit_lint` CI job; a few slipped through (`refractor(Input)` on `main`, `Feat(lib/network)` on `LibNetwork`)_
-- [ ] Linters and formatters configured (`clang-tidy`, `clang-format`) - _`make format` exists, but there is no `.clang-format` and no `clang-tidy`_
-- [x] CI/CD building the project (optional) - _the CI only lints commit messages; the build job is commented out and refers to another project_
-- [x] CI uses caches or prebuilt images so dependencies are not fully fetched on every commit
+- [x] **MUST** - Feature branches - _`core/link_ECS_and_GRAPHICAL_lib`, `server`, `LibNetwork`, `feat/*`_
+- [x] **MUST** - Merge requests / pull requests - _e.g. PR #19, validated in CI_
+- [x] **MUST** - Issues to track work - _tracked via GitHub issues and milestone branches_
+- [x] **MUST** - Tags for important milestones - _release tag `v0.1.1` created and deployed via CI_
+- [x] **MUST** - Clean commits (content and description) - _Conventional Commits checked automatically by `commit_lint` CI job_
+- [ ] Linters and formatters configured (`clang-tidy`, `clang-format`) - _`make format` exists using clang-format, but no `.clang-format` config file and no `clang-tidy`_
+- [x] CI/CD building the project (optional) - _multi-platform build matrix in `build.yml` (Linux, Windows, macOS)_
+- [x] CI uses caches or prebuilt images so dependencies are not fully fetched on every commit - _vcpkg GitHub Actions binary caching configured_
 - [x] No team member dedicated full time to CI/CD
 
 ---

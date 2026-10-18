@@ -99,6 +99,7 @@ std::optional<SceneType> IntroScene::onUpdate(rtk::EngineContext &context,
 
       if (std::abs(transform->position.x - targetX) < 1.0f) {
         LOG_INFO("Animation over");
+        _isTransitioning = false;
         return SceneType::Menu;
       }
     }
