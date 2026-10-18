@@ -285,16 +285,37 @@ void Game::handleConnections(rtk::EngineContext &context) {
                 << connEvent.connectionId << std::endl;
       auto it = _players.find(connEvent.connectionId);
       if (it != _players.end()) {
-        auto *netEnt =
-            context.registry.get_components<component::NetworkEntity>().get(
-                it->second);
-        if (netEnt) {
-          broadcastPlayerDestroyed(connectionId, netEnt->id);
+        if (it->second != NO_ENTITY) {
+          auto *netEnt =
+              context.registry.get_components<component::NetworkEntity>().get(
+                  it->second);
+          if (netEnt) {
+            broadcastPlayerDestroyed(connectionId, netEnt->id);
+          }
+          context.registry.remove_entity_from_all_pools(it->second);
+          context.registry.kill_entity(it->second);
         }
-        context.registry.remove_entity_from_all_pools(it->second);
-        context.registry.kill_entity(it->second);
         _players.erase(it);
       }
+    }
+  }
+}
+
+void Game::broadcastGameEnded(rtk::EngineContext &context) {
+  auto view = context.registry.view<component::NetworkEntity>();
+  auto &networkEntities =
+      context.registry.get_components<component::NetworkEntity>();
+
+  for (auto entity : view) {
+    const auto *netEnt = networkEntities.get(entity);
+    if (!netEnt || netEnt->id == 0)
+      continue;
+
+    const auto payload = protocol::destroyEntityPayload(
+        _serverTick, netEnt->id, protocol::DestroyReason::GameEnded);
+    for (const auto &[playerId, dummy] : _players) {
+      (void)dummy;
+      _server.sendDestroyEntity(playerId, payload);
     }
   }
 }

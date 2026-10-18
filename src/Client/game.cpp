@@ -320,6 +320,9 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
       if (alreadyExists)
         continue;
 
+      if (!context._entityFactory.hasArchetype(createPayload.entityType.get()))
+        continue;
+
       auto entity = context._entityFactory.createNetwork(
           context.registry, createPayload.entityType.get(),
           createPayload.networkId.get());
@@ -366,6 +369,12 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
       _pendingEntityQueries.erase(destroyPayload.networkId.get());
       _networkEntities.erase(destroyPayload.networkId.get());
       _destroyedEntities.insert(destroyPayload.networkId.get());
+
+      if (destroyPayload.reason == protocol::DestroyReason::GameEnded &&
+          !_shouldQuit) {
+        LOG_INFO("GAME OVER");
+        _shouldQuit = true;
+      }
 
       auto view = context.registry.view<component::NetworkEntity>();
       for (auto e : view) {
@@ -451,7 +460,8 @@ void Game::onUnload(rtk::EngineContext &context) {
 
 void Game::createReplicatedEntity(
     rtk::EngineContext &context, const protocol::CreateEntityPayload &payload) {
-  if (_networkEntities.contains(payload.networkId.get()))
+  if (_networkEntities.contains(payload.networkId.get()) ||
+      !context._entityFactory.hasArchetype(payload.entityType.get()))
     return;
 
   const auto entity = context._entityFactory.createNetwork(

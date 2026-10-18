@@ -40,7 +40,7 @@ public:
       if (!transform)
         continue;
 
-      if (transform->position.x > 1920.0f) {
+      if (transform->position.x > 1920.0f || transform->position.x < -200.0f) {
         reg.get_components<component::Dead>().insert_at(entity, {});
       }
     }

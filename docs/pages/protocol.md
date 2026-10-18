@@ -69,7 +69,7 @@ There are two kinds of datagrams:
 | Kind | Used | Starts with |
 | ---- | ---- | ----------- |
 | Handshake datagram | Before the connection exists | A 6 byte handshake header (section 4) |
-| Connected packet | After `Welcome` | A 16 byte packet header (section 5) |
+| Connected packet | After `Welcome` | A 19 byte packet header (section 5) |
 
 The receiver tells them apart by the sender address, not by content:
 
@@ -168,8 +168,13 @@ previous ones were received. When a packet arrives, the receiver classifies its
 | Lower than the highest by 1 to 32, not seen yet | Out of order | Process. |
 | Lower than the highest by more than 32 | Too old | MUST drop. |
 
-`ack` and `ackBits` describe the state above at the time of sending. A sender
-MAY use them to measure loss or to retransmit important messages.
+`ack` and `ackBits` describe the state above at the time of sending. A client
+MUST fill them in every packet it sends. The server uses them to retransmit
+its priority 0 and 1 packets: a priority 0 packet still unacknowledged after 10
+resends counts as a loss, and after 3 losses the server closes the connection
+as too unstable. A client that never acknowledges is therefore disconnected
+after a few seconds. A client with nothing to send SHOULD still send a packet
+without message (header only) so that its acknowledgements reach the server.
 
 ### 5.3 Messages
 
@@ -439,6 +444,7 @@ Blueprints currently used by the server:
 | `ramp` | `0xBE70` | Stage tile |
 | `reactor` | `0x6C78` | Stage tile |
 | `gate` | `0xFD72` | Stage tile |
+| `enemy_bullet` | `0x7FF2` | Bydos missile |
 
 Stage tiles placed at y = 0 belong to the ceiling and SHOULD be drawn flipped
 vertically.
@@ -484,7 +490,8 @@ Game rules a client should know:
 | Round start | 2 players connected, or 30 seconds after the first player joined |
 | Player slots | 4, one ship color per slot |
 | Spawn position of slot n (0 to 3) | x = 150, y = 150 + 100 n |
-| Return to lobby | When every player has left |
+| Return to lobby | When every player has left, or when every ship is destroyed (game over) |
+| Game over | Every entity is removed with `DestroyEntity` reason 4, then the client closes |
 
 ## 11. Examples
 
