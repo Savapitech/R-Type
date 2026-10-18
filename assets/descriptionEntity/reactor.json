@@ -4,6 +4,8 @@
     "sprite": { "texture": "assets/stage1.png", "size": { "w": 113.0, "h": 97.0 }, "textureRect": { "x": 1552, "y": 144, "w": 113, "h": 97 }, "origin": { "x": 0.0, "y": 0.0 }, "color": { "r": 255, "g": 255, "b": 255, "a": 255 }, "layer": -1 },
     "collider": { "width": 113.0, "height": 97.0, "layer": "Environment", "mask": ["Player", "Enemy", "PlayerProjectile", "EnemyProjectile"] },
     "velocity": { "x": -50.0, "y": 0.0 },
-    "networkEntity": {}
+    "networkEntity": {},
+    "health": { "max": 100.0, "current": 100.0 },
+    "destroyableTile": { "explosionDamage": 20.0, "isTriggered": false }
   }
 }

@@ -76,7 +76,7 @@ public:
         enemy->fireTimer = enemy->fireRate;
 
         bulletsToSpawn.push_back(
-            {transform->position.x - 30.0f, transform->position.y});
+            {transform->position.x - 30.0f, transform->position.y + 32});
       }
     }
 
@@ -89,7 +89,7 @@ public:
       auto *bulletTransform =
           reg.get_components<component::Transform>().get(bulletEntity);
       if (bulletTransform) {
-        bulletTransform->position = {bullet.x, bullet.y};
+        bulletTransform->position = {bullet.x, bullet.y + 32};
 
         rtype::protocol::CreateEntityPayload payload =
             rtype::protocol::createEntityPayload(
