@@ -2,7 +2,9 @@
 
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 ![C++20](https://img.shields.io/badge/C%2B%2B-20-informational.svg)
-![Platform: Linux, Windows, MacOS](https://img.shields.io/badge/platform-Linux-lightgrey.svg)
+![Platform: Linux](https://img.shields.io/badge/platform-Linux-blue.svg)
+![Platform: MacOS](https://img.shields.io/badge/platform-MacOS-blue.svg)
+![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue.svg)
 [![CI](https://github.com/Savapitech/R-Type/actions/workflows/ci.yml/badge.svg)](https://github.com/Savapitech/R-Type/actions/workflows/ci.yml)
 [![Documentation](https://github.com/Savapitech/R-Type/actions/workflows/docs.yml/badge.svg)](https://github.com/Savapitech/R-Type/actions/workflows/docs.yml)
 [![Build](https://github.com/Savapitech/R-Type/actions/workflows/build.yml/badge.svg)](https://github.com/Savapitech/R-Type/actions/workflows/build.yml)
