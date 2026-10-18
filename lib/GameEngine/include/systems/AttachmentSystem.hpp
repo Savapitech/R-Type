@@ -37,11 +37,20 @@ public:
       if (!transform || !attached)
         continue;
       auto *targetTransform = transforms.get(attached->targetEntity);
-      if (targetTransform) {
+      bool isAlive = false;
+      auto targetView = reg.view<component::Transform>();
+      for (auto e : targetView) {
+        if (e == attached->targetEntity) {
+          isAlive = true;
+          break;
+        }
+      }
+      if (targetTransform && isAlive) {
         transform->position.x = targetTransform->position.x + attached->offsetX;
         transform->position.y = targetTransform->position.y + attached->offsetY;
       } else {
-        reg.get_components<component::Dead>().insert_at(entity, {});
+        reg.remove_entity_from_all_pools(entity);
+        reg.kill_entity(entity);
       }
     }
   }
