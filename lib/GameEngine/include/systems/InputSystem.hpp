@@ -32,7 +32,7 @@ public:
   InputSystem(std::reference_wrapper<WindowType> window,
               rtk::InputState &inputState,
               const rtk::Input::InputMapping &mapping)
-      : _window(window.get()), _inputState(inputState), _mapping(mapping){};
+      : _window(window.get()), _inputState(inputState), _mapping(mapping) {};
 
   ~InputSystem() override = default;
 
