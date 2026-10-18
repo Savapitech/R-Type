@@ -96,6 +96,7 @@ private:
   void handleDatagram(const asio::ip::udp::endpoint &endpoint,
                       const std::vector<std::uint8_t> &data);
   void sendWelcome(Connection &connection);
+  void sendRejected(const asio::ip::udp::endpoint &endpoint);
   void doSend(std::uint32_t connectionId,
               const std::vector<std::uint8_t> &payload,
               PacketPriority priority = PacketPriority::Unreliable);

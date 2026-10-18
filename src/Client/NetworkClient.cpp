@@ -11,6 +11,7 @@
 #include "protocol/MessageParser.hpp"
 #include "protocol/PacketHeader.hpp"
 #include "protocol/PacketReader.hpp"
+#include "protocol/PingMessage.hpp"
 #include "protocol/SystemMessages.hpp"
 #include "tracking/PacketTracker.hpp"
 
@@ -165,9 +166,34 @@ void NetworkClient::startFlushTimer() {
       pushEvent({.type = NetworkEventType::Disconnected,
                  .connectionId = _connectionId.load()});
     }
+    sendKeepalive();
     flush();
     startFlushTimer();
   });
+}
+
+void NetworkClient::sendKeepalive() {
+  if (!_connected.load())
+    return;
+
+  const auto now = std::chrono::steady_clock::now();
+  if (now - _lastKeepalive < KEEPALIVE_INTERVAL)
+    return;
+  _lastKeepalive = now;
+
+  PacketWriter writer;
+  MessageHeader header;
+  header.setType(systemMessage::Ping);
+  header.size = PingMessage::SIZE;
+
+  PingMessage ping;
+  ping.timestamp = static_cast<std::uint32_t>(
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          now.time_since_epoch())
+          .count());
+
+  if (header.serialize(writer) && ping.serialize(writer))
+    _tracker.enqueue(writer.getData(), PacketPriority::Unreliable);
 }
 
 void NetworkClient::send(const std::vector<uint8_t> &data) {
@@ -335,7 +361,8 @@ void NetworkClient::handleConnectedPackets(const std::uint8_t *data,
 void NetworkClient::pushEvent(NetworkEvent event) {
   std::lock_guard<std::mutex> lock(_eventMutex);
 
-  _events.push(std::move(event));
+  if (_events.size() < MAX_QUEUED_EVENTS)
+    _events.push(std::move(event));
 }
 
 bool NetworkClient::pollEvent(NetworkEvent &event) {
@@ -410,7 +437,8 @@ void NetworkClient::handleReplicationMessage(
       return;
 
     std::lock_guard<std::mutex> lock(_eventMutex);
-    _replicationEvents.push({connectionId, std::move(decoded)});
+    if (_replicationEvents.size() < MAX_QUEUED_EVENTS)
+      _replicationEvents.push({connectionId, std::move(decoded)});
     return;
   }
   case protocol::MessageType::DestroyEntity: {
@@ -421,7 +449,8 @@ void NetworkClient::handleReplicationMessage(
       return;
 
     std::lock_guard<std::mutex> lock(_eventMutex);
-    _replicationEvents.push({connectionId, std::move(decoded)});
+    if (_replicationEvents.size() < MAX_QUEUED_EVENTS)
+      _replicationEvents.push({connectionId, std::move(decoded)});
     return;
   }
   case protocol::MessageType::Snapshot: {
@@ -431,7 +460,8 @@ void NetworkClient::handleReplicationMessage(
       return;
 
     std::lock_guard<std::mutex> lock(_eventMutex);
-    _replicationEvents.push({connectionId, std::move(decoded)});
+    if (_replicationEvents.size() < MAX_QUEUED_EVENTS)
+      _replicationEvents.push({connectionId, std::move(decoded)});
     return;
   }
 

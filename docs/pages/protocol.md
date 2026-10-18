@@ -52,6 +52,16 @@ A sender MUST NOT send a datagram larger than 548 bytes. A receiver MUST
 discard any datagram larger than 548 bytes. Keeping datagrams under this size
 avoids IP fragmentation on every network path.
 
+A server also bounds the state it keeps for untrusted peers:
+
+| Limit | Value | Meaning |
+| ----- | ----: | ------- |
+| Connections | 4 | Simultaneous connections. Connections are identified by the full address (IP and port), so several players can share one public IP. |
+| Inactivity timeout | 10 s | A connection that sends no valid packet for this long is closed. |
+| Queued packets | 256 per priority | Packets waiting to be sent to one peer. |
+| Unacknowledged packets | 512 | Reliable and Critical packets waiting for an ack. |
+| Queued events | 1024 | Decoded messages waiting for the game loop. Further ones are dropped. |
+
 ## 3. Datagram kinds
 
 There are two kinds of datagrams:
@@ -117,7 +127,8 @@ sends.
 
 ### 4.4 Rejected
 
-The 6 byte handshake header alone, with `type` set to 3. The client MUST stop
+The 6 byte handshake header alone, with `type` set to 3. The server sends it
+when it already holds 4 connections. The client MUST stop
 trying to connect. The client MUST ignore a `Rejected` datagram that has extra
 bytes.
 
@@ -541,6 +552,11 @@ Every datagram comes from an untrusted source. Implementations MUST:
 - reject enum values out of range and network ids equal to 0,
 - bound every count read from the network before allocating memory, such as
   `entityCount` of `Snapshot`,
+- accept a `Hello` only if it is exactly 6 bytes long,
+- bound every queue fed by the network, and every per-peer table, so that a
+  flood of datagrams cannot make the memory grow without limit (see §2.2),
+- close a connection that stays silent for 10 seconds, and send a `Ping` at
+  least once per second while connected so that an idle client is not closed,
 - discard invalid datagrams silently, without answering, so that the protocol
   cannot be used to amplify traffic.
 
@@ -553,13 +569,8 @@ be treated as secrets.
 These points are known and planned for a future version. A new client must
 nevertheless cope with them.
 
-- The server never sends `Rejected` at the moment: an invalid `Hello` is
+- The server only sends `Rejected` when it is full: an invalid `Hello` is
   dropped and the client times out.
-- If `Welcome` is lost, the server already has a connection for the client
-  address and drops the following `Hello` datagrams. The client then times out
-  and has to reconnect from another port.
-- The server has no inactivity timeout: a client that disappears without
-  `Disconnect` keeps its connection and its ship.
 - `CreateEntity` and `DestroyEntity` are not retransmitted. A lost creation is
   repaired by `QueryEntity`, a lost destruction is not.
 - `Welcome` does not tell the client which ship is its own.

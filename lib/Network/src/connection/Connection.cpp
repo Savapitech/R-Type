@@ -2,7 +2,8 @@
 
 Connection::Connection(std::uint32_t id,
                        const asio::ip::udp::endpoint &endpoint)
-    : _id(id), _endpoint(endpoint) {}
+    : _id(id), _endpoint(endpoint),
+      _lastReceived(std::chrono::steady_clock::now()) {}
 
 std::uint32_t Connection::getId() const { return _id; }
 
@@ -26,3 +27,11 @@ PacketReceiveRes Connection::onPacketReceived(const PacketHeader &header) {
 }
 
 PacketTracker &Connection::getTracker() { return _tracker; }
+
+void Connection::touch(std::chrono::steady_clock::time_point now) {
+  _lastReceived = now;
+}
+
+std::chrono::steady_clock::time_point Connection::getLastReceived() const {
+  return _lastReceived;
+}

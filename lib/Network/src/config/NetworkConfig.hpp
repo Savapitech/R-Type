@@ -40,4 +40,17 @@ inline constexpr std::chrono::milliseconds ACK_ONLY_DELAY{50};
 /// Period of the timer that flushes the outgoing queues.
 inline constexpr std::chrono::milliseconds FLUSH_INTERVAL{5};
 
+/// Maximum number of simultaneous client connections on a server.
+inline constexpr std::size_t MAX_CONNECTIONS = 4;
+/// Time without any valid packet after which a connection is closed.
+inline constexpr std::chrono::milliseconds CONNECTION_TIMEOUT{10000};
+/// Period of the keepalive Ping sent by an idle client.
+inline constexpr std::chrono::milliseconds KEEPALIVE_INTERVAL{1000};
+/// Maximum number of packets waiting in one priority queue of a connection.
+inline constexpr std::size_t MAX_QUEUED_PACKETS = 256;
+/// Maximum number of sent packets waiting for an ack on one connection.
+inline constexpr std::size_t MAX_PENDING_PACKETS = 512;
+/// Maximum number of decoded events waiting for the game loop.
+inline constexpr std::size_t MAX_QUEUED_EVENTS = 1024;
+
 /** @} */

@@ -59,8 +59,8 @@ Optional elements of the official screen (not mandatory for part 1):
 - [x] **MUST** - All in-game communication (entities, movements, events) uses UDP
 - [x] If a TCP channel is added, it is strongly justified in writing
 - [x] **MUST** - A malformed packet never crashes the client or the server
-- [ ] **MUST** - A malformed packet never causes excessive memory consumption
-- [ ] **MUST** - A malformed packet never compromises server security (buffer overflows included)
+- [x] **MUST** - A malformed packet never causes excessive memory consumption
+- [x] **MUST** - A malformed packet never compromises server security (buffer overflows included)
 - [x] **MUST** - The protocol is documented (an RFC is a good format)
 - [x] **SHOULD** - The documentation is enough to write a new client without reading the code
 

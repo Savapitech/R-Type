@@ -68,8 +68,18 @@ void NetworkServer::handleHandshake(const asio::ip::udp::endpoint &endpoint,
   if (handshake.version != VERSION)
     return;
 
-  if (handshake.type != HandshakeType::Hello)
+  if (handshake.type != HandshakeType::Hello || !reader.isEnd())
     return;
+
+  if (Connection *known = findConnectionByEndpoint(endpoint)) {
+    sendWelcome(*known);
+    return;
+  }
+
+  if (_connections.size() >= MAX_CONNECTIONS) {
+    sendRejected(endpoint);
+    return;
+  }
 
   std::uint32_t connectionId = _nextId++;
   auto connection = std::make_unique<Connection>(connectionId, endpoint);
@@ -105,9 +115,11 @@ void NetworkServer::handleConnectedPacket(
   if (connection.getEndpoint() != endpoint)
     return;
 
-  if (!connection.getTracker().onPacketReceived(
-          header, std::chrono::steady_clock::now()))
+  const auto now = std::chrono::steady_clock::now();
+  if (!connection.getTracker().onPacketReceived(header, now))
     return;
+
+  connection.touch(now);
 
   std::vector<ParsedMessage> messages;
   if (!MessageParser::parse(reader, messages)) {
@@ -124,7 +136,7 @@ void NetworkServer::handleDatagram(const asio::ip::udp::endpoint &endpoint,
                                    const std::vector<std::uint8_t> &data) {
   Connection *connection = findConnectionByEndpoint(endpoint);
 
-  if (connection == nullptr) {
+  if (connection == nullptr || data.size() == HandshakeHeader::HEADER_SIZE) {
     handleHandshake(endpoint, data);
     return;
   }
@@ -146,6 +158,20 @@ void NetworkServer::sendWelcome(Connection &connection) {
     return;
 
   _transport.send(connection.getEndpoint(), writer.getData());
+}
+
+void NetworkServer::sendRejected(const asio::ip::udp::endpoint &endpoint) {
+  PacketWriter writer;
+
+  HandshakeHeader header;
+  header.magic = MAGIC;
+  header.type = HandshakeType::Rejected;
+  header.version = VERSION;
+
+  if (!header.serialize(writer))
+    return;
+
+  _transport.send(endpoint, writer.getData());
 }
 
 void NetworkServer::doSend(std::uint32_t connectionId,
@@ -188,8 +214,13 @@ void NetworkServer::startFlushTimer() {
       if (it == _connections.end())
         continue;
 
-      if (it->second->getTracker().isTimedOut()) {
-        std::cerr << "Connection " << id << " timed out, network too unstable"
+      const bool idle =
+          std::chrono::steady_clock::now() - it->second->getLastReceived() >
+          CONNECTION_TIMEOUT;
+      if (idle || it->second->getTracker().isTimedOut()) {
+        std::cerr << "Connection " << id
+                  << (idle ? " timed out, no packet received"
+                           : " timed out, network too unstable")
                   << std::endl;
         PacketWriter writer;
         MessageHeader header;

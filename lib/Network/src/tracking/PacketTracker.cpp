@@ -74,7 +74,11 @@ bool PacketTracker::enqueue(std::vector<std::uint8_t> payload,
   if (payload.size() > MAX_MESSAGE_SIZE)
     return false;
 
-  _queues[static_cast<std::size_t>(priority)].push_back(std::move(payload));
+  auto &queue = _queues[static_cast<std::size_t>(priority)];
+  if (queue.size() >= MAX_QUEUED_PACKETS)
+    return false;
+
+  queue.push_back(std::move(payload));
   return true;
 }
 
@@ -160,6 +164,10 @@ PacketTracker::collectOutgoing(TimePoint now, std::uint32_t connectionId) {
 
     auto &queue = _queues[level];
     while (!queue.empty()) {
+      if (priority != PacketPriority::Unreliable &&
+          _pending.size() >= MAX_PENDING_PACKETS)
+        break;
+
       std::vector<std::uint8_t> body = std::move(queue.front());
       queue.pop_front();
 
