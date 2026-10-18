@@ -4,6 +4,7 @@
 #include "Server.hpp"
 #include "components/Dead.hpp"
 #include "components/NetworkEntity.hpp"
+#include "game.hpp"
 #include <ISystem.hpp>
 #include <cstdint>
 #include <unordered_map>
@@ -26,10 +27,9 @@ public:
    * @param players Connected players, keyed by connection id.
    * @param serverTick Current server tick.
    */
-  ServerDeathSystem(
-      Server &server,
-      const std::unordered_map<std::uint32_t, std::size_t> &players,
-      const std::uint32_t &serverTick)
+  ServerDeathSystem(Server &server,
+                    std::unordered_map<std::uint32_t, std::size_t> &players,
+                    const std::uint32_t &serverTick)
       : _server(server), _players(players), _serverTick(serverTick) {}
 
   ~ServerDeathSystem() override = default;
@@ -62,6 +62,10 @@ public:
           _server.sendDestroyEntity(playerId, payload);
         }
       }
+      for (auto &[playerId, playerEntity] : _players) {
+        if (playerEntity == entity)
+          playerEntity = Game::NO_ENTITY;
+      }
       reg.remove_entity_from_all_pools(entity);
       reg.kill_entity(entity);
     }
@@ -74,7 +78,7 @@ public:
 
 private:
   Server &_server;
-  const std::unordered_map<std::uint32_t, std::size_t> &_players;
+  std::unordered_map<std::uint32_t, std::size_t> &_players;
   const std::uint32_t &_serverTick;
 };
 

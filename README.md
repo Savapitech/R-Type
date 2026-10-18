@@ -140,12 +140,16 @@ so they must be started **from the repository root** (not necessary with embedde
 ### Client
 
 ```sh
-./bin/r-type_client
+./bin/r-type_client [-h host] [-p port]
 ```
 
-The client currently connects to `127.0.0.1` on UDP port `4242`. Start several
-clients to play together, up to four players per game. Each player gets a
-distinct ship color.
+| Argument | Description                 | Default     |
+| -------- | --------------------------- | ----------- |
+| `host`   | Address of the server       | `127.0.0.1` |
+| `port`   | UDP port of the server      | `4242`      |
+
+Start several clients to play together, up to four players per game. Each
+player gets a distinct ship color.
 
 ### Controls
 

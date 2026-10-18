@@ -47,7 +47,7 @@ ServerGameScene::onUpdate(rtk::EngineContext &context, const ServerInput &input,
   auto &transforms = context.registry.get_components<component::Transform>();
 
   for (const auto &[connId, entity] : _dependency.game.getPlayers()) {
-    if (transforms.get(entity) != nullptr) {
+    if (entity != Game::NO_ENTITY && transforms.get(entity) != nullptr) {
       isAnyPlayerAlive = true;
       break;
     }
@@ -64,6 +64,7 @@ void ServerGameScene::onExit(rtk::EngineContext &context) {
   std::cout << "[Server InGame] Leaving InGame Scene. Resetting game..."
             << std::endl;
   _dependency.game.setGameActive(false);
+  _dependency.game.broadcastGameEnded(context);
 
   auto view = context.registry.view<component::Transform>();
 

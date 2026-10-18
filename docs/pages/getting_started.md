@@ -58,7 +58,7 @@ their assets from the `assets/` folder of the repository.
 | CMake | 3.20 or newer |
 | vcpkg | `VCPKG_ROOT` must point to the installation |
 | GNU Make | Optional, drives the `Makefile` (`choco install make` on Windows) |
-| Git, curl, zip, unzip, tar, pkg-config | Used by vcpkg to fetch dependencies |
+| Git, curl, zip, unzip, tar, pkg-config, Python 3 | Used by vcpkg to fetch and build dependencies |
 | Vulkan capable GPU and driver | Needed to run the client only |
 
 The low level system libraries are installed per platform.
@@ -67,7 +67,7 @@ The low level system libraries are installed per platform.
 
 ```sh
 sudo apt install build-essential cmake git curl zip unzip tar pkg-config \
-    libx11-dev libx11-xcb-dev libxcb1-dev libxrandr-dev libwayland-dev \
+    python3 libx11-dev libx11-xcb-dev libxcb1-dev libxrandr-dev libwayland-dev \
     libvulkan1 mesa-vulkan-drivers
 ```
 
@@ -195,7 +195,7 @@ so start them from the repository root.
 
 ```sh
 ./bin/r-type_server [port]   # listens on UDP port 4242 by default
-./bin/r-type_client          # connects to 127.0.0.1:4242
+./bin/r-type_client [-h host] [-p port]   # 127.0.0.1:4242 by default
 ```
 
 On Windows, run `.\bin\r-type_server.exe` and `.\bin\r-type_client.exe`.

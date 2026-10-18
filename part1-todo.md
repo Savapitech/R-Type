@@ -171,7 +171,7 @@ The project **and its documentation** must be accessible. Each category needs a 
 
 - [ ] Everything is merged on the evaluated branch before Sunday 11:42 PM
 - [ ] Fresh clone builds and runs on Linux with the documented instructions only
-- [ ] A full game with several clients was played and works
-- [ ] A client crash was tested, and the server and other clients survived
-- [ ] Malformed packets were tested, and neither the server nor the client crashed
-- [ ] Documentation website is online and up to date
+- [x] A full game with several clients was played and works
+- [x] A client crash was tested, and the server and other clients survived
+- [x] Malformed packets were tested, and neither the server nor the client crashed
+- [x] Documentation website is online and up to date

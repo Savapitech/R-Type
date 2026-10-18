@@ -1,5 +1,6 @@
 #include "NetworkClient.hpp"
 #include "Protocol/BigEndian.hpp"
+#include "Protocol/DisconnectPayload.hpp"
 #include "Protocol/EntityPayload.hpp"
 #include "Protocol/InputPayload.hpp"
 #include "Protocol/MessageType.hpp"
@@ -395,6 +396,23 @@ void NetworkClient::stop() {
 
   asio::post(_ioContext, [this]() {
     asio::error_code ignored;
+
+    if (_connected.load() && _socket.is_open()) {
+      PacketWriter writer;
+      MessageHeader header;
+      header.setType(systemMessage::Disconnect);
+      header.size = sizeof(protocol::DisconnectPayload);
+
+      if (header.serialize(writer) &&
+          writer.writeUInt8(static_cast<std::uint8_t>(
+              protocol::DisconnectReason::ClientQuit)) &&
+          _tracker.enqueue(writer.getData(), PacketPriority::Unreliable)) {
+        for (const auto &datagram : _tracker.collectOutgoing(
+                 std::chrono::steady_clock::now(), _connectionId.load()))
+          _socket.send_to(asio::buffer(datagram), _serverEndpoint, 0, ignored);
+      }
+    }
+
     _flushTimer.cancel();
     _socket.cancel(ignored);
     _socket.close(ignored);

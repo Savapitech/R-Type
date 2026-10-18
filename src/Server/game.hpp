@@ -12,6 +12,7 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <unordered_map>
 
 namespace rtype::server {
@@ -31,6 +32,10 @@ class Game {
   friend class ServerGameScene;
 
 public:
+  /// Entity of a player whose ship was destroyed.
+  static constexpr std::size_t NO_ENTITY =
+      std::numeric_limits<std::size_t>::max();
+
   /**
    * @brief Creates the game and its network server.
    * @param port UDP port to listen on.
@@ -109,6 +114,13 @@ public:
     _serverTick = 0;
     _isGameActive = false;
   }
+
+  /**
+   * @brief Sends DestroyEntity with reason GameEnded for every replicated
+   * entity to every player.
+   * @param context Engine services.
+   */
+  void broadcastGameEnded(rtk::EngineContext &context);
 
 private:
   void registerComponents(rtk::EngineContext &context);
