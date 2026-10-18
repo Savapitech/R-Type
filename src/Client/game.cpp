@@ -366,8 +366,6 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           sprite->flags = 1 << 1;
         }
       }
-      LOG_INFO(std::to_string(createPayload.entityType.get()));
-
     }
 
     else if (std::holds_alternative<protocol::DestroyEntityPayload>(
