@@ -14,4 +14,5 @@ bin
 compile_command.json
 compile_commands.json
 vcpkg_installed
+.DS_Store
 build-*
