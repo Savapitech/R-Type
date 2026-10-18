@@ -7,6 +7,7 @@
 
 #include <asio.hpp>
 #include <asio/ip/udp.hpp>
+#include <chrono>
 #include <cstdint>
 
 #include "../protocol/PacketHeader.hpp"
@@ -55,7 +56,20 @@ public:
    */
   PacketTracker &getTracker();
 
+  /**
+   * @brief Records that a valid packet was just received.
+   * @param now Current time.
+   */
+  void touch(std::chrono::steady_clock::time_point now);
+
+  /**
+   * @brief Returns the time of the last valid packet.
+   * @return Creation time if no packet was received yet.
+   */
+  std::chrono::steady_clock::time_point getLastReceived() const;
+
 private:
+  std::chrono::steady_clock::time_point _lastReceived;
   std::uint32_t _id;
   asio::ip::udp::endpoint _endpoint;
   PacketTracker _tracker;

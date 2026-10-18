@@ -4,6 +4,7 @@
 #include <asio.hpp>
 #include <asio/steady_timer.hpp>
 #include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
@@ -83,6 +84,8 @@ private:
   std::atomic_bool _connected{false};
   std::atomic<std::uint32_t> _connectionId{0};
   std::uint32_t _nextInputSequence = 1;
+  std::chrono::steady_clock::time_point _lastKeepalive{};
+
   std::mutex _eventMutex;
   std::queue<NetworkEvent> _events;
   std::queue<ReplicationEvent> _replicationEvents;
@@ -98,6 +101,7 @@ private:
   void enqueue(std::vector<std::uint8_t> payload, PacketPriority priority);
   void flush();
   void startFlushTimer();
+  void sendKeepalive();
   void pushEvent(NetworkEvent event);
 
 public:

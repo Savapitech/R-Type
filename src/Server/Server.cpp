@@ -7,6 +7,7 @@
 #include "Protocol/MessageType.hpp"
 #include "Protocol/PayloadCodec.hpp"
 #include "Protocol/SnapshotPayload.hpp"
+#include "config/NetworkConfig.hpp"
 #include "protocol/MessageHeader.hpp"
 #include "protocol/PacketReader.hpp"
 #include "protocol/PacketWriter.hpp"
@@ -78,7 +79,8 @@ void Server::handleMessage(std::uint32_t connectionId, MessageId type,
     {
       std::lock_guard<std::mutex> lock(_inputMutex);
 
-      _inputQueue.push({connectionId, input});
+      if (_inputQueue.size() < MAX_QUEUED_EVENTS)
+        _inputQueue.push({connectionId, input});
     }
     break;
   }
@@ -92,7 +94,8 @@ void Server::handleMessage(std::uint32_t connectionId, MessageId type,
     }
     {
       std::lock_guard<std::mutex> lock(_queryMutex);
-      _queryQueue.push({connectionId, query.networkId.get()});
+      if (_queryQueue.size() < MAX_QUEUED_EVENTS)
+        _queryQueue.push({connectionId, query.networkId.get()});
     }
     break;
   }
