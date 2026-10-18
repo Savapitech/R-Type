@@ -12,7 +12,7 @@ the current choices are listed too, with the planned answer.
 | Criterion | Why it matters here |
 | --------- | ------------------- |
 | Latency and performance | The game simulates and draws at 60 frames per second on both sides. |
-| Portability | The server and the client must run on Linux and should run on Windows. |
+| Portability | The server and the client must run on Linux, macOS and Windows, on x86_64 and arm64. |
 | Decoupling | Rendering, networking and gameplay must stay independent layers. |
 | Robustness | Any byte from the network may be hostile. |
 | Simplicity | A small team, six weeks, and code that new members can read. |
@@ -33,7 +33,7 @@ Vulkan and to the operating system, and modern features that we use on purpose.
 Concepts (rtk::Game, rtk::Scene, rtk::ecs::concepts::IsRenderWindow) give
 interfaces checked at compile time without virtual calls, `std::variant` holds
 the active scene, and `std::bit_cast` converts sprites and big-endian values
-without undefined behavior.
+without undefined behavior. And this is the language that Epitech required us to use.
 
 ## 3. Graphics, window, input and audio library
 
@@ -143,7 +143,7 @@ it is the right tool: the world state is sent again 20 times per second, so a
 lost snapshot is simply replaced by the next one. Delivering a stale snapshot
 late, as TCP would, only adds lag. The few messages that matter more
 (creations) are repaired with `QueryEntity`. We do not need any message that
-would justify a TCP channel.
+would justify a TCP channel. Same as for C++, forced by Epitech to use it.
 
 ### 6.2 Network library
 
@@ -154,7 +154,7 @@ would justify a TCP channel.
 | Boost.Asio | Same as Asio | Same | All of Boost | Heavier for the same API |
 | ENet, GameNetworkingSockets | Good | Own event loop | Library and its protocol | Brings its own protocol, so we would not design ours |
 
-**Choice: standalone Asio.** One code base runs on Linux and Windows, the
+**Choice: standalone Asio.** One code base runs on Linux, macOS and Windows, the
 asynchronous handlers run on a thread we control, and it adds no other
 dependency. Libraries such as ENet would solve reliability for us, but the
 project asks us to design the protocol, and we want full control over
@@ -253,7 +253,6 @@ in a single file without running a database server.
 
 | Weakness | Risk | Planned answer |
 | -------- | ---- | -------------- |
-| No limit on the number of connections, and no inactivity timeout | A flood of `Hello` from many addresses grows the connection table forever | Cap the connection count, expire silent connections after a few seconds, and answer `Rejected` when full. |
 | Sequential connection ids | An attacker able to spoof the address of a player can guess its id | Random 32-bit connection ids, then a nonce exchanged in the handshake. |
 | No encryption or authentication | Traffic can be read and forged on the path | Acceptable for a LAN game. A keyed message authentication code per packet is the next step for Internet play. |
 | rtk libraries fetched from the latest release | An upstream change can alter the build without any change in our repository | Pin release versions and verify archive hashes in CMake. |

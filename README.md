@@ -21,6 +21,7 @@ client and server that are built on top of them.
 
 - [About the project](#about-the-project)
 - [Supported platforms](#supported-platforms)
+- [Download a release](#download-a-release)
 - [Requirements](#requirements)
 - [Quick start](#quick-start)
 - [Building](#building)
@@ -58,36 +59,41 @@ The project is developed as part of the Epitech Advanced C++ curriculum.
 
 ## Supported platforms
 
-| Platform         |
-| ---------------- |
-| Linux (x64, arm64)  |
-| Windows (x64, arm64)    |
-| MacOS (x64, arm64)    |
+| OS      | Prebuilt release binaries |
+| ------- | ------------------------- |
+| Linux   | x86_64, arm64             |
+| macOS   | x86_64, arm64             |
+| Windows | x86_64                    |
 
-## Requirements
+The CI builds and tests the server and the client on every platform above (see
+[`.github/workflows/build.yml`](.github/workflows/build.yml)). Windows arm64 is
+supported from source but no prebuilt binary is published for it yet.
 
-### Toolchain
+## Download a release
 
-| Tool                                      | Minimum version |
-| ----------------------------------------- | --------------- |
-| C++20 compiler (GCC, Clang or MSVC)       | C++20 support   |
-| [CMake](https://cmake.org/)               | 3.20            |
-| [vcpkg](https://github.com/microsoft/vcpkg) | any recent release |
-| GNU Make (optional, for the `Makefile`)   | any             |
-| Git, curl, zip, unzip, tar, pkg-config    | any             |
+Every tagged release (`v*`) contains standalone binaries built by the CI. The
+assets, libraries and sprites are embedded in them, so **the only thing you need
+installed is Vulkan** (a Vulkan capable GPU and driver, plus MoltenVK on macOS)
+to run the client. The server needs nothing.
 
-### System libraries (Linux)
-
-Only low level platform libraries are taken from the system. On Debian or
-Ubuntu they can be installed with:
+| Files                                      | Platform            |
+| ------------------------------------------ | ------------------- |
+| `r-type_server-linux-x86_64`, `r-type_client-linux-x86_64`     | Linux x86_64   |
+| `r-type_server-linux-arm64`, `r-type_client-linux-arm64`       | Linux arm64    |
+| `r-type_server-macos-x86_64`, `r-type_client-macos-x86_64`     | macOS Intel    |
+| `r-type_server-macos-arm64`, `r-type_client-macos-arm64`       | macOS Apple silicon |
+| `r-type_server-windows-x86_64.exe`, `r-type_client-windows-x86_64.exe` | Windows x86_64 |
 
 ```sh
-sudo apt install build-essential cmake git curl zip unzip tar pkg-config \
-    libx11-dev libx11-xcb-dev libxcb1-dev libxrandr-dev libwayland-dev \
-    libvulkan1 mesa-vulkan-drivers
+chmod +x r-type_server-linux-x86_64 r-type_client-linux-x86_64   # Linux and macOS
+./r-type_server-linux-x86_64 &
+./r-type_client-linux-x86_64
 ```
 
-A GPU and driver with Vulkan support are required to run the client.
+They can be started from any directory. To compile the project yourself, see
+[Building](#building).
+
+## Requirements
 
 ### Third-party dependencies
 
@@ -109,58 +115,17 @@ The vcpkg manifest is [`vcpkg.json`](vcpkg.json).
 
 ## Quick start
 
-```sh
-# 1. Install vcpkg once (skip if VCPKG_ROOT is already set)
-git clone https://github.com/microsoft/vcpkg.git ~/vcpkg
-~/vcpkg/bootstrap-vcpkg.sh
-export VCPKG_ROOT=~/vcpkg
-
-# 2. Clone and build
-git clone https://github.com/Savapitech/R-Type.git
-cd R-Type
-make
-
-# 3. Run a server and a client, from the repository root
-./bin/r-type_server &
-./bin/r-type_client
-```
+If you only want to play, download a [release](#download-a-release). To build
+from source, see [Building](#building).
 
 ## Building
 
-The `VCPKG_ROOT` environment variable must point to your vcpkg installation.
-The first build takes longer because vcpkg compiles the dependencies; they are
-cached for the following builds.
-
-### With the Makefile
-
-| Command      | Effect                                                    |
-| ------------ | --------------------------------------------------------- |
-| `make`       | Configure and build in `Release` mode                     |
-| `make debug` | Configure and build in `Debug` mode                       |
-| `make clean` | Remove the CMake build directory                          |
-| `make fclean`| Also remove the fetched libraries and the binaries        |
-| `make re`    | Full rebuild                                              |
-| `make format`| Format the sources with `clang-format`                    |
-| `make docs`  | Build the documentation website in `build/docs/html`      |
-
-### With CMake directly
-
-```sh
-cmake -B build -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
-cmake --build build --config Release
-```
-
-On Windows, run the same commands from a Developer PowerShell for Visual
-Studio, with `VCPKG_ROOT` set.
-
-Both executables are written to the `bin/` directory at the root of the
-repository.
+[To build from source see the online documentation](https://r-type.savalet.dev/getting_started.html)
 
 ## Usage
 
 The binaries load their assets with paths relative to the working directory,
-so they must be started **from the repository root**.
+so they must be started **from the repository root** (not necessary with embedded binaries).
 
 ### Server
 

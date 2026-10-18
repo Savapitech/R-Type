@@ -541,36 +541,3 @@ message is shown, it follows a packet header.
 84 B0         positionY    = 300
 00 00         rotation     = 0
 ```
-
-## 12. Security considerations
-
-Every datagram comes from an untrusted source. Implementations MUST:
-
-- check the remaining length before every read, and never trust a length field
-  without comparing it to the bytes actually received,
-- reject fixed size payloads whose size differs from the expected one,
-- reject enum values out of range and network ids equal to 0,
-- bound every count read from the network before allocating memory, such as
-  `entityCount` of `Snapshot`,
-- accept a `Hello` only if it is exactly 6 bytes long,
-- bound every queue fed by the network, and every per-peer table, so that a
-  flood of datagrams cannot make the memory grow without limit (see §2.2),
-- close a connection that stays silent for 10 seconds, and send a `Ping` at
-  least once per second while connected so that an idle client is not closed,
-- discard invalid datagrams silently, without answering, so that the protocol
-  cannot be used to amplify traffic.
-
-The protocol provides no encryption and no authentication. Addresses can be
-spoofed, and connection ids are allocated sequentially from 1, so they must not
-be treated as secrets.
-
-## 13. Known limitations of version 1
-
-These points are known and planned for a future version. A new client must
-nevertheless cope with them.
-
-- The server only sends `Rejected` when it is full: an invalid `Hello` is
-  dropped and the client times out.
-- `CreateEntity` and `DestroyEntity` are not retransmitted. A lost creation is
-  repaired by `QueryEntity`, a lost destruction is not.
-- `Welcome` does not tell the client which ship is its own.
