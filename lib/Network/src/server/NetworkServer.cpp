@@ -279,7 +279,7 @@ void NetworkServer::handleMessage(std::uint32_t connectionId,
     if (!header.serialize(writer) || !pong.serialize(writer))
       return;
 
-    doSend(connectionId, writer.getData());
+    doSend(connectionId, writer.getData(), PacketPriority::Unreliable);
     break;
   }
 

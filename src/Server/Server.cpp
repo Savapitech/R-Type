@@ -156,12 +156,7 @@ bool Server::sendMessage(std::uint32_t connectionId, protocol::MessageType type,
   if (!writer.writeBytes(payload.data(), payload.size()))
     return false;
 
-  PacketPriority priority = PacketPriority::Unreliable;
-  if (type == protocol::MessageType::CreateEntity ||
-      type == protocol::MessageType::DestroyEntity)
-    priority = PacketPriority::Critical;
-
-  send(connectionId, writer.getData(), priority);
+  send(connectionId, writer.getData(), protocol::messagePriority(type));
   return true;
 }
 

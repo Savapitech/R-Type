@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "protocol/SystemMessages.hpp"
+#include "tracking/PacketPriority.hpp"
 
 namespace rtype::protocol {
 /**
@@ -34,6 +35,23 @@ enum class MessageType : std::uint16_t {
  */
 constexpr std::uint16_t toMessageId(MessageType type) {
   return static_cast<std::uint16_t>(type);
+}
+
+/**
+ * @brief Delivery guarantee used to send a message type.
+ * @param type Message type.
+ * @return The priority to enqueue the message with.
+ */
+constexpr PacketPriority messagePriority(MessageType type) {
+  switch (type) {
+  case MessageType::CreateEntity:
+  case MessageType::DestroyEntity:
+    return PacketPriority::Critical;
+  case MessageType::QueryEntity:
+    return PacketPriority::Reliable;
+  default:
+    return PacketPriority::Unreliable;
+  }
 }
 
 /** @} */
