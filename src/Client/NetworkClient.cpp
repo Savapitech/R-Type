@@ -110,7 +110,8 @@ void NetworkClient::sendInput(std::uint32_t clientTick,
 
                ++_nextInputSequence;
 
-               enqueue(writer.getData(), PacketPriority::Unreliable);
+               enqueue(writer.getData(),
+                       protocol::messagePriority(protocol::MessageType::Input));
              });
 }
 
@@ -137,7 +138,8 @@ void NetworkClient::sendQueryEntity(std::uint32_t networkId) {
   asio::post(_ioContext, [this, data = writer.getData()]() mutable {
     if (!_running.load() || !_connected.load())
       return;
-    enqueue(std::move(data), PacketPriority::Reliable);
+    enqueue(std::move(data),
+            protocol::messagePriority(protocol::MessageType::QueryEntity));
   });
 }
 
