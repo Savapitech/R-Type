@@ -19,7 +19,7 @@ namespace rtype::server {
 
   class Room {
     public:
-      Room(std::uint32_t id, std::string &name, std::size_t maxPlayers = MAX_PLAYER_PER_ROOM);
+      Room(std::uint32_t id, const std::string &name, std::size_t maxPlayers = MAX_PLAYER_PER_ROOM);
 
       bool addPlayer(std::uint32_t connectionId);
       bool removePlayer(std::uint32_t connectionId);
@@ -29,7 +29,7 @@ namespace rtype::server {
       std::uint32_t getRoomId() const;
       RoomState getState() const;
       const std::string &getName() const;
-      const std::vector<std::uint32_t> getPlayers() const;
+      const std::vector<std::uint32_t> &getPlayers() const;
       void setState(RoomState state);
 
     private:

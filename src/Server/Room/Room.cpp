@@ -8,7 +8,7 @@
 
 namespace rtype::server {
 
-  Room::Room(std::uint32_t id, std::string &name, std::size_t maxPlayers) :
+  Room::Room(std::uint32_t id, const std::string &name, std::size_t maxPlayers) :
     _roomId(id), _name(name), _maxPlayers(maxPlayers)
   {}
 
@@ -53,7 +53,7 @@ namespace rtype::server {
     return _name;
   }
 
- const std::vector<std::uint32_t> Room::getPlayers() const {
+ const std::vector<std::uint32_t> &Room::getPlayers() const {
    return _players;
  }
 
