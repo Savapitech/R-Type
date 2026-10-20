@@ -1,7 +1,10 @@
 #pragma once
 
 #include "EngineContext.hpp"
+#include "Server.hpp"
+#include "collision/collisionBuffer.hpp"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <unordered_map>
@@ -32,9 +35,13 @@ namespace rtype::server {
       void setGameActive(bool active);
       void resetGameState();
       rtk::EngineContext& getContext();
-      void start();
+      void start(Server &server);
       void update(float dt);
       void stop();
+      void initialize();
+      const std::array<std::uint16_t, 4> &getPlayerArchetypes() const;
+      void addSystems(Server& server);
+      void subscribeEvents(Server& server);
 
     private:
       std::uint32_t _roomId;
@@ -42,6 +49,7 @@ namespace rtype::server {
       std::uint32_t _serverTick = 0;
       bool _isActive = false;
       bool _systemsStarted = false;
+      bool _initialized = false;
       rtk::ecs::Registry _registry;
       rtk::ecs::Scheduler _scheduler;
       busEvent _eventBus;
@@ -50,5 +58,14 @@ namespace rtype::server {
           .scheduler = _scheduler,
           .eventBus = _eventBus
       };
+      std::array<std::uint16_t, 4> _playerArchetypes{};
+      rtk::collision::CollisionBuffer _collisionBuffer;
+      bool _systemsRegistered = false;
+      bool _eventsRegistered = false;
+
+      void registerComponents(rtk::EngineContext &context);
+      void registerBuilders(rtk::EngineContext &context);
+      void loadEntityBlueprints(rtk::EngineContext &context);
+
   };
 } // namespace rtype::server
