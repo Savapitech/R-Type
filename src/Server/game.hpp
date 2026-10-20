@@ -8,6 +8,7 @@
 #include "factoryDataDriven/factoryDataDriven.hpp"
 #include "sceneManager/sceneManager.hpp"
 #include "serverScene.hpp"
+#include "Room/RoomManager.hpp"
 
 #include <array>
 #include <cmath>
@@ -168,6 +169,8 @@ private:
   bool _running = true;
   bool _isGameActive = false;
   rtk::collision::CollisionBuffer _collisionBuffer;
+  RoomManager _roomManager;
+  std::uint32_t _defaultRoomId = 0;
 };
 
 /** @} */

@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "NetworkIdGenerator.hpp"
+#include "Room/RoomManager.hpp"
 
 #include "EngineContext.hpp"
 #include "Protocol/EntityPayload.hpp"
@@ -49,6 +50,7 @@ void Game::onLoad(rtk::EngineContext &context) {
 
   _server.start();
   _sceneManager.start(context);
+  _defaultRoomId = _roomManager.createRoom("Default Room");
   std::cout << "[Server] Game simulation started" << std::endl;
 }
 
@@ -283,6 +285,15 @@ void Game::handleConnections(rtk::EngineContext &context) {
       if (_players.contains(connectionId))
         continue;
 
+      if (_roomManager.getRoom(_defaultRoomId) == nullptr) {
+        _defaultRoomId = _roomManager.createRoom("Default Room");
+      }
+
+      if (!_roomManager.joinRoom(connectionId, _defaultRoomId)) {
+        std::cerr << "can't join default room" << connectionId <<  std::endl;
+        continue;
+      }
+
       sendExistingEntities(connectionId, context);
 
       std::uint32_t slot = 0;
@@ -341,6 +352,7 @@ void Game::handleConnections(rtk::EngineContext &context) {
           context.registry.kill_entity(it->second);
         }
         _players.erase(it);
+        _roomManager.leaveRoom(connectionId);
       }
     }
   }
