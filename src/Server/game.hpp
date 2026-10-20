@@ -9,7 +9,9 @@
 #include "sceneManager/sceneManager.hpp"
 #include "serverScene.hpp"
 #include "Room/RoomManager.hpp"
+#include "GameInstance/GameInstance.hpp"
 
+#include <memory>
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -154,6 +156,12 @@ private:
                               rtk::EngineContext &context);
   void broadcastPlayerDestroyed(std::uint32_t connectionId,
                                 std::uint32_t networkId);
+  
+  GameInstance* createGameInstance(std::uint32_t roomId);
+  GameInstance* getGameInstance(std::uint32_t roomId);
+  bool destroyGameInstance(std::uint32_t roomId);
+
+  std::unordered_map<std::uint32_t, std::unique_ptr<GameInstance>> _gameInstances;
 
   ServerDependency _serverContext;
   ServerInput _serverInput;

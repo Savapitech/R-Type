@@ -3,7 +3,10 @@
 #include <array>
 #include <cmath>
 #include <iostream>
+#include <memory>
+#include <stdexcept>
 
+#include "GameInstance/GameInstance.hpp"
 #include "NetworkIdGenerator.hpp"
 #include "Room/RoomManager.hpp"
 
@@ -51,6 +54,9 @@ void Game::onLoad(rtk::EngineContext &context) {
   _server.start();
   _sceneManager.start(context);
   _defaultRoomId = _roomManager.createRoom("Default Room");
+  GameInstance *instance = createGameInstance(_defaultRoomId);
+  if (!instance)
+    throw std::runtime_error("Failed to create default game Instance.");
   std::cout << "[Server] Game simulation started" << std::endl;
 }
 
@@ -820,5 +826,38 @@ void Game::cleanupOffscreenEnvironment(rtk::EngineContext &context) {
     }
   }
 }
+
+GameInstance *Game::createGameInstance(std::uint32_t roomId) {
+  if (_roomManager.getRoom(roomId) == nullptr)
+    return nullptr;
+
+  auto it = _gameInstances.find(roomId);
+  if (it != _gameInstances.end())
+    return it->second.get();
+
+  auto instance = std::make_unique<GameInstance>(roomId);
+  GameInstance *ptr = instance.get();
+  _gameInstances.emplace(roomId, std::move(instance));
+  return ptr;
+}
+
+GameInstance* Game::getGameInstance(std::uint32_t roomId) {
+  auto it = _gameInstances.find(roomId);
+  if (it == _gameInstances.end())
+    return nullptr;
+
+  return it->second.get();
+}
+
+ bool Game::destroyGameInstance(std::uint32_t roomId) {
+  auto it = _gameInstances.find(roomId);
+  if (it == _gameInstances.end())
+    return false;
+
+  it->second->stop();
+  _gameInstances.erase(it);
+  return true;
+}
+
 
 } // namespace rtype::server
