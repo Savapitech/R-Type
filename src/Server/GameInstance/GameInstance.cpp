@@ -638,6 +638,29 @@ void GameInstance::sendExistingEntities(std::uint32_t connectionId, Server& serv
   }
 }
 
+bool GameInstance::removeConnectedPlayer( std::uint32_t connectionId, Server& server) {
+  auto it = _players.find(connectionId);
+  if (it == _players.end())
+    return false;
 
+  const auto entity = it->second;
+  auto &registry = _context.registry;
+  auto *netEnt = registry.get_components<component::NetworkEntity>().get(entity);
+  
+  if (netEnt) {
+    const auto payload = protocol::destroyEntityPayload(_serverTick, netEnt->id, protocol::DestroyReason::Unknown);
+    for (const auto &[clientId, Pentity]: _players) {
+      (void)Pentity;
+      if (clientId == connectionId)
+        continue;
+      server.sendDestroyEntity(clientId, payload);
+    }
+  }
+  
+  registry.remove_entity_from_all_pools(entity);
+  registry.kill_entity(entity);
+  _players.erase(it);
+  return true;
+}
 
 } //namespace rtype::server
