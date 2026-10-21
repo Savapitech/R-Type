@@ -42,6 +42,7 @@ namespace rtype::server {
       const std::array<std::uint16_t, 4> &getPlayerArchetypes() const;
       void addSystems(Server& server);
       void subscribeEvents(Server& server);
+      void processInput(const Server::InputEvent& inputEvent, Server& server);
 
     private:
       std::uint32_t _roomId;

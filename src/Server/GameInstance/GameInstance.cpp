@@ -18,7 +18,13 @@
 #include "systems/EnemySpawnerSystem.hpp"
 #include "systems/EnemyShootSystem.hpp"
 #include "systems/EnemyGarbageCollectorSystem.hpp"
+#include "NetworkIdGenerator.hpp"
+#include "Protocol/EntityPayload.hpp"
+#include "components/Velocity.hpp"
+#include "components/Transform.hpp"
+#include "components/Controllable.hpp"
 
+#include <cmath>
 #include <functional>
 #include <cstddef>
 #include <cstdint>
@@ -464,6 +470,76 @@ namespace rtype::server {
         }
     });
    _eventsRegistered = true;
+}
+
+void GameInstance::processInput(const Server::InputEvent& inputEvent, Server& server) {
+  auto it = _players.find(inputEvent.connectionId);
+  if (it == _players.end())
+    return;
+
+  const std::size_t pEntity = it->second;
+  auto &registry = _context.registry;
+  auto *velocity = registry.get_components<component::Velocity>().get(pEntity);
+  auto* controllable = registry.get_components<component::Controllable>().get(pEntity);
+  auto* transform = registry.get_components<component::Transform>().get(pEntity);
+  if (!velocity || !controllable || !transform)
+    return;
+
+  velocity->x = 0.0f;
+  velocity->y = 0.0f;
+  const auto actions = inputEvent.input.actions;
+    if (rtype::protocol::hasAction(actions, rtype::protocol::InputAction::Up)) {
+      velocity->y = -controllable->speed;
+    }
+    if (rtype::protocol::hasAction(actions,
+                                   rtype::protocol::InputAction::Down)) {
+      velocity->y = controllable->speed;
+    }
+    if (rtype::protocol::hasAction(actions,
+                                   rtype::protocol::InputAction::Left)) {
+      velocity->x = -controllable->speed;
+    }
+    if (rtype::protocol::hasAction(actions,
+                                   rtype::protocol::InputAction::Right)) {
+      velocity->x = controllable->speed;
+    }
+    if (velocity->x != 0.0f && velocity->y != 0.0f) {
+      velocity->x *= 0.7071f;
+      velocity->y *= 0.7071f;
+    }
+    const bool isShoot = rtype::protocol::hasAction(
+        actions, rtype::protocol::InputAction::Shoot);
+    if (isShoot) {
+      controllable->isChargingShoot = true;
+    } else if (controllable->isChargingShoot) {
+      controllable->isChargingShoot = false;
+
+      std::uint32_t bulletNetId =
+          rtype::server::NetworkIdGenerator::getInstance().getNextId();
+
+      auto bulletEntity = _context._entityFactory.createNetwork(
+          _context.registry, "bullet", bulletNetId);
+      auto *bulletTransform =
+          _context.registry.get_components<component::Transform>().get(
+              bulletEntity);
+
+      if (bulletTransform) {
+        bulletTransform->position = {transform->position.x + 50.0f,
+                                     transform->position.y};
+        const auto payload = protocol::createEntityPayload(
+          _serverTick,
+          bulletNetId,
+          _context._entityFactory.getArchetypeID("bullet"),
+          bulletTransform->position.x,
+          bulletTransform->position.y
+        );
+
+
+        for (const auto &[connectedClientId, entity] : _players) {
+          server.sendCreateEntity(connectedClientId, payload);
+        }
+      }
+    }
 }
 
 } //namespace rtype::server

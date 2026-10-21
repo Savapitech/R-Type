@@ -29,5 +29,13 @@ struct ServerDependency {
   Game &game; ///< Game that owns the scenes.
 };
 
+class GameInstance;
+class Server;
+
+struct GameInstanceDependency {
+    GameInstance& instance;
+    Server& server;
+};
+
 /** @} */
 } // namespace rtype::server
