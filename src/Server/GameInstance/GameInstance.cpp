@@ -544,7 +544,7 @@ void GameInstance::processInput(const Server::InputEvent& inputEvent, Server& se
 }
 
 bool GameInstance::addConnectedPlayer(std::uint32_t connectionId, Server& server) {
-  if (!hasPlayer(connectionId))
+  if (hasPlayer(connectionId))
     return false;
 
   if (_players.size() >= 4)
@@ -561,7 +561,7 @@ bool GameInstance::addConnectedPlayer(std::uint32_t connectionId, Server& server
       continue;
     
     int slot = static_cast<int>(std::lround((transform->position.y -150.f) / 100.f));
-    if (slot >= 0 && slot <= 4)
+    if (slot >= 0 && slot < 4)
       slots[slot] = true;
   }
   std::uint32_t slot = 0;
@@ -661,6 +661,59 @@ bool GameInstance::removeConnectedPlayer( std::uint32_t connectionId, Server& se
   registry.kill_entity(entity);
   _players.erase(it);
   return true;
+}
+
+void GameInstance::sendSnapshots(Server& server) {
+  auto& registry = _context.registry;
+  auto view = registry.view<component::NetworkEntity, component::Transform>();
+  auto& transforms = registry.get_components<component::Transform>();
+  auto& networkEntities = registry.get_components<component::NetworkEntity>();
+  protocol::SnapshotPayload snapshot;
+  snapshot.serverTick = _serverTick;
+
+  const auto flush = [&]() {
+    if (snapshot.entities.empty())
+      return;
+
+    for (const auto& [connectionId, entity] : _players) {
+      (void)entity;
+      server.sendSnapshot(connectionId, snapshot);
+    }
+    snapshot.entities.clear();
+  };
+
+  for (auto entity : view) {
+    const auto* transform = transforms.get(entity);
+    const auto* netEnt = networkEntities.get(entity);
+
+    if (!transform || !netEnt)
+      continue;
+
+    if (!std::isfinite(transform->position.x) ||
+      !std::isfinite(transform->position.y) ||
+      transform->position.x < protocol::MIN_POSITION ||
+      transform->position.x > protocol::MAX_POSITION ||
+      transform->position.y < protocol::MIN_POSITION ||
+      transform->position.y > protocol::MAX_POSITION)
+      continue;
+
+    snapshot.entities.push_back({
+      netEnt->id,
+      static_cast<std::uint8_t>(
+          netEnt->archetypeId & 0xFF
+      ),
+      protocol::encodePosition(transform->position.x),
+      protocol::encodePosition(transform->position.y),
+      protocol::encodeRotation(transform->rotation)
+    });
+
+    if (snapshot.entities.size() ==
+      protocol::SNAPSHOT_MAX_ENTITIES) {
+      flush();
+    }
+  }
+
+  flush();
 }
 
 } //namespace rtype::server

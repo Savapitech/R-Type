@@ -46,6 +46,7 @@ namespace rtype::server {
       bool addConnectedPlayer(std::uint32_t connectionId, Server& server);
       void sendExistingEntities(std::uint32_t connectionId, Server& server);
       bool removeConnectedPlayer(std::uint32_t connectionId, Server& server);
+      void sendSnapshots(Server& server);
     
     private:
       std::uint32_t _roomId;

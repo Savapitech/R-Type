@@ -361,8 +361,12 @@ void Game::handleConnections(rtk::EngineContext &context) {
       }
       auto roomId = _roomManager.getRoomId(connectionId);
       _roomManager.leaveRoom(connectionId);
-      if (roomId && _roomManager.getRoom(*roomId) == nullptr)
-        destroyGameInstance(*roomId); 
+      if (roomId && _roomManager.getRoom(*roomId) == nullptr) {
+        destroyGameInstance(*roomId);
+        if (!createGameInstance(_defaultRoomId)) {
+          throw std::runtime_error("Failed to create default GameInstance");
+    }
+      }
     }
   }
 }
