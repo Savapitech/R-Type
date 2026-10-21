@@ -204,6 +204,10 @@ namespace rtype::server {
   }
   
   void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
+    _playerArchetypes[0] =
+      context._entityFactory.loadBlueprintFromPath(
+        "player_blue",
+        "assets/descriptionEntity/player_blue.json");
     _playerArchetypes[1] =
         context._entityFactory.loadBlueprintFromPath(
             "player_green",

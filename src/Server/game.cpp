@@ -358,8 +358,11 @@ void Game::handleConnections(rtk::EngineContext &context) {
           context.registry.kill_entity(it->second);
         }
         _players.erase(it);
-        _roomManager.leaveRoom(connectionId);
       }
+      auto roomId = _roomManager.getRoomId(connectionId);
+      _roomManager.leaveRoom(connectionId);
+      if (roomId && _roomManager.getRoom(*roomId) == nullptr)
+        destroyGameInstance(*roomId); 
     }
   }
 }
@@ -653,6 +656,10 @@ void Game::createBackground(rtk::EngineContext &context) {
 
 void Game::onUnload(rtk::EngineContext &context) {
   _sceneManager.stop(context);
+
+  for (auto &[roomId, instance] : _gameInstances)
+    instance->stop();
+  _gameInstances.clear();
   _server.stop();
   _players.clear();
   std::cout << "[Server] Game simulation stopped" << std::endl;
