@@ -43,7 +43,9 @@ namespace rtype::server {
       void addSystems(Server& server);
       void subscribeEvents(Server& server);
       void processInput(const Server::InputEvent& inputEvent, Server& server);
-
+      bool addConnectedPlayer(std::uint32_t connectionId, Server& server);
+      void sendExistingEntities(std::uint32_t connectionId, Server& server);
+    
     private:
       std::uint32_t _roomId;
       std::unordered_map<std::uint32_t, std::size_t> _players;

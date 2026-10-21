@@ -24,6 +24,7 @@
 #include "components/Transform.hpp"
 #include "components/Controllable.hpp"
 
+#include <array>
 #include <cmath>
 #include <functional>
 #include <cstddef>
@@ -541,5 +542,102 @@ void GameInstance::processInput(const Server::InputEvent& inputEvent, Server& se
       }
     }
 }
+
+bool GameInstance::addConnectedPlayer(std::uint32_t connectionId, Server& server) {
+  if (!hasPlayer(connectionId))
+    return false;
+
+  if (_players.size() >= 4)
+    return false;
+
+  initialize();
+  auto &registry = _context.registry;
+  std::array<bool, 4> slots = {false, false, false, false};
+  for (const auto &[id, entity] : _players) {
+    (void)id;
+
+    auto *transform = registry.get_components<component::Transform>().get(entity);
+    if (!transform)
+      continue;
+    
+    int slot = static_cast<int>(std::lround((transform->position.y -150.f) / 100.f));
+    if (slot >= 0 && slot <= 4)
+      slots[slot] = true;
+  }
+  std::uint32_t slot = 0;
+
+  while (slot < 4 && slots[slot])
+    ++slot;  
+  if (slot == 4)
+    return false;
+  
+  const std::uint32_t networkId = NetworkIdGenerator::getInstance().getNextId();
+  const auto archetypeId = _playerArchetypes[slot];
+  const auto entity = _context._entityFactory.createNetwork(
+    registry,
+    archetypeId,
+    networkId
+  );
+
+  auto *transform = registry.get_components<component::Transform>().get(entity);
+  if (!transform)
+    return false;
+  transform->position = {
+    150.0f,
+    150.0f + static_cast<float>(slot) * 100.0f
+  };
+  _players.emplace(connectionId, entity);
+  const auto payload = protocol::createEntityPayload(
+    _serverTick,
+    networkId,
+    archetypeId,
+    transform->position.x,
+    transform->position.y,
+    transform->rotation
+  );
+  for (const auto& [clientId, playerEntity] : _players) {
+    (void)playerEntity;
+    server.sendCreateEntity(clientId, payload);
+  }
+
+  std::cout
+    << "[GameInstance " << _roomId << "] Player "
+    << connectionId
+    << " created (NetworkId: " << networkId
+    << ", Slot: " << slot << ")"
+    << std::endl;
+  return true;
+}
+
+void GameInstance::sendExistingEntities(std::uint32_t connectionId, Server& server) {
+  auto view =
+      _context.registry.view<component::NetworkEntity, component::Transform>();
+  auto &transforms = _context.registry.get_components<component::Transform>();
+  auto &networkEntities =
+      _context.registry.get_components<component::NetworkEntity>();
+
+  for (auto entity : view) {
+    const auto *transform = transforms.get(entity);
+    const auto *netEnt = networkEntities.get(entity);
+    if (!transform || !netEnt)
+      continue;
+
+    if (!std::isfinite(transform->position.x) ||
+        !std::isfinite(transform->position.y) ||
+        transform->position.x < protocol::MIN_POSITION ||
+        transform->position.x > protocol::MAX_POSITION ||
+        transform->position.y < protocol::MIN_POSITION ||
+        transform->position.y > protocol::MAX_POSITION) {
+      continue;
+    }
+
+    const auto payload = protocol::createEntityPayload(
+        _serverTick, netEnt->id, netEnt->archetypeId, transform->position.x,
+        transform->position.y, transform->rotation);
+    server.sendCreateEntity(connectionId, payload);
+  }
+}
+
+
 
 } //namespace rtype::server
