@@ -26,7 +26,7 @@ public:
    * @brief Creates the system.
    * @param eventBus Bus on which EnemyEscapedEvent is published.
    */
-  EnemyGCSystem(busEvent &eventBus) : _eventBus(eventBus) {};
+  EnemyGCSystem(busEvent &eventBus) : _eventBus(eventBus){};
   ~EnemyGCSystem() override = default;
 
   /**

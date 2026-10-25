@@ -1,0 +1,23 @@
+{
+  "defaultStage": "stage1",
+  "stages": [
+    {
+      "id": "stage1",
+      "name": "Stage 1",
+      "file": "assets/stages/stage1.json",
+      "nextStage": "stage2"
+    },
+    {
+      "id": "stage2",
+      "name": "Stage 2",
+      "file": "assets/stages/stage2.json",
+      "nextStage": "stage3"
+    },
+    {
+      "id": "stage3",
+      "name": "Stage 3",
+      "file": "assets/stages/stage3.json",
+      "nextStage": ""
+    }
+  ]
+}

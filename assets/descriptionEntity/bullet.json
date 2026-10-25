@@ -37,18 +37,20 @@
     },
     "animation": {
       "frameDuration": 0.3,
-      "totalFrames": 4,
+      "totalFrames": 1,
       "frameWidth": 32,
       "frameHeight": 32,
       "startX": 0,
       "startY": 0,
-      "columns": 4,
+      "columns": 1,
       "loop": false,
-      "playing": true
+      "playing": false
     },
     "collider": {
-      "width": 16.0,
-      "height": 16.0,
+      "width": 20.0,
+      "height": 10.0,
+      "offsetX": 5.0,
+      "offsetY": 10.0,
       "layer": "PlayerProjectile",
       "mask": [
         "EnemyProjectile",
