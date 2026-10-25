@@ -19,7 +19,7 @@
       "layer": "EnemyProjectile",
       "mask": ["Player", "Environment"]
     },
-    "velocity": { "x": -600.0, "y": 0.0 },
+    "velocity": { "x": -350.0, "y": 0.0 },
     "bullet": { "damage": 10.0 },
     "networkEntity": {}
   }

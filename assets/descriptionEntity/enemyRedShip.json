@@ -1,0 +1,40 @@
+{
+  "components": {
+    "transform": {
+      "position": { "x": 0.0, "y": 0.0 },
+      "scale": { "x": 2.0, "y": 2.0 },
+      "rotation": 0.0
+    },
+    "sprite": {
+      "texture": "assets/sprite.png",
+      "size": { "w": 66.0, "h": 34.0 },
+      "origin": { "x": 0.0, "y": 0.0 },
+      "textureRect": { "x": 66, "y": 51, "w": 33, "h": 17 },
+      "color": { "r": 255, "g": 255, "b": 255, "a": 255 },
+      "layer": 0
+    },
+    "collider": {
+      "width": 64.0,
+      "height": 24.0,
+      "offsetX": 2.0,
+      "offsetY": 5.0,
+      "layer": "Enemy",
+      "mask": ["PlayerProjectile", "Player", "Environment"]
+    },
+    "velocity": {
+      "x": -250.0,
+      "y": 0.0
+    },
+    "enemy": {
+      "health": 20.0,
+      "fireRate": 3.0
+    },
+    "waveMovement": {
+      "baseY": 300.0,
+      "amplitude": 80.0,
+      "frequency": 2.0,
+      "time": 0.0
+    },
+    "networkEntity": {}
+  }
+}

@@ -14,13 +14,13 @@
       "layer": 0,
       "flags": 0
     },
-    "collider": { 
-      "width": 32.0, 
-      "height": 32.0, 
-      "offsetX": 0.0,
-      "offsetY": 0.0,
-      "layer": "Enemy", 
-      "mask": ["PlayerProjectile", "Player"] 
+    "collider": {
+      "width": 24.0,
+      "height": 28.0,
+      "offsetX": 3.0,
+      "offsetY": 2.0,
+      "layer": "Enemy",
+      "mask": ["PlayerProjectile", "Player", "Environment"]
     },
     "velocity": { 
       "x": -200.0, 
@@ -40,7 +40,10 @@
       "paddingX": 0,
       "paddingY": 0
     },
-    "enemy": {},
+    "enemy": {
+      "health": 1.0,
+      "fireRate": 2.5
+    },
     "networkEntity": {}
   }
 }

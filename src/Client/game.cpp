@@ -17,12 +17,14 @@
 #include "components/SoundRequest.hpp"
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
+#include "components/WaveMovement.hpp"
 
 #include "systems/AnimationSystem.hpp"
 #include "systems/AnimatorSystem.hpp"
 #include "systems/AttachmentSystem.hpp"
 #include "systems/AudioSystem.hpp"
 #include "systems/ColliderSystem.hpp"
+#include "systems/CollisionFlashSystem.hpp"
 #include "systems/DebugCollisionSystem.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/MovementSystem.hpp"
@@ -91,6 +93,8 @@ void Game::loadEntityBluePrint(rtk::EngineContext &context) {
   context._entityFactory.loadBlueprintFromPath(
       "enemyBidos", "assets/descriptionEntity/enemyBidos.json");
   context._entityFactory.loadBlueprintFromPath(
+      "enemyRedShip", "assets/descriptionEntity/enemyRedShip.json");
+  context._entityFactory.loadBlueprintFromPath(
       "background_stars", "assets/descriptionEntity/background_star.json");
   context._entityFactory.loadBlueprintFromPath(
       "background_fast_stars",
@@ -156,6 +160,10 @@ void Game::registerBuilders(rtk::EngineContext &context) {
                                          component::parallaxFromJson);
   context._entityFactory.registerBuilder("parallax",
                                          component::parallaxFromJson);
+  context._entityFactory.registerBuilder("waveMovement",
+                                         component::waveMovementFromJson);
+  context._entityFactory.registerBuilder("WaveMovement",
+                                         component::waveMovementFromJson);
 
   context._entityFactory.registerBuilder(
       "sprite", [this](rtk::ecs::Registry &reg, std::size_t entity,
@@ -212,6 +220,7 @@ void Game::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::AttachedTo>();
   context.registry.register_component<component::Health>();
   context.registry.register_component<component::DestroyableTile>();
+  context.registry.register_component<component::WaveMovement>();
 }
 
 void Game::createBindings() {
@@ -280,6 +289,9 @@ void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<rtk::systems::InputSystem<RtkWindowAdapter>>(
       rtk::ecs::Order::Input, std::ref(_adapter), _inputState, _inputMapping);
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
+  _collisionFlashSystem =
+      &context.scheduler.add<rtk::systems::CollisionFlashSystem>(
+          rtk::ecs::Order::Render, _collisionBuffer);
   context.scheduler.add<rtk::systems::RenderSystem<RtkWindowAdapter>>(
       rtk::ecs::Order::Render, std::ref(_adapter));
   context.scheduler.add<rtk::systems::DebugCollisionSystem>(
@@ -389,6 +401,41 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
         auto *netEnt =
             context.registry.get_components<component::NetworkEntity>().get(e);
         if (netEnt && netEnt->id == destroyPayload.networkId.get()) {
+          if (destroyPayload.reason == protocol::DestroyReason::Collision &&
+              _collisionFlashSystem) {
+            auto *bullet =
+                context.registry.get_components<component::Bullet>().get(e);
+            auto *bulletTrans =
+                context.registry.get_components<component::Transform>().get(e);
+            if (bullet && bulletTrans) {
+              auto &transforms =
+                  context.registry.get_components<component::Transform>();
+              auto viewEnemies =
+                  context.registry
+                      .view<component::Enemy, component::Transform>();
+              std::size_t closestEnemy = 0;
+              float closestDist = 120.0f;
+              for (auto enemyEnt : viewEnemies) {
+                auto *enemyTrans = transforms.get(enemyEnt);
+                if (!enemyTrans)
+                  continue;
+                float dx = enemyTrans->position.x - bulletTrans->position.x;
+                float dy =
+                    std::abs(enemyTrans->position.y - bulletTrans->position.y);
+                if (dx >= -40.0f && dx <= 120.0f && dy <= 60.0f) {
+                  float dist = std::hypot(dx, dy);
+                  if (dist < closestDist) {
+                    closestDist = dist;
+                    closestEnemy = enemyEnt;
+                  }
+                }
+              }
+              if (closestEnemy != 0) {
+                _collisionFlashSystem->triggerFlash(context.registry,
+                                                    closestEnemy);
+              }
+            }
+          }
           context.registry.remove_entity_from_all_pools(e);
           context.registry.kill_entity(e);
           break;
@@ -485,6 +532,17 @@ void Game::createReplicatedEntity(
   transform->position = {protocol::decodePosition(payload.positionX),
                          protocol::decodePosition(payload.positionY)};
   transform->rotation = protocol::decodeRotation(payload.rotation);
+
+  auto *velocity =
+      context.registry.get_components<component::Velocity>().get(entity);
+  if (velocity && transform->rotation != 0.0f) {
+    const float currentSpeed = std::hypot(velocity->x, velocity->y);
+    if (currentSpeed > 0.0f) {
+      velocity->x = currentSpeed * std::cos(transform->rotation);
+      velocity->y = currentSpeed * std::sin(transform->rotation);
+    }
+  }
+
   _networkEntities.emplace(payload.networkId.get(), entity);
 }
 
@@ -510,6 +568,7 @@ void Game::applySnapshot(rtk::EngineContext &context,
     return;
 
   auto &transforms = context.registry.get_components<component::Transform>();
+  auto &velocities = context.registry.get_components<component::Velocity>();
 
   for (const auto &state : payload.entities) {
     const auto it = _networkEntities.find(state.networkId.get());
@@ -519,9 +578,22 @@ void Game::applySnapshot(rtk::EngineContext &context,
     auto *transform = transforms.get(it->second);
     if (!transform)
       continue;
-    transform->position = {protocol::decodePosition(state.positionX),
-                           protocol::decodePosition(state.positionY)};
-    transform->rotation = protocol::decodeRotation(state.rotation);
+
+    const float newX = protocol::decodePosition(state.positionX);
+    const float newY = protocol::decodePosition(state.positionY);
+    const float newRot = protocol::decodeRotation(state.rotation);
+
+    auto *velocity = velocities.get(it->second);
+    if (velocity && newRot != 0.0f) {
+      const float currentSpeed = std::hypot(velocity->x, velocity->y);
+      if (currentSpeed > 0.0f) {
+        velocity->x = currentSpeed * std::cos(newRot);
+        velocity->y = currentSpeed * std::sin(newRot);
+      }
+    }
+
+    transform->position = {newX, newY};
+    transform->rotation = newRot;
   }
   _lastServerTick = payload.serverTick.get();
   LOG_INFO("[SNAPSHOT APPLIED]");
