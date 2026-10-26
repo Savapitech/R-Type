@@ -1,8 +1,11 @@
 #pragma once
 
 #include "EngineContext.hpp"
+#include "GameInstance/Scene/InstanceScenes.hpp"
 #include "Server.hpp"
 #include "collision/collisionBuffer.hpp"
+#include "sceneManager/sceneManager.hpp"
+#include "serverScene.hpp"
 
 #include <array>
 #include <cstddef>
@@ -16,7 +19,7 @@ namespace rtype::server {
       static constexpr std::size_t NO_ENTITY =
           static_cast<std::size_t>(-1);
 
-      explicit GameInstance(std::uint32_t roomId);
+      explicit GameInstance(std::uint32_t roomId, Server &server);
 
       GameInstance(const GameInstance&) = delete;
       GameInstance& operator=(const GameInstance&) = delete;
@@ -63,6 +66,16 @@ namespace rtype::server {
           .scheduler = _scheduler,
           .eventBus = _eventBus
       };
+      GameInstanceDependency _dependency;
+      ServerInput _sceneInput;
+      rtk::SceneManager<
+        ServerSceneType,
+        GameInstanceDependency,
+        ServerInput,
+        InstanceLobbyScene,
+        InstanceGameScene
+      > _sceneManager;
+      
       std::array<std::uint16_t, 4> _playerArchetypes{};
       rtk::collision::CollisionBuffer _collisionBuffer;
       bool _systemsRegistered = false;

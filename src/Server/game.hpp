@@ -157,7 +157,7 @@ private:
   void broadcastPlayerDestroyed(std::uint32_t connectionId,
                                 std::uint32_t networkId);
   
-  GameInstance* createGameInstance(std::uint32_t roomId);
+  GameInstance* createGameInstance(std::uint32_t roomId, Server &server);
   GameInstance* getGameInstance(std::uint32_t roomId);
   bool destroyGameInstance(std::uint32_t roomId);
 

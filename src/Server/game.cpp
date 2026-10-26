@@ -54,7 +54,7 @@ void Game::onLoad(rtk::EngineContext &context) {
   _server.start();
   _sceneManager.start(context);
   _defaultRoomId = _roomManager.createRoom("Default Room");
-  GameInstance *instance = createGameInstance(_defaultRoomId);
+  GameInstance *instance = createGameInstance(_defaultRoomId, _server);
   if (!instance)
     throw std::runtime_error("Failed to create default game Instance.");
   std::cout << "[Server] Game simulation started" << std::endl;
@@ -363,7 +363,7 @@ void Game::handleConnections(rtk::EngineContext &context) {
       _roomManager.leaveRoom(connectionId);
       if (roomId && _roomManager.getRoom(*roomId) == nullptr) {
         destroyGameInstance(*roomId);
-        if (!createGameInstance(_defaultRoomId)) {
+        if (!createGameInstance(_defaultRoomId, _server)) {
           throw std::runtime_error("Failed to create default GameInstance");
     }
       }
@@ -838,7 +838,7 @@ void Game::cleanupOffscreenEnvironment(rtk::EngineContext &context) {
   }
 }
 
-GameInstance *Game::createGameInstance(std::uint32_t roomId) {
+GameInstance *Game::createGameInstance(std::uint32_t roomId, Server &server) {
   if (_roomManager.getRoom(roomId) == nullptr)
     return nullptr;
 
@@ -846,7 +846,7 @@ GameInstance *Game::createGameInstance(std::uint32_t roomId) {
   if (it != _gameInstances.end())
     return it->second.get();
 
-  auto instance = std::make_unique<GameInstance>(roomId);
+  auto instance = std::make_unique<GameInstance>(roomId, server);
   GameInstance *ptr = instance.get();
   _gameInstances.emplace(roomId, std::move(instance));
   return ptr;

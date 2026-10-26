@@ -1,5 +1,6 @@
 #include "GameInstance.hpp"
 #include "EngineContext.hpp"
+#include "Server.hpp"
 #include "components/AABBCollider.hpp"
 #include "components/Dead.hpp"
 #include "components/NetworkEntity.hpp"
@@ -30,11 +31,14 @@
 #include <cstddef>
 #include <cstdint>
 #include <unordered_map>
+#include <utility>
 
 
 namespace rtype::server {
-  GameInstance::GameInstance(std::uint32_t roomId)
-    : _roomId(roomId)
+  GameInstance::GameInstance(std::uint32_t roomId, Server &server)
+    : _roomId(roomId),
+    _dependency{*this, server},
+    _sceneManager(_dependency, std::in_place_type<InstanceLobbyScene>)
   {}
 
   std::uint32_t GameInstance::getRoomId() const {
@@ -94,7 +98,8 @@ namespace rtype::server {
     initialize();
     subscribeEvents(server);
     addSystems(server);
-    _scheduler.start(_registry) ;
+    _scheduler.start(_registry);
+    _sceneManager.start(_context);
     _systemsStarted = true;
   }
   
@@ -102,6 +107,7 @@ namespace rtype::server {
     if (!_systemsStarted)
       return;
 
+    _sceneManager.update(_context, _sceneInput, dt);
     _scheduler.run(_registry, dt);
     _registry.flush();
   }
@@ -110,6 +116,7 @@ namespace rtype::server {
     if (!_systemsStarted)
       return;
 
+    _sceneManager.stop(_context);
     _scheduler.stop(_registry);
     _systemsStarted = false;
   }
