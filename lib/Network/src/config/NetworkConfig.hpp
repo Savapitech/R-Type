@@ -41,7 +41,7 @@ inline constexpr std::chrono::milliseconds ACK_ONLY_DELAY{50};
 inline constexpr std::chrono::milliseconds FLUSH_INTERVAL{5};
 
 /// Maximum number of simultaneous client connections on a server.
-inline constexpr std::size_t MAX_CONNECTIONS = 4;
+inline constexpr std::size_t MAX_CONNECTIONS = 32;
 /// Time without any valid packet after which a connection is closed.
 inline constexpr std::chrono::milliseconds CONNECTION_TIMEOUT{10000};
 /// Period of the keepalive Ping sent by an idle client.

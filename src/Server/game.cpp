@@ -5,9 +5,11 @@
 #include <iostream>
 #include <memory>
 #include <stdexcept>
+#include <string>
 
 #include "GameInstance/GameInstance.hpp"
 #include "NetworkIdGenerator.hpp"
+#include "Room/Room.hpp"
 #include "Room/RoomManager.hpp"
 
 #include "EngineContext.hpp"
@@ -39,25 +41,21 @@
 namespace rtype::server {
 
 Game::Game(std::uint16_t port)
-    : _serverContext{*this},
-      _sceneManager(_serverContext, std::in_place_type<ServerLobbyScene>),
-      _server(port) {}
+    : _server(port) {}
 
 Game::~Game() = default;
 
 void Game::onLoad(rtk::EngineContext &context) {
-  registerComponents(context);
-  registerBuilders(context);
-  loadEntityBlueprints(context);
-  subscribeEvents(context);
-  addSystems(context);
+  (void) context;
 
   _server.start();
-  _sceneManager.start(context);
   _defaultRoomId = _roomManager.createRoom("Default Room");
   GameInstance *instance = createGameInstance(_defaultRoomId, _server);
+  
   if (!instance)
     throw std::runtime_error("Failed to create default game Instance.");
+  
+  instance->start(_server);
   std::cout << "[Server] Game simulation started" << std::endl;
 }
 
@@ -283,91 +281,78 @@ void Game::addSystems(rtk::EngineContext &context) {
 }
 
 void Game::handleConnections(rtk::EngineContext &context) {
+  (void) context;
+
   Server::ConnectionEvent connEvent;
   while (_server.pollConnectionEvent(connEvent)) {
     const auto connectionId = connEvent.connectionId;
 
     if (connEvent.type == Server::ConnectionEvent::Type::Connected) {
-      std::cout << "connection" << std::endl;
-      if (_players.contains(connectionId))
+      if (_roomManager.getRoomId(connectionId))
         continue;
 
-      if (_roomManager.getRoom(_defaultRoomId) == nullptr) {
-        _defaultRoomId = _roomManager.createRoom("Default Room");
+      std::uint32_t roomId = 0;
+
+      for (const auto id : _roomManager.listRooms()) {
+        auto *room = _roomManager.getRoom(id);
+        if (!room)
+          continue;
+
+        if (room->getState() != RoomState::Waiting)
+          continue;
+
+        if (room->isFull())
+          continue;
+
+        roomId = id;
+        break;
       }
 
-      if (!_roomManager.joinRoom(connectionId, _defaultRoomId)) {
-        std::cerr << "can't join default room" << connectionId <<  std::endl;
+      if (roomId == 0) {
+        roomId = _roomManager.createRoom("Room " + std::to_string(_roomManager.listRooms().size() + 1));
+        std::cout << "[Server] Created room " << roomId << std::endl;
+      }
+
+      if (!_roomManager.joinRoom(connectionId, roomId)) {
+        std::cerr << "[SERVER] Failed to join room " << roomId << std::endl;
         continue;
       }
 
-      sendExistingEntities(connectionId, context);
+      auto *instance = getGameInstance(_defaultRoomId);
 
-      std::uint32_t slot = 0;
-      std::array<bool, 4> usedSlots = {false, false, false, false};
-      for (const auto &[cId, pEntity] : _players) {
-        auto *pTransform =
-            context.registry.get_components<component::Transform>().get(
-                pEntity);
-        if (pTransform) {
-          int s = static_cast<int>(
-              std::lround((pTransform->position.y - 150.0f) / 100.0f));
-          if (s >= 0 && s < 4) {
-            usedSlots[s] = true;
-          }
-        }
-      }
-      for (std::uint32_t i = 0; i < 4; ++i) {
-        if (!usedSlots[i]) {
-          slot = i;
-          break;
-        }
+      if (!instance) 
+        instance = createGameInstance(_defaultRoomId, _server);
+
+      if (!instance) {
+        _roomManager.leaveRoom(connectionId);
+        continue;
       }
 
-      const std::uint32_t playerNetId =
-          rtype::server::NetworkIdGenerator::getInstance().getNextId();
-      const auto archetypeId = _playerArchetypes[slot % 4];
-      const auto entity = context._entityFactory.createNetwork(
-          context.registry, archetypeId, playerNetId);
+      instance->start(_server);
 
-      auto *transform =
-          context.registry.get_components<component::Transform>().get(entity);
-      if (transform) {
-        transform->position = {150.0f,
-                               150.0f + static_cast<float>(slot) * 100.0f};
+      if (!instance->addConnectedPlayer(connectionId, _server)) {
+        _roomManager.leaveRoom(connectionId);
+        
+        if (!_roomManager.getRoom(roomId))
+          destroyGameInstance(roomId);
+        
+        continue;
       }
-
-      _players[connectionId] = entity;
-      broadcastPlayerCreated(connectionId, context);
-      std::cout << "[Server] Player connected: " << connectionId
-                << " (NetworkId: " << playerNetId << ", Slot: " << slot << ")"
-                << std::endl;
+      std::cout << "[Server] Player " << connectionId << " joined room " << _defaultRoomId << std::endl;
 
     } else if (connEvent.type == Server::ConnectionEvent::Type::Disconnected) {
-      std::cout << "[Server] Removing player entity for connection "
-                << connEvent.connectionId << std::endl;
-      auto it = _players.find(connEvent.connectionId);
-      if (it != _players.end()) {
-        if (it->second != NO_ENTITY) {
-          auto *netEnt =
-              context.registry.get_components<component::NetworkEntity>().get(
-                  it->second);
-          if (netEnt) {
-            broadcastPlayerDestroyed(connectionId, netEnt->id);
-          }
-          context.registry.remove_entity_from_all_pools(it->second);
-          context.registry.kill_entity(it->second);
-        }
-        _players.erase(it);
-      }
       auto roomId = _roomManager.getRoomId(connectionId);
+      if (!roomId)
+        continue;
+      
+      if (auto* instance = getGameInstance(*roomId))
+        instance->removeConnectedPlayer(connectionId, _server);
+
       _roomManager.leaveRoom(connectionId);
-      if (roomId && _roomManager.getRoom(*roomId) == nullptr) {
+
+      if (!_roomManager.getRoom(*roomId)) 
         destroyGameInstance(*roomId);
-        if (!createGameInstance(_defaultRoomId, _server)) {
-          throw std::runtime_error("Failed to create default GameInstance");
-    }
-      }
+      std::cout << "[Server] Player " << connectionId << " Disconnected" << std::endl;
     }
   }
 }
@@ -392,99 +377,65 @@ void Game::broadcastGameEnded(rtk::EngineContext &context) {
 }
 
 void Game::handleInputs(rtk::EngineContext &context) {
+  (void) context;
   Server::InputEvent inputEvent;
+
   while (_server.pollInput(inputEvent)) {
-    auto it = _players.find(inputEvent.connectionId);
-    if (it == _players.end())
+    auto roomId = _roomManager.getRoomId(inputEvent.connectionId);
+    if (!roomId)
       continue;
 
-    std::size_t playerEntity = it->second;
-    auto *velocity = context.registry.get_components<component::Velocity>().get(
-        playerEntity);
-    auto *controllable =
-        context.registry.get_components<component::Controllable>().get(
-            playerEntity);
-    auto *transform =
-        context.registry.get_components<component::Transform>().get(
-            playerEntity);
-
-    if (!velocity || !controllable || !transform)
+    auto *instance = getGameInstance(*roomId);
+    if (!instance)
       continue;
-
-    velocity->x = 0.0f;
-    velocity->y = 0.0f;
-
-    const auto actions = inputEvent.input.actions;
-    if (rtype::protocol::hasAction(actions, rtype::protocol::InputAction::Up)) {
-      velocity->y = -controllable->speed;
-    }
-    if (rtype::protocol::hasAction(actions,
-                                   rtype::protocol::InputAction::Down)) {
-      velocity->y = controllable->speed;
-    }
-    if (rtype::protocol::hasAction(actions,
-                                   rtype::protocol::InputAction::Left)) {
-      velocity->x = -controllable->speed;
-    }
-    if (rtype::protocol::hasAction(actions,
-                                   rtype::protocol::InputAction::Right)) {
-      velocity->x = controllable->speed;
-    }
-
-    if (velocity->x != 0.0f && velocity->y != 0.0f) {
-      velocity->x *= 0.7071f;
-      velocity->y *= 0.7071f;
-    }
-
-    const bool isShoot = rtype::protocol::hasAction(
-        actions, rtype::protocol::InputAction::Shoot);
-    if (isShoot) {
-      controllable->isChargingShoot = true;
-    } else if (controllable->isChargingShoot) {
-      controllable->isChargingShoot = false;
-
-      std::uint32_t bulletNetId =
-          rtype::server::NetworkIdGenerator::getInstance().getNextId();
-
-      auto bulletEntity = context._entityFactory.createNetwork(
-          context.registry, "bullet", bulletNetId);
-      auto *bulletTransform =
-          context.registry.get_components<component::Transform>().get(
-              bulletEntity);
-
-      if (bulletTransform) {
-        bulletTransform->position = {transform->position.x + 50.0f,
-                                     transform->position.y};
-
-        const auto payload = protocol::createEntityPayload(
-            _serverTick, bulletNetId,
-            context._entityFactory.getArchetypeID("bullet"),
-            bulletTransform->position.x, bulletTransform->position.y);
-
-        for (const auto &[connectedClientId, dummy] : _players) {
-          _server.sendCreateEntity(connectedClientId, payload);
-        }
-      }
-    }
+    instance->processInput(inputEvent, _server); 
   }
 }
 
 void Game::onUpdate(rtk::EngineContext &context, float dt) {
-  _sceneManager.update(context, _serverInput, dt);
+  handleConnections(context);
+  handleInputs(context);
+  handleEntityQueries(context);
+
+  for (auto &[roomId, instance] : _gameInstances) {
+    (void) roomId;
+
+    instance->update(dt);
+    if (instance->isActive()) {
+      instance->incrementServerTick();
+      if (instance->getServerTick() % 3 == 0)
+        instance->sendSnapshots(_server);
+    }
+  }
+
+  for (auto& [roomId, instance] : _gameInstances) {
+    instance->update(dt);
+
+    if (auto* room = _roomManager.getRoom(roomId))
+      room->setState(instance->isActive() ? RoomState::Playing : RoomState::Waiting);
+
+    if (instance->isActive()) {
+      instance->incrementServerTick();
+
+      if (instance->getServerTick() % 3 == 0)
+        instance->sendSnapshots(_server);
+    }
+  }
 }
 
 bool Game::shouldContinue() const { return _running; }
 
 
 void Game::onUnload(rtk::EngineContext &context) {
-  _sceneManager.stop(context);
+  (void) context;
 
-  for (auto &[roomId, instance] : _gameInstances)
+  for (auto &[roomId, instance] : _gameInstances) {
     instance->stop();
+  }
+
   _gameInstances.clear();
-  _server.stop();
-  _players.clear();
-  std::cout << "[Server] Game simulation stopped" << std::endl;
+  _server.stop(); 
+  std::cout << "[Server] Multiples instances stopped" << std::endl;
 }
 
 void Game::sendExistingEntities(std::uint32_t connectionId,

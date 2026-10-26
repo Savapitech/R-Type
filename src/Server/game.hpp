@@ -151,13 +151,6 @@ private:
 
   std::unordered_map<std::uint32_t, std::unique_ptr<GameInstance>> _gameInstances;
 
-  ServerDependency _serverContext;
-  ServerInput _serverInput;
-
-  rtk::SceneManager<ServerSceneType, ServerDependency, ServerInput,
-                    ServerLobbyScene, ServerGameScene>
-      _sceneManager;
-
   Server _server;
   std::unordered_map<std::uint32_t, std::size_t> _players;
   std::array<std::uint16_t, 4> _playerArchetypes{};

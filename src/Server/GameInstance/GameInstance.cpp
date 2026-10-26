@@ -87,7 +87,6 @@ namespace rtype::server {
   void GameInstance::resetGameState() {
     _isActive = false;
     _serverTick = 0;
-    _players.clear();
   }
 
   rtk::EngineContext &GameInstance::getContext() {
