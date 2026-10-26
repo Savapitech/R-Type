@@ -1,6 +1,7 @@
 #include "InstanceScenes.hpp"
 #include "../GameInstance.hpp"
 #include "serverScene.hpp"
+#include <iostream>
 #include <optional>
 
 namespace rtype::server {
@@ -39,9 +40,16 @@ namespace rtype::server {
   void InstanceGameScene::onEnter(rtk::EngineContext &context) {
     (void) context;
 
-    _dependency.instance.setGameActive(true);
-
+    auto &instance = _dependency.instance;
+    instance.setGameActive(true);
     std::cout << "[Room " << _dependency.instance.getRoomId() << "] Game started" << std::endl;
+    instance.createBackground();
+
+    for (const auto &[connectionId, entity] : instance.getPlayers()) {
+      (void) entity;
+      instance.sendExistingEntities(connectionId, _dependency.server);
+    }
+    std::cout << "[Room " << _dependency.instance.getRoomId() << "] Level initialized" << std::endl;
   }
 
   std::optional<ServerSceneType> InstanceGameScene::onUpdate(rtk::EngineContext &context, const ServerInput &input, float dt) {

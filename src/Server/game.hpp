@@ -137,18 +137,6 @@ private:
   void handleEntityQueries(rtk::EngineContext &context);
   void cleanupOffscreenEnvironment(rtk::EngineContext &context);
   void sendSnapshots(rtk::EngineContext &context);
-  void createBackground(rtk::EngineContext &context);
-
-  float createGate(rtk::EngineContext &context, float startX, bool symmetric);
-  float createRamp(rtk::EngineContext &context, float startX, bool symmetric);
-  float createReactor(rtk::EngineContext &context, float startX,
-                      bool symmetric);
-  float createHighGround(rtk::EngineContext &context, float startX,
-                         bool symmetric);
-  float createLowGround(rtk::EngineContext &context, float startX,
-                        bool symmetric);
-  float createMediumGround(rtk::EngineContext &context, float startX,
-                           bool symmetric);
 
   void sendExistingEntities(std::uint32_t connectionId,
                             rtk::EngineContext &context);

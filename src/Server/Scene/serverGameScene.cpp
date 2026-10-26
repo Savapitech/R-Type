@@ -12,7 +12,6 @@ void ServerGameScene::onEnter(rtk::EngineContext &context) {
   std::cout << "[Server InGame] Entering InGame Scene! Creating Stage 1..."
             << std::endl;
   _dependency.game.setGameActive(true);
-  _dependency.game.createBackground(context);
   for (const auto &[playerId, dummy] : _dependency.game.getPlayers()) {
     _dependency.game.sendExistingEntities(playerId, context);
   }

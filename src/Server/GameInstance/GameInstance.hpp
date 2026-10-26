@@ -51,6 +51,7 @@ namespace rtype::server {
       bool removeConnectedPlayer(std::uint32_t connectionId, Server& server);
       void sendSnapshots(Server& server);
       void processEntityQuery(const Server::QueryEntityEvent &queryEvent, Server &server);
+      void createBackground();
     
     private:
       std::uint32_t _roomId;
@@ -85,6 +86,12 @@ namespace rtype::server {
       void registerComponents(rtk::EngineContext &context);
       void registerBuilders(rtk::EngineContext &context);
       void loadEntityBlueprints(rtk::EngineContext &context);
+      float createGate(float startX, bool symmetric);
+      float createRamp(float startX, bool symmetric);
+      float createReactor(float startX, bool symmetric);
+      float createHighGround(float startX, bool symmetric);
+      float createLowGround(float startX, bool symmetric);
+      float createMediumGround(float startX, bool symmetric);
 
   };
 } // namespace rtype::server

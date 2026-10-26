@@ -765,5 +765,192 @@ void GameInstance::processEntityQuery(const Server::QueryEntityEvent& queryEvent
 }
 
 
+float GameInstance::createGate(float startX, bool symmetric) {
+  auto gateEntity = _context._entityFactory.createNetwork(
+      _context.registry, "gate",
+      rtype::server::NetworkIdGenerator::getInstance().getNextId());
+  auto *transform =
+      _context.registry.get_components<component::Transform>().get(gateEntity);
+  if (transform) {
+    transform->position.x = startX;
+  }
+
+  if (symmetric) {
+    auto ceilingEntity = _context._entityFactory.createNetwork(
+        _context.registry, "gate",
+        rtype::server::NetworkIdGenerator::getInstance().getNextId());
+    auto *ceilTransform =
+        _context.registry.get_components<component::Transform>().get(
+            ceilingEntity);
+    if (ceilTransform) {
+      ceilTransform->position.x = startX;
+      ceilTransform->position.y = 0.0f;
+    }
+  }
+  return startX + (192.0f * 2.0f);
+}
+
+float GameInstance::createRamp(float startX, bool symmetric) {
+  auto rampEntity = _context._entityFactory.createNetwork(
+      _context.registry, "ramp",
+      rtype::server::NetworkIdGenerator::getInstance().getNextId());
+  auto *transform =
+      _context.registry.get_components<component::Transform>().get(rampEntity);
+  if (transform) {
+    transform->position.x = startX;
+  }
+
+  if (symmetric) {
+    auto ceilingEntity = _context._entityFactory.createNetwork(
+        _context.registry, "ramp",
+        rtype::server::NetworkIdGenerator::getInstance().getNextId());
+    auto *ceilTransform =
+        _context.registry.get_components<component::Transform>().get(
+            ceilingEntity);
+    if (ceilTransform) {
+      ceilTransform->position.x = startX;
+      ceilTransform->position.y = 0.0f;
+    }
+  }
+  return startX + (192.0f * 2.0f);
+}
+
+float GameInstance::createReactor(float startX, bool symmetric) {
+  auto reactorEntity = _context._entityFactory.createNetwork(
+      _context.registry, "reactor",
+      rtype::server::NetworkIdGenerator::getInstance().getNextId());
+  auto *transform = _context.registry.get_components<component::Transform>().get(
+      reactorEntity);
+  if (transform) {
+    transform->position.x = startX;
+  }
+
+  if (symmetric) {
+    auto ceilingEntity = _context._entityFactory.createNetwork(
+        _context.registry, "reactor",
+        rtype::server::NetworkIdGenerator::getInstance().getNextId());
+    auto *ceilTransform =
+        _context.registry.get_components<component::Transform>().get(
+            ceilingEntity);
+    if (ceilTransform) {
+      ceilTransform->position.x = startX;
+      ceilTransform->position.y = 0.0f;
+    }
+  }
+  return startX + (113.0f * 2.0f);
+}
+
+float GameInstance::createHighGround(float startX, bool symmetric) {
+  auto highGroundEntity = _context._entityFactory.createNetwork(
+      _context.registry, "high_ground",
+      rtype::server::NetworkIdGenerator::getInstance().getNextId());
+  auto *transform = _context.registry.get_components<component::Transform>().get(
+      highGroundEntity);
+  if (transform) {
+    transform->position.x = startX;
+  }
+
+  if (symmetric) {
+    auto ceilingEntity = _context._entityFactory.createNetwork(
+        _context.registry, "high_ground",
+        rtype::server::NetworkIdGenerator::getInstance().getNextId());
+    auto *ceilTransform =
+        _context.registry.get_components<component::Transform>().get(
+            ceilingEntity);
+    if (ceilTransform) {
+      ceilTransform->position.x = startX;
+      ceilTransform->position.y = 0.0f;
+    }
+  }
+  return startX + (64.0f * 2.0f);
+}
+
+float GameInstance::createLowGround(float startX, bool symmetric) {
+  auto lowGroundEntity = _context._entityFactory.createNetwork(
+      _context.registry, "low_ground",
+      rtype::server::NetworkIdGenerator::getInstance().getNextId());
+  auto *transform = _context.registry.get_components<component::Transform>().get(
+      lowGroundEntity);
+  if (transform) {
+    transform->position.x = startX;
+  }
+
+  if (symmetric) {
+    auto ceilingEntity = _context._entityFactory.createNetwork(
+        _context.registry, "low_ground",
+        rtype::server::NetworkIdGenerator::getInstance().getNextId());
+    auto *ceilTransform =
+        _context.registry.get_components<component::Transform>().get(
+            ceilingEntity);
+    if (ceilTransform) {
+      ceilTransform->position.x = startX;
+      ceilTransform->position.y = 0.0f;
+    }
+  }
+  return startX + (256.0f * 2.0f);
+}
+
+float GameInstance::createMediumGround(float startX, bool symmetric) {
+  auto groundEntity = _context._entityFactory.createNetwork(
+      _context.registry, "medium_ground",
+      rtype::server::NetworkIdGenerator::getInstance().getNextId());
+  auto *transform =
+      _context.registry.get_components<component::Transform>().get(groundEntity);
+  if (transform) {
+    transform->position.x = startX;
+  }
+
+  if (symmetric) {
+    auto ceilingEntity = _context._entityFactory.createNetwork(
+        _context.registry, "medium_ground",
+        rtype::server::NetworkIdGenerator::getInstance().getNextId());
+    auto *ceilTransform =
+        _context.registry.get_components<component::Transform>().get(
+            ceilingEntity);
+    if (ceilTransform) {
+      ceilTransform->position.x = startX;
+      ceilTransform->position.y = 0.0f;
+    }
+  }
+  return startX + (64.0f * 2.0f);
+}
+
+void GameInstance::createBackground()
+{
+  float currentX = 0.0f;
+
+  currentX = createMediumGround(currentX, false);
+  currentX = createLowGround(currentX, false);
+  currentX = createHighGround(currentX, false);
+
+  currentX = createMediumGround(currentX, false);
+  currentX = createLowGround(currentX, false);
+  currentX = createHighGround(currentX, false);
+
+  currentX = createHighGround(currentX, false);
+  currentX = createMediumGround(currentX, false);
+  currentX = createLowGround(currentX, false);
+  currentX = createMediumGround(currentX, false);
+
+  currentX = createReactor(currentX, true);
+
+  currentX = createLowGround(currentX, true);
+  currentX = createMediumGround(currentX, true);
+  currentX = createHighGround(currentX, true);
+  currentX = createLowGround(currentX, true);
+
+  currentX = createRamp(currentX, true);
+
+  currentX = createMediumGround(currentX, true);
+  currentX = createMediumGround(currentX, true);
+  currentX = createMediumGround(currentX, true);
+  currentX = createHighGround(currentX, true);
+
+  currentX = createGate(currentX, true);
+
+  currentX = createLowGround(currentX, true);
+  currentX = createMediumGround(currentX, true);
+  currentX = createHighGround(currentX, true);
+}
 
 } //namespace rtype::server
