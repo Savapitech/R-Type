@@ -27,6 +27,7 @@
 #include "components/NetworkEntity.hpp"
 #include "components/Transform.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <functional>
@@ -488,6 +489,8 @@ void GameInstance::processInput(const Server::InputEvent& inputEvent, Server& se
     return;
 
   const std::size_t pEntity = it->second;
+  if (pEntity == NO_ENTITY)
+    return;
   auto &registry = _context.registry;
   auto *velocity = registry.get_components<component::Velocity>().get(pEntity);
   auto* controllable = registry.get_components<component::Controllable>().get(pEntity);
@@ -653,6 +656,11 @@ bool GameInstance::removeConnectedPlayer( std::uint32_t connectionId, Server& se
     return false;
 
   const auto entity = it->second;
+  if (entity == NO_ENTITY) {
+    _players.erase(it);
+    return true;
+  }
+    
   auto &registry = _context.registry;
   auto *netEnt = registry.get_components<component::NetworkEntity>().get(entity);
   
@@ -951,6 +959,88 @@ void GameInstance::createBackground()
   currentX = createLowGround(currentX, true);
   currentX = createMediumGround(currentX, true);
   currentX = createHighGround(currentX, true);
+}
+
+void GameInstance::endGame(Server &server) {
+  auto &registry = _context.registry;
+  auto &netEntities = registry.get_components<component::NetworkEntity>();
+  for (auto entity : registry.view<component::NetworkEntity>()) {
+    const auto *netEnt = netEntities.get(entity);
+    if (!netEnt || netEnt->id == 0)
+      continue;
+
+    const auto payload = protocol::destroyEntityPayload(_serverTick,
+        netEnt->id, protocol::DestroyReason::GameEnded);
+    
+    for (const auto &[connectionId, playerEnt] : _players) {
+      (void) playerEnt;
+      server.sendDestroyEntity(netEnt->id, payload);
+    }
+  }
+  std::vector<std::size_t> entities;
+
+  for (auto entity : registry.view<component::Transform>())
+    entities.push_back(entity);
+  
+  for (auto entity : entities) {
+    registry.remove_entity_from_all_pools(entity);
+    registry.kill_entity(entity);
+  }
+  registry.flush();
+
+  for (auto &[connectionId, entity] : _players) {
+    (void) connectionId;
+    entity = NO_ENTITY;
+  }
+  _isActive = false;
+  _serverTick = 0;
+}
+
+void GameInstance::respawnPlayers() {
+  auto &registry = _context.registry;
+  std::vector<std::uint32_t> connectionIds;
+
+  for (auto &[connectionId, entity] : _players) {
+    (void) entity;
+    connectionIds.push_back(connectionId);
+  }
+
+  std::sort(connectionIds.begin(), connectionIds.end());
+  std::size_t slot = 0;
+
+  for (const auto &connectionId : connectionIds) {
+    if (slot >= _playerArchetypes.size())
+      break;
+    const auto netId = NetworkIdGenerator::getInstance().getNextId();
+    const auto archId = _playerArchetypes[slot];
+    const auto entity = _context._entityFactory.createNetwork(registry, archId, netId);
+    
+    auto *transform = registry.get_components<component::Transform>().get(entity);
+    if (!transform) {
+      registry.remove_entity_from_all_pools(entity);
+      registry.kill_entity(entity);
+    }
+
+    transform->position = {150.0f, 150.0f + static_cast<float>(slot) * 100.0f};
+    _players[connectionId] = entity;
+    ++slot;
+  }
+}
+
+
+bool GameInstance::hasAlivePlayers() {
+  auto &transform = _registry.get_components<component::Transform>();
+
+  for (const auto &[connectionId, entity] : _players) {
+    (void)connectionId;
+
+    if (entity == NO_ENTITY)
+      continue;
+    if (transform.get(entity) != nullptr)
+      return true;
+  }
+  return false;
+
 }
 
 } //namespace rtype::server

@@ -52,6 +52,9 @@ namespace rtype::server {
       void sendSnapshots(Server& server);
       void processEntityQuery(const Server::QueryEntityEvent &queryEvent, Server &server);
       void createBackground();
+      void endGame(Server& server);
+      void respawnPlayers();
+      bool hasAlivePlayers();
     
     private:
       std::uint32_t _roomId;

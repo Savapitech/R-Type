@@ -42,14 +42,15 @@ namespace rtype::server {
 
     auto &instance = _dependency.instance;
     instance.setGameActive(true);
-    std::cout << "[Room " << _dependency.instance.getRoomId() << "] Game started" << std::endl;
+    if (!instance.hasAlivePlayers())
+      instance.respawnPlayers();
     instance.createBackground();
 
     for (const auto &[connectionId, entity] : instance.getPlayers()) {
       (void) entity;
       instance.sendExistingEntities(connectionId, _dependency.server);
     }
-    std::cout << "[Room " << _dependency.instance.getRoomId() << "] Level initialized" << std::endl;
+    std::cout << "[Room " << _dependency.instance.getRoomId() << "] Game started" << std::endl;
   }
 
   std::optional<ServerSceneType> InstanceGameScene::onUpdate(rtk::EngineContext &context, const ServerInput &input, float dt) {
@@ -62,6 +63,12 @@ namespace rtype::server {
     if (nbPlayer == 0) {
       return ServerSceneType::Lobby;
     }
+
+    if (!instance.hasAlivePlayers()) {
+      std::cout << "[Room " << _dependency.instance.getRoomId() << "] Game Over" << std::endl;
+      return ServerSceneType::Lobby;
+    }
+
     return std::nullopt;
   }
 
@@ -70,6 +77,7 @@ namespace rtype::server {
 
     _dependency.instance.setGameActive(false);
     std::cout << "[Room " << _dependency.instance.getRoomId() << "] Leaving game" << std::endl;
+    _dependency.instance.endGame(_dependency.server);
   }
 
 } //namespace rtype::server
