@@ -24,6 +24,8 @@
 #include "components/Velocity.hpp"
 #include "components/Transform.hpp"
 #include "components/Controllable.hpp"
+#include "components/NetworkEntity.hpp"
+#include "components/Transform.hpp"
 
 #include <array>
 #include <cmath>
@@ -722,5 +724,46 @@ void GameInstance::sendSnapshots(Server& server) {
 
   flush();
 }
+void GameInstance::processEntityQuery(const Server::QueryEntityEvent& queryEvent, Server& server) {
+    if (!hasPlayer(queryEvent.connectionId))
+        return;
+
+    auto& registry = _context.registry;
+    auto view = registry.view<
+        component::NetworkEntity,
+        component::Transform
+    >();
+
+    auto& transforms = registry.get_components<component::Transform>();
+    auto& networkEntities = registry.get_components<component::NetworkEntity>();
+
+    for (auto entity : view) {
+        const auto* netEnt = networkEntities.get(entity);
+        if (!netEnt || netEnt->id != queryEvent.networkId)
+            continue;
+
+        const auto* transform = transforms.get(entity);
+        if (!transform)
+            break;
+
+        if (!std::isfinite(transform->position.x) || !std::isfinite(transform->position.y) ||
+            transform->position.x < protocol::MIN_POSITION ||
+            transform->position.x > protocol::MAX_POSITION ||
+            transform->position.y < protocol::MIN_POSITION ||
+            transform->position.y > protocol::MAX_POSITION) {
+            break;
+        }
+
+        const auto payload = protocol::createEntityPayload(
+            _serverTick, netEnt->id,
+            netEnt->archetypeId, transform->position.x,
+            transform->position.y, transform->rotation);
+
+        server.sendCreateEntity(queryEvent.connectionId, payload);
+        break;
+    }
+}
+
+
 
 } //namespace rtype::server

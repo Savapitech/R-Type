@@ -13,6 +13,7 @@
 #include "EngineContext.hpp"
 #include "Protocol/EntityPayload.hpp"
 #include "Protocol/SnapshotPayload.hpp"
+#include "Server.hpp"
 #include "components/AABBCollider.hpp"
 #include "components/Dead.hpp"
 #include "components/NetworkEntity.hpp"
@@ -700,36 +701,17 @@ void Game::sendExistingEntities(std::uint32_t connectionId,
 }
 
 void Game::handleEntityQueries(rtk::EngineContext &context) {
+  (void) context;
+
   Server::QueryEntityEvent queryEvent;
   while (_server.pollQueryEntity(queryEvent)) {
-    auto view =
-        context.registry.view<component::NetworkEntity, component::Transform>();
-    auto &transforms = context.registry.get_components<component::Transform>();
-    auto &networkEntities =
-        context.registry.get_components<component::NetworkEntity>();
-
-    for (auto entity : view) {
-      const auto *netEnt = networkEntities.get(entity);
-      if (netEnt && netEnt->id == queryEvent.networkId) {
-        const auto *transform = transforms.get(entity);
-        if (transform) {
-          if (!std::isfinite(transform->position.x) ||
-              !std::isfinite(transform->position.y) ||
-              transform->position.x < protocol::MIN_POSITION ||
-              transform->position.x > protocol::MAX_POSITION ||
-              transform->position.y < protocol::MIN_POSITION ||
-              transform->position.y > protocol::MAX_POSITION) {
-            break;
-          }
-          const auto payload = protocol::createEntityPayload(
-              _serverTick, netEnt->id, netEnt->archetypeId,
-              transform->position.x, transform->position.y,
-              transform->rotation);
-          _server.sendCreateEntity(queryEvent.connectionId, payload);
-        }
-        break;
-      }
-    }
+    auto roomId = _roomManager.getRoomId(queryEvent.connectionId);
+    if (!roomId)
+      continue;
+    GameInstance *instance = getGameInstance(*roomId);
+    if (!instance)
+      continue;
+    instance->processEntityQuery(queryEvent, _server);
   }
 }
 
