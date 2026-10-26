@@ -318,10 +318,10 @@ void Game::handleConnections(rtk::EngineContext &context) {
         continue;
       }
 
-      auto *instance = getGameInstance(_defaultRoomId);
+      auto *instance = getGameInstance(roomId);
 
       if (!instance) 
-        instance = createGameInstance(_defaultRoomId, _server);
+        instance = createGameInstance(roomId, _server);
 
       if (!instance) {
         _roomManager.leaveRoom(connectionId);
@@ -338,7 +338,7 @@ void Game::handleConnections(rtk::EngineContext &context) {
         
         continue;
       }
-      std::cout << "[Server] Player " << connectionId << " joined room " << _defaultRoomId << std::endl;
+      std::cout << "[Server] Player " << connectionId << " joined room " << roomId << std::endl;
 
     } else if (connEvent.type == Server::ConnectionEvent::Type::Disconnected) {
       auto roomId = _roomManager.getRoomId(connectionId);
@@ -392,37 +392,26 @@ void Game::handleInputs(rtk::EngineContext &context) {
   }
 }
 
-void Game::onUpdate(rtk::EngineContext &context, float dt) {
+void Game::onUpdate(rtk::EngineContext &context, float dt)
+{
   handleConnections(context);
   handleInputs(context);
   handleEntityQueries(context);
 
   for (auto &[roomId, instance] : _gameInstances) {
-    (void) roomId;
 
     instance->update(dt);
-    if (instance->isActive()) {
-      instance->incrementServerTick();
-      if (instance->getServerTick() % 3 == 0)
-        instance->sendSnapshots(_server);
-    }
-  }
 
-  for (auto& [roomId, instance] : _gameInstances) {
-    instance->update(dt);
-
-    if (auto* room = _roomManager.getRoom(roomId))
+    if (auto *room = _roomManager.getRoom(roomId))
       room->setState(instance->isActive() ? RoomState::Playing : RoomState::Waiting);
 
     if (instance->isActive()) {
       instance->incrementServerTick();
-
       if (instance->getServerTick() % 3 == 0)
-        instance->sendSnapshots(_server);
+          instance->sendSnapshots(_server);
     }
   }
 }
-
 bool Game::shouldContinue() const { return _running; }
 
 

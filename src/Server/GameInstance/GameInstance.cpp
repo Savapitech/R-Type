@@ -581,7 +581,8 @@ bool GameInstance::addConnectedPlayer(std::uint32_t connectionId, Server& server
     ++slot;  
   if (slot == 4)
     return false;
-  
+ 
+  sendExistingEntities(connectionId, server);
   const std::uint32_t networkId = NetworkIdGenerator::getInstance().getNextId();
   const auto archetypeId = _playerArchetypes[slot];
   const auto entity = _context._entityFactory.createNetwork(
@@ -973,7 +974,7 @@ void GameInstance::endGame(Server &server) {
     
     for (const auto &[connectionId, playerEnt] : _players) {
       (void) playerEnt;
-      server.sendDestroyEntity(netEnt->id, payload);
+      server.sendDestroyEntity(connectionId, payload);
     }
   }
   std::vector<std::size_t> entities;
