@@ -31,17 +31,12 @@ ServerGameScene::onUpdate(rtk::EngineContext &context, const ServerInput &input,
   _dependency.game.handleEntityQueries(context);
   _dependency.game.cleanupOffscreenEnvironment(context);
   _dependency.game.incrementServerTick();
-  _dependency.game.updateStage(context, dt);
 
   if (_dependency.game.getServerTick() % 3 == 0) {
     _dependency.game.sendSnapshots(context);
   }
 
   if (_dependency.game.getPlayerCount() == 0) {
-    return ServerSceneType::Lobby;
-  }
-
-  if (_dependency.game.hasCompletedAllStages()) {
     return ServerSceneType::Lobby;
   }
 
