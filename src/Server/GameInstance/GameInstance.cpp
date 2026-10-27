@@ -1,5 +1,6 @@
 #include "GameInstance.hpp"
 #include "EngineContext.hpp"
+#include "Scheduler.hpp"
 #include "Server.hpp"
 #include "components/AABBCollider.hpp"
 #include "components/Dead.hpp"
@@ -26,7 +27,12 @@
 #include "components/Controllable.hpp"
 #include "components/NetworkEntity.hpp"
 #include "components/Transform.hpp"
+#include "components/WaveMovement.hpp"
+#include "systems/WaveMovementSystem.hpp"
 
+#include <fstream>
+#include <nlohmann/json.hpp>
+#include <string>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -135,6 +141,7 @@ namespace rtype::server {
     context.registry.register_component<rtype::events::EnemyEscapedEvent>();
     context.registry.register_component<component::Health>();
     context.registry.register_component<component::DestroyableTile>();
+    context.registry.register_component<component::WaveMovement>();
   }
   
   void GameInstance::registerBuilders(rtk::EngineContext &context) {
@@ -217,6 +224,12 @@ namespace rtype::server {
     context._entityFactory.registerBuilder(
         "EnemyEscapedEvent",
         rtype::events::enemyEscapedEventFromJson);
+    context._entityFactory.registerBuilder(
+        "waveMovement",
+        component::waveMovementFromJson);
+    context._entityFactory.registerBuilder(
+        "WaveMovement",
+        component::waveMovementFromJson);
   }
   
   void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
@@ -250,6 +263,10 @@ namespace rtype::server {
     context._entityFactory.loadBlueprintFromPath(
         "enemyBidos",
         "assets/descriptionEntity/enemyBidos.json");
+
+    context._entityFactory.loadBlueprintFromPath(
+      "enemyRedShip",
+      "assets/descriptionEntity/enemyRedShip.json");
 
     context._entityFactory.loadBlueprintFromPath(
         "gate",
@@ -350,6 +367,9 @@ namespace rtype::server {
       std::ref(server),
       std::ref(_players)
   );
+
+  context.scheduler.add<rtk::systems::WaveMovementSystem>(
+      rtk::ecs::Order::Update);
 
   _systemsRegistered = true;
 }
@@ -925,40 +945,18 @@ float GameInstance::createMediumGround(float startX, bool symmetric) {
 
 void GameInstance::createBackground()
 {
-  float currentX = 0.0f;
+  _currentStageId.clear();
+  _nextStageId.clear();
+  _stageName.clear();
 
-  currentX = createMediumGround(currentX, false);
-  currentX = createLowGround(currentX, false);
-  currentX = createHighGround(currentX, false);
+  _stageTimer = 0.0f;
+  _stageDuration = 0.0f;
+  _stageObstaclesSpawned = 0;
 
-  currentX = createMediumGround(currentX, false);
-  currentX = createLowGround(currentX, false);
-  currentX = createHighGround(currentX, false);
+  _stageActive = false;
+  _allStagesCompleted = false;
 
-  currentX = createHighGround(currentX, false);
-  currentX = createMediumGround(currentX, false);
-  currentX = createLowGround(currentX, false);
-  currentX = createMediumGround(currentX, false);
-
-  currentX = createReactor(currentX, true);
-
-  currentX = createLowGround(currentX, true);
-  currentX = createMediumGround(currentX, true);
-  currentX = createHighGround(currentX, true);
-  currentX = createLowGround(currentX, true);
-
-  currentX = createRamp(currentX, true);
-
-  currentX = createMediumGround(currentX, true);
-  currentX = createMediumGround(currentX, true);
-  currentX = createMediumGround(currentX, true);
-  currentX = createHighGround(currentX, true);
-
-  currentX = createGate(currentX, true);
-
-  currentX = createLowGround(currentX, true);
-  currentX = createMediumGround(currentX, true);
-  currentX = createHighGround(currentX, true);
+  loadStageManifest(_context);
 }
 
 void GameInstance::endGame(Server &server) {
@@ -1042,5 +1040,229 @@ bool GameInstance::hasAlivePlayers() {
   return false;
 
 }
+
+float GameInstance::spawnStageSegment(
+  rtk::EngineContext &context, const std::string &blueprint,
+  float startX, float spacing, bool symmetric) {
+  auto groundEntity = context._entityFactory.createNetwork(
+    context.registry,
+    blueprint,
+    NetworkIdGenerator::getInstance().getNextId());
+
+  auto *transform =context.registry.get_components<component::Transform>().get(groundEntity);
+
+  if (transform) 
+    transform->position.x = startX;
+
+  if (symmetric) {
+    auto ceilingEntity = context._entityFactory.createNetwork(
+      context.registry,
+      blueprint,
+      NetworkIdGenerator::getInstance().getNextId());
+    auto *ceilTransform = context.registry.get_components<component::Transform>().get(ceilingEntity);
+    if (ceilTransform) {
+        ceilTransform->position.x = startX;
+        ceilTransform->position.y = 0.0f;
+    }
+  }
+  return startX + spacing;
+}
+
+void GameInstance::loadStage(rtk::EngineContext &context, const std::string &stagePath) {
+  std::ifstream file(stagePath);
+  if (!file.is_open()) {
+    std::cerr << "[Server] Failed to open stage file: " << stagePath << std::endl;
+    return;
+  }
+  nlohmann::json stageJson;
+  try {
+    file >> stageJson;
+  }
+  catch (const std::exception &e) {
+    std::cerr << "[Server] Failed to parse stage JSON (" << stagePath << "): "<< e.what() << std::endl;
+    return;
+  }
+
+  _stageName = stageJson.value("name", "Unnamed Stage");
+  _nextStageId = stageJson.value("nextStage", "");
+  _stageDuration = stageJson.value("duration", 0.0f);
+  _stageTimer = 0.0f;
+  _stageObstaclesSpawned = 0;
+  _stageActive = true;
+
+  float currentX = stageJson.value("startX", 0.0f);
+  if (!stageJson.contains("segments") ||
+    !stageJson["segments"].is_array()) {
+    std::cerr << "[Server] Stage file missing 'segments' array: " << stagePath << std::endl;
+    return;
+  }
+
+  for (const auto &segment : stageJson["segments"]) {
+    const std::string blueprint = segment.value("blueprint", "");
+
+    const bool symmetric = segment.value("symmetric", false);
+
+    const float spacing = segment.value("spacing", 0.0f);
+
+    if (blueprint.empty())
+      continue;
+
+    currentX = spawnStageSegment(context, blueprint, currentX, spacing, symmetric);
+    _stageObstaclesSpawned += symmetric ? 2 : 1;
+  }
+
+  std::cout << "[Server] Loaded stage from " << stagePath << " (" << _stageName << ") with "
+    << _stageObstaclesSpawned << " obstacle entities" << std::endl;
+}
+
+bool GameInstance::loadStageById(rtk::EngineContext &context, 
+    const std::string &stageId, const std::string &manifestPath) {
+  std::ifstream file(manifestPath);
+  if (!file.is_open()) {
+    std::cerr << "[Server] Failed to open stage manifest: " << manifestPath << std::endl;
+    return false;
+  }
+  nlohmann::json manifestJson;
+  try {
+      file >> manifestJson;
+  } catch (const std::exception &e) {
+    std::cerr << "[Server] Failed to parse stage manifest ("
+      << manifestPath << "): " << e.what() << std::endl;
+    return false;
+  }
+
+  std::string stageFilePath;
+  std::string manifestNextStage;
+  if (manifestJson.contains("stages") &&
+    manifestJson["stages"].is_array()) {
+
+    for (const auto &stageEntry : manifestJson["stages"]) {
+      if (stageEntry.value("id", "") == stageId) {
+        stageFilePath = stageEntry.value("file", "");
+        manifestNextStage = stageEntry.value("nextStage", "");
+        break;
+      }
+    }
+  }
+
+  if (stageFilePath.empty()) {
+    std::cerr << "[Server] Stage id not found in manifest: " << stageId << std::endl;
+    return false;
+  }
+  loadStage(context, stageFilePath);
+  _currentStageId = stageId;
+  if (_nextStageId.empty() && !manifestNextStage.empty())
+    _nextStageId = manifestNextStage;
+  return true;
+}
+
+void GameInstance::loadStageManifest(rtk::EngineContext &context, const std::string &manifestPath) {
+  std::ifstream file(manifestPath);
+  if (!file.is_open()) {
+    std::cerr << "[Server] Failed to open stage manifest: " << manifestPath << std::endl;
+    return;
+  }
+  nlohmann::json manifestJson;
+  try {
+    file >> manifestJson;
+  }
+  catch (const std::exception &e) {
+    std::cerr << "[Server] Failed to parse stage manifest (" <<
+      manifestPath << "): " << e.what() << std::endl;
+    return;
+  }
+
+  const std::string defaultStageId =
+    manifestJson.value("defaultStage", "stage1");
+
+  loadStageById(context, defaultStageId, manifestPath);
+}
+
+bool GameInstance::hasActiveEnvironmentEntities(rtk::EngineContext &context) const {
+  auto view = context.registry.view<component::Transform, component::AABBCollider>();
+  auto &colliders = context.registry.get_components<component::AABBCollider>();
+  auto &deads = context.registry.get_components<component::Dead>();
+
+  for (auto entity : view) {
+    if (deads.get(entity) != nullptr)
+      continue;
+    const auto *col = colliders.get(entity);
+    if (col && (col->layer & Collider::CollisionLayer::Environment)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void GameInstance::clearEnvironmentEntities(rtk::EngineContext &context) {
+  auto view = context.registry.view<component::Transform, component::AABBCollider>();
+  auto &colliders = context.registry.get_components<component::AABBCollider>();
+  auto &deads = context.registry.get_components<component::Dead>();
+
+  for (auto entity : view) {
+    const auto *col = colliders.get(entity);
+
+    if (col && (col->layer & Collider::CollisionLayer::Environment)) {
+      deads.insert_at(entity, {});
+    }
+  }
+}
+
+void GameInstance::clearEnemies(rtk::EngineContext &context) {
+  auto view = context.registry.view<component::Enemy>();
+  auto &deads = context.registry.get_components<component::Dead>();
+
+  for (auto entity : view)
+    deads.insert_at(entity, {});
+}
+
+bool GameInstance::isStageFinished(rtk::EngineContext &context) const {
+  if (!_stageActive)
+    return false;
+
+  if (_stageDuration > 0.0f && _stageTimer >= _stageDuration)
+    return true;
+
+  if (_stageObstaclesSpawned > 0 && !hasActiveEnvironmentEntities(context))
+    return true;
+  return false;
+}
+
+bool GameInstance::advanceToNextStage(rtk::EngineContext &context) {
+  if (_nextStageId.empty()) {
+    std::cout << "[Server] No next stage configured after "
+      << _currentStageId << std::endl;
+      _stageActive = false;
+      return false;
+  }
+  clearEnvironmentEntities(context);
+  clearEnemies(context);
+  const std::string nextId = _nextStageId;
+  _nextStageId.clear();
+  if (!loadStageById(context, nextId)) {
+    std::cerr << "[Server] Failed to load next stage: " << nextId << std::endl;
+    _stageActive = false;
+    return false;
+  }
+  for (const auto &[playerId, entity] : _players) {
+    (void)entity;
+    sendExistingEntities(playerId, _dependency.server);
+  }
+  return true;
+}
+
+void GameInstance::updateStage(float dt)
+{
+  auto &context = _context;
+  if (!_isActive || !_stageActive)
+    return;
+  _stageTimer += dt;
+  if (isStageFinished(context)) {
+    if (!advanceToNextStage(context)) {
+      _allStagesCompleted = true;
+    }
+  }
+}
+
 
 } //namespace rtype::server

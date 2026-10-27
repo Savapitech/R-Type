@@ -175,6 +175,38 @@ namespace rtype::server {
        */
       void createBackground();
       /**
+       * @brief Updates the current stage progression.
+       * @param dt Elapsed time since the previous update, in seconds.
+       */
+      void updateStage(float dt);
+
+      /**
+       * @brief Checks whether every stage has been completed.
+       * @return True if all stages are completed, false otherwise.
+       */
+      bool hasCompletedAllStages() const
+      {
+          return _allStagesCompleted;
+      }
+
+      /**
+       * @brief Returns the identifier of the current stage.
+       * @return Reference to the current stage identifier.
+       */
+      const std::string &getCurrentStageId() const
+      {
+          return _currentStageId;
+      }
+
+      /**
+       * @brief Returns the elapsed time in the current stage.
+       * @return Elapsed stage time in seconds.
+       */
+      float getStageTimer() const
+      {
+          return _stageTimer;
+      }
+      /**
        * @brief Ends the round and destroys its gameplay entities.
        * @param server Shared network server.
        */
@@ -218,6 +250,14 @@ namespace rtype::server {
       rtk::collision::CollisionBuffer _collisionBuffer;
       bool _systemsRegistered = false;
       bool _eventsRegistered = false;
+      std::string _currentStageId;
+      std::string _nextStageId;
+      std::string _stageName;
+      float _stageTimer = 0.0f;
+      float _stageDuration = 0.0f;
+      std::size_t _stageObstaclesSpawned = 0;
+      bool _stageActive = false;
+      bool _allStagesCompleted = false;
 
       /**
        * @brief Registers components in the instance registry.
@@ -234,6 +274,68 @@ namespace rtype::server {
        * @param context Instance engine context.
        */
       void loadEntityBlueprints(rtk::EngineContext &context);
+      /**
+       * @brief Creates an environment segment from a stage blueprint.
+       * @param context Engine context of the current game instance.
+       * @param blueprint Entity blueprint identifier.
+       * @param startX Horizontal starting position.
+       * @param spacing Horizontal spacing after the segment.
+       * @param symmetric Whether to create a symmetrical segment.
+       * @return Horizontal position following the created segment.
+       */
+      float spawnStageSegment(rtk::EngineContext &context, const std::string &blueprint,
+          float startX, float spacing, bool symmetric);
+      /**
+       * @brief Loads a stage from a JSON file.
+       * @param context Engine context of the current game instance.
+       * @param stagePath Path to the stage JSON file.
+       */
+      void loadStage(rtk::EngineContext &context, const std::string &stagePath);
+      /**
+       * @brief Loads a stage identified in the stage manifest.
+       * @param context Engine context of the current game instance.
+       * @param stageId Identifier of the stage to load.
+       * @param manifestPath Path to the stage manifest.
+       * @return True if the stage was loaded successfully.
+       */
+      bool loadStageById(rtk::EngineContext &context,
+          const std::string &stageId,
+          const std::string &manifestPath = "assets/stages/stages.json");
+      /**
+       * @brief Loads the stage manifest and initializes progression.
+       * @param context Engine context of the current game instance.
+       * @param manifestPath Path to the stage manifest.
+       */
+      void loadStageManifest(rtk::EngineContext &context,
+          const std::string &manifestPath = "assets/stages/stages.json");
+      /**
+       * @brief Checks whether the current stage is finished.
+       * @param context Engine context of the current game instance.
+       * @return True if the current stage is finished.
+       */
+      bool isStageFinished(rtk::EngineContext &context) const;
+      /**
+       * @brief Advances to the next available stage.
+       * @param context Engine context of the current game instance.
+       * @return True if another stage was successfully loaded.
+       */
+      bool advanceToNextStage(rtk::EngineContext &context);
+      /**
+       * @brief Checks for remaining environment entities.
+       * @param context Engine context of the current game instance.
+       * @return True if environment entities are still present.
+       */
+      bool hasActiveEnvironmentEntities(rtk::EngineContext &context) const;
+      /**
+       * @brief Removes environment entities from the current stage.
+       * @param context Engine context of the current game instance.
+       */
+      void clearEnvironmentEntities(rtk::EngineContext &context);
+      /**
+       * @brief Removes enemy entities from the current stage.
+       * @param context Engine context of the current game instance.
+       */
+      void clearEnemies(rtk::EngineContext &context);
       /**
        * @brief Creates a gate environment segment.
        * @param startX Starting horizontal position.

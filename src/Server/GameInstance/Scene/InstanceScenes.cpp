@@ -22,7 +22,7 @@ namespace rtype::server {
       _lobbyTimer = 0.0f;
       return std::nullopt;
     }
-    if (nbPlayer >= 2)
+    if (nbPlayer >= 4)
       return ServerSceneType::InGame;
     _lobbyTimer += dt;
 
@@ -54,23 +54,23 @@ namespace rtype::server {
   }
 
   std::optional<ServerSceneType> InstanceGameScene::onUpdate(rtk::EngineContext &context, const ServerInput &input, float dt) {
-    (void) context;
-    (void) input;
-    (void) dt;
+    (void)context;
+    (void)input;
 
     auto &instance = _dependency.instance;
-    const auto nbPlayer = instance.getPlayerCount();
-    if (nbPlayer == 0) {
-      return ServerSceneType::Lobby;
-    }
-
+    if (instance.getPlayerCount() == 0) 
+        return ServerSceneType::Lobby;
     if (!instance.hasAlivePlayers()) {
-      std::cout << "[Room " << _dependency.instance.getRoomId() << "] Game Over" << std::endl;
-      return ServerSceneType::Lobby;
+        std::cout << "[Room " << instance.getRoomId() << "] Game Over" << std::endl;
+        return ServerSceneType::Lobby;
     }
-
+    instance.updateStage(dt);
+    if (instance.hasCompletedAllStages()) {
+        std::cout << "[Room " << instance.getRoomId() << "] All stages completed" << std::endl;
+        return ServerSceneType::Lobby;
+    }
     return std::nullopt;
-  }
+}
 
   void InstanceGameScene::onExit(rtk::EngineContext& context) {
     (void)context;
