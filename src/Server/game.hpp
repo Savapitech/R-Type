@@ -145,8 +145,24 @@ private:
   void broadcastPlayerDestroyed(std::uint32_t connectionId,
                                 std::uint32_t networkId);
   
+  /**
+   * @brief Creates an instance for an existing room.
+   * @param roomId Room identifier.
+   * @param server Shared network server.
+   * @return Pointer to the instance, or nullptr on failure.
+   */
   GameInstance* createGameInstance(std::uint32_t roomId, Server &server);
+  /**
+   * @brief Looks up an instance by room identifier.
+   * @param roomId Room identifier.
+   * @return Pointer to the instance, or nullptr if missing.
+   */
   GameInstance* getGameInstance(std::uint32_t roomId);
+  /**
+   * @brief Stops and removes an instance.
+   * @param roomId Room identifier.
+   * @return True if the instance was removed.
+   */
   bool destroyGameInstance(std::uint32_t roomId);
 
   std::unordered_map<std::uint32_t, std::unique_ptr<GameInstance>> _gameInstances;
@@ -164,3 +180,4 @@ private:
 
 /** @} */
 } // namespace rtype::server
+
