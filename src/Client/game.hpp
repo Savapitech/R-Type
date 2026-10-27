@@ -20,6 +20,10 @@
 #include "scene/menuScene.hpp"
 #include "scene/networkConnectionScene.hpp"
 
+namespace rtk::systems {
+class CollisionFlashSystem;
+}
+
 namespace rtype::events {
 /**
  * @addtogroup api_client
@@ -120,6 +124,7 @@ private:
       _sceneManager;
 
   rtk::Font _fontRtype;
+  rtk::systems::CollisionFlashSystem *_collisionFlashSystem = nullptr;
   bool _shouldQuit = false;
   std::string _host = "127.0.0.1";
   std::string _port = "4242";

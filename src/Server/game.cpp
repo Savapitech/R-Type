@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cmath>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -28,6 +29,7 @@
 #include "components/Enemy.hpp"
 #include "components/EnemyEvent.hpp"
 #include "components/Health.hpp"
+#include "components/WaveMovement.hpp"
 
 #include "ServerDeathSystem.hpp"
 #include "systems/BulletSystem.hpp"
@@ -37,6 +39,7 @@
 #include "systems/EnemyShootSystem.hpp"
 #include "systems/EnemySpawnerSystem.hpp"
 #include "systems/MovementSystem.hpp"
+#include "systems/WaveMovementSystem.hpp"
 
 namespace rtype::server {
 
@@ -71,6 +74,7 @@ void Game::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<rtype::events::EnemyEscapedEvent>();
   context.registry.register_component<component::Health>();
   context.registry.register_component<component::DestroyableTile>();
+  context.registry.register_component<component::WaveMovement>();
 }
 
 void Game::registerBuilders(rtk::EngineContext &context) {
@@ -118,6 +122,10 @@ void Game::registerBuilders(rtk::EngineContext &context) {
       "enemyEscapedEvent", rtype::events::enemyEscapedEventFromJson);
   context._entityFactory.registerBuilder(
       "EnemyEscapedEvent", rtype::events::enemyEscapedEventFromJson);
+  context._entityFactory.registerBuilder("waveMovement",
+                                         component::waveMovementFromJson);
+  context._entityFactory.registerBuilder("WaveMovement",
+                                         component::waveMovementFromJson);
 }
 
 void Game::loadEntityBlueprints(rtk::EngineContext &context) {
@@ -135,6 +143,8 @@ void Game::loadEntityBlueprints(rtk::EngineContext &context) {
       "bullet", "assets/descriptionEntity/bullet.json");
   context._entityFactory.loadBlueprintFromPath(
       "enemyBidos", "assets/descriptionEntity/enemyBidos.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "enemyRedShip", "assets/descriptionEntity/enemyRedShip.json");
   context._entityFactory.loadBlueprintFromPath(
       "gate", "assets/descriptionEntity/gate.json");
   context._entityFactory.loadBlueprintFromPath(
@@ -189,50 +199,58 @@ void Game::subscribeEvents(rtk::EngineContext &context) {
         std::uint32_t playerVsEnemyProj =
             Collider::CollisionLayer::Player |
             Collider::CollisionLayer::EnemyProjectile;
+        std::uint32_t enemyVsEnv = Collider::CollisionLayer::Enemy |
+                                   Collider::CollisionLayer::Environment;
+        std::uint32_t enemyProjVsEnv =
+            Collider::CollisionLayer::EnemyProjectile |
+            Collider::CollisionLayer::Environment;
 
         auto &deads = context.registry.get_components<component::Dead>();
 
         if (collisionPair == bulletVsEnemy) {
-          deads.insert_at(event.firstEntity, {});
-          deads.insert_at(event.secondEntity, {});
-        } else if (collisionPair == bulletVsEnv) {
-          if (colA->layer == Collider::CollisionLayer::PlayerProjectile) {
-            deads.insert_at(event.firstEntity, {});
-          } else {
-            deads.insert_at(event.secondEntity, {});
-          }
-        } else if (collisionPair == playerVsEnemy) {
-          deads.insert_at(event.firstEntity, {});
-          deads.insert_at(event.secondEntity, {});
-          std::cout << "[SERVER] Player died from collision!" << std::endl;
-        } else if (collisionPair == playerVsEnv) {
-          if (colA->layer == Collider::CollisionLayer::Player) {
-            deads.insert_at(event.firstEntity, {});
-          } else {
-            deads.insert_at(event.secondEntity, {});
-          }
-        } else if (collisionPair == playerVsEnemyProj) {
-          if (colA->layer == Collider::CollisionLayer::Player) {
-            deads.insert_at(event.firstEntity, {});
-          } else {
-            deads.insert_at(event.secondEntity, {});
-          }
-          deads.insert_at(event.firstEntity, {});
-          deads.insert_at(event.secondEntity, {});
-          std::cout << "[SERVER] Player hit by enemy bullet!" << std::endl;
-        }
-        auto &healths = context.registry.get_components<component::Health>();
-        auto &bullets = context.registry.get_components<component::Bullet>();
+          std::size_t bulletEnt =
+              (colA->layer == Collider::CollisionLayer::PlayerProjectile)
+                  ? event.firstEntity
+                  : event.secondEntity;
+          std::size_t enemyEnt =
+              (colA->layer == Collider::CollisionLayer::Enemy)
+                  ? event.firstEntity
+                  : event.secondEntity;
 
-        if (collisionPair == bulletVsEnemy) {
-          deads.insert_at(event.firstEntity, {});
-          deads.insert_at(event.secondEntity, {});
+          deads.insert_at(bulletEnt, {});
+
+          auto &enemies = context.registry.get_components<component::Enemy>();
+          auto &healths = context.registry.get_components<component::Health>();
+          auto &bullets = context.registry.get_components<component::Bullet>();
+
+          auto *bulletComp = bullets.get(bulletEnt);
+          const float damage = bulletComp ? bulletComp->damage : 10.0f;
+
+          auto *enemyComp = enemies.get(enemyEnt);
+          auto *healthComp = healths.get(enemyEnt);
+
+          if (enemyComp) {
+            enemyComp->health -= damage;
+            if (enemyComp->health <= 0.0f) {
+              deads.insert_at(enemyEnt, {});
+            }
+          } else if (healthComp) {
+            healthComp->current -= damage;
+            if (healthComp->current <= 0.0f) {
+              deads.insert_at(enemyEnt, {});
+            }
+          } else {
+            deads.insert_at(enemyEnt, {});
+          }
         } else if (collisionPair == bulletVsEnv) {
           if (colA->layer == Collider::CollisionLayer::PlayerProjectile) {
             deads.insert_at(event.firstEntity, {});
           } else {
             deads.insert_at(event.secondEntity, {});
           }
+
+          auto &healths = context.registry.get_components<component::Health>();
+          auto &bullets = context.registry.get_components<component::Bullet>();
 
           std::size_t bulletEnt =
               (colA->layer == Collider::CollisionLayer::PlayerProjectile)
@@ -253,6 +271,47 @@ void Game::subscribeEvents(rtk::EngineContext &context) {
               std::cout << "[SERVER] Tile destroyed!" << std::endl;
             }
           }
+        } else if (collisionPair == playerVsEnemy) {
+          deads.insert_at(event.firstEntity, {});
+          deads.insert_at(event.secondEntity, {});
+          std::cout << "[SERVER] Player died from collision!" << std::endl;
+        } else if (collisionPair == playerVsEnv) {
+          if (colA->layer == Collider::CollisionLayer::Player) {
+            deads.insert_at(event.firstEntity, {});
+          } else {
+            deads.insert_at(event.secondEntity, {});
+          }
+        } else if (collisionPair == playerVsEnemyProj) {
+          if (colA->layer == Collider::CollisionLayer::Player) {
+            deads.insert_at(event.firstEntity, {});
+          } else {
+            deads.insert_at(event.secondEntity, {});
+          }
+          deads.insert_at(event.firstEntity, {});
+          deads.insert_at(event.secondEntity, {});
+          std::cout << "[SERVER] Player hit by enemy bullet!" << std::endl;
+        } else if (collisionPair == enemyVsEnv) {
+          std::size_t enemyEnt =
+              (colA->layer == Collider::CollisionLayer::Enemy)
+                  ? event.firstEntity
+                  : event.secondEntity;
+
+          auto &transforms =
+              context.registry.get_components<component::Transform>();
+          const auto *transform = transforms.get(enemyEnt);
+
+          if (transform && transform->position.x <= 1920.0f &&
+              transform->position.x >= -50.0f) {
+            deads.insert_at(enemyEnt, {});
+            std::cout << "[SERVER] Enemy died from environment collision!"
+                      << std::endl;
+          }
+        } else if (collisionPair == enemyProjVsEnv) {
+          if (colA->layer == Collider::CollisionLayer::EnemyProjectile) {
+            deads.insert_at(event.firstEntity, {});
+          } else {
+            deads.insert_at(event.secondEntity, {});
+          }
         }
       });
 }
@@ -270,6 +329,8 @@ void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<ServerDeathSystem>(
       rtk::ecs::Order::SecondUpdate, std::ref(_server), std::ref(_players),
       std::cref(_serverTick));
+  context.scheduler.add<rtk::systems::WaveMovementSystem>(
+      rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
   context.scheduler.add<rtk::systems::ColliderSystem>(
       rtk::ecs::Order::Physics, _collisionBuffer, 64.f, context.eventBus);
@@ -370,7 +431,6 @@ void Game::broadcastGameEnded(rtk::EngineContext &context) {
     const auto payload = protocol::destroyEntityPayload(
         _serverTick, netEnt->id, protocol::DestroyReason::GameEnded);
     for (const auto &[playerId, dummy] : _players) {
-      (void)dummy;
       _server.sendDestroyEntity(playerId, payload);
     }
   }

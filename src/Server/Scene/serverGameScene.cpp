@@ -9,36 +9,39 @@ namespace rtype::server {
 ServerGameScene::ServerGameScene(ServerDependency &dep) : _dependency(dep) {}
 
 void ServerGameScene::onEnter(rtk::EngineContext &context) {
-  std::cout << "[Server InGame] Entering InGame Scene! Creating Stage 1..."
-            << std::endl;
+  std::cout
+      << "[Server InGame] Entering InGame Scene! Creating initial stage..."
+      << std::endl;
   _dependency.game.setGameActive(true);
   for (const auto &[playerId, dummy] : _dependency.game.getPlayers()) {
     _dependency.game.sendExistingEntities(playerId, context);
   }
-  std::cout << "[Server InGame] Stage 1 initialized and sent to all players."
-            << std::endl;
+  std::cout
+      << "[Server InGame] Initial stage initialized and sent to all players."
+      << std::endl;
 }
 
 std::optional<ServerSceneType>
 ServerGameScene::onUpdate(rtk::EngineContext &context, const ServerInput &input,
                           float dt) {
   (void)input;
-  (void)dt;
 
   _dependency.game.handleConnections(context);
   _dependency.game.handleInputs(context);
   _dependency.game.handleEntityQueries(context);
   _dependency.game.cleanupOffscreenEnvironment(context);
   _dependency.game.incrementServerTick();
+  _dependency.game.updateStage(context, dt);
 
   if (_dependency.game.getServerTick() % 3 == 0) {
     _dependency.game.sendSnapshots(context);
   }
 
   if (_dependency.game.getPlayerCount() == 0) {
-    std::cout
-        << "[Server InGame] All players disconnected. Returning to Lobby..."
-        << std::endl;
+    return ServerSceneType::Lobby;
+  }
+
+  if (_dependency.game.hasCompletedAllStages()) {
     return ServerSceneType::Lobby;
   }
 

@@ -1,0 +1,113 @@
+{
+  "name": "Stage 3",
+  "nextStage": "",
+  "duration": 0.0,
+  "startX": 1920.0,
+  "segments": [
+    {
+      "blueprint": "reactor",
+      "symmetric": true,
+      "spacing": 226.0
+    },
+    {
+      "blueprint": "gate",
+      "symmetric": true,
+      "spacing": 384.0
+    },
+    {
+      "blueprint": "high_ground",
+      "symmetric": true,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "ramp",
+      "symmetric": true,
+      "spacing": 384.0
+    },
+    {
+      "blueprint": "reactor",
+      "symmetric": true,
+      "spacing": 226.0
+    },
+    {
+      "blueprint": "medium_ground",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "low_ground",
+      "symmetric": true,
+      "spacing": 512.0
+    },
+    {
+      "blueprint": "gate",
+      "symmetric": true,
+      "spacing": 384.0
+    },
+    {
+      "blueprint": "ramp",
+      "symmetric": true,
+      "spacing": 384.0
+    },
+    {
+      "blueprint": "reactor",
+      "symmetric": true,
+      "spacing": 226.0
+    },
+    {
+      "blueprint": "high_ground",
+      "symmetric": true,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "high_ground",
+      "symmetric": true,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "gate",
+      "symmetric": true,
+      "spacing": 384.0
+    },
+    {
+      "blueprint": "medium_ground",
+      "symmetric": true,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "ramp",
+      "symmetric": true,
+      "spacing": 384.0
+    },
+    {
+      "blueprint": "reactor",
+      "symmetric": true,
+      "spacing": 226.0
+    },
+    {
+      "blueprint": "low_ground",
+      "symmetric": true,
+      "spacing": 512.0
+    },
+    {
+      "blueprint": "gate",
+      "symmetric": true,
+      "spacing": 384.0
+    },
+    {
+      "blueprint": "reactor",
+      "symmetric": true,
+      "spacing": 226.0
+    },
+    {
+      "blueprint": "high_ground",
+      "symmetric": true,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "medium_ground",
+      "symmetric": false,
+      "spacing": 128.0
+    }
+  ]
+}
