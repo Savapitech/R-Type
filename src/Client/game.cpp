@@ -504,10 +504,8 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
 }
 
 void Game::onUnload(rtk::EngineContext &context) {
-  for (const auto &[networkId, entity] : _networkEntities) {
-    (void)networkId;
+  for (const auto &[_, entity] : _networkEntities)
     context.registry.kill_entity(entity);
-  }
   _networkEntities.clear();
   _sceneManager.stop(context);
   _networkClient.stop();

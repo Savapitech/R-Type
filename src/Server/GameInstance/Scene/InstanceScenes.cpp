@@ -6,15 +6,11 @@
 
 namespace rtype::server {
 
-  void InstanceLobbyScene::onEnter(rtk::EngineContext &context) {
-    (void) context;
-
+  void InstanceLobbyScene::onEnter(rtk::EngineContext &) {
     std::cout << "[Room " << _dependency.instance.getRoomId() << "] Lobby started" << std::endl;
   }
 
-  std::optional<ServerSceneType> InstanceLobbyScene::onUpdate(rtk::EngineContext &context, const ServerInput &input, float dt) {
-    (void) context;
-    (void) input;
+  std::optional<ServerSceneType> InstanceLobbyScene::onUpdate(rtk::EngineContext &, const ServerInput &, float dt) {
 
     auto &instance = _dependency.instance;
     const auto nbPlayer = instance.getPlayerCount();
@@ -31,15 +27,12 @@ namespace rtype::server {
     return std::nullopt;
   }
 
-  void InstanceLobbyScene::onExit(rtk::EngineContext& context) {
-    (void)context;
+  void InstanceLobbyScene::onExit(rtk::EngineContext&) {
     std::cout << "[Room " << _dependency.instance.getRoomId() << "] Leaving lobby" << std::endl;
   }
 
 
-  void InstanceGameScene::onEnter(rtk::EngineContext &context) {
-    (void) context;
-
+  void InstanceGameScene::onEnter(rtk::EngineContext &) {
     auto &instance = _dependency.instance;
     instance.setGameActive(true);
     if (!instance.hasAlivePlayers())

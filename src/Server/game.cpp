@@ -337,8 +337,6 @@ void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<rtk::systems::EnemyShootSystem>(
       rtk::ecs::Order::Update, std::ref(context._entityFactory),
       std::ref(_server), std::ref(_players));
-  // context.scheduler.add<rtk::systems::DestroyableSystem>(rtk::ecs::Order::SecondUpdate,
-  // context.eventBus);
 }
 
 void Game::handleConnections(rtk::EngineContext &context) {
