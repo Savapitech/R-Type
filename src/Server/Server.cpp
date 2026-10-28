@@ -1,12 +1,14 @@
 #include "Server.hpp"
 
 #include <iostream>
+#include <mutex>
 #include <utility>
 
 #include "Protocol/EntityPayload.hpp"
 #include "Protocol/MessageType.hpp"
 #include "Protocol/PayloadCodec.hpp"
 #include "Protocol/SnapshotPayload.hpp"
+#include "Protocol/RoomPayload.hpp"
 #include "config/NetworkConfig.hpp"
 #include "protocol/MessageHeader.hpp"
 #include "protocol/PacketReader.hpp"
@@ -100,6 +102,85 @@ void Server::handleMessage(std::uint32_t connectionId, MessageId type,
     break;
   }
 
+  case protocol::MessageType::ListRooms: {
+    if (!payload.empty())
+      return;
+    RoomRequestEvent event{};
+    event.type = RoomRequestEvent::Type::ListRooms;
+    event.connectionId = connectionId;
+    {
+      std::lock_guard<std::mutex> lock(_roomRequestMutex);
+      if (_roomRequestQueue.size() < MAX_QUEUED_EVENTS)
+        _roomRequestQueue.push(event);
+    } 
+    break;
+  }
+
+  case protocol::MessageType::CreateRoom: {
+    PacketReader reader(payload);
+    protocol::CreateRoomPayload req;
+    if (!protocol::readCreateRoom(reader, req))
+      return;
+    RoomRequestEvent event{};
+    event.type = RoomRequestEvent::Type::ListRooms;
+    event.connectionId = connectionId;
+    event.roomName = std::move(req.name);
+    {
+      std::lock_guard<std::mutex> lock(_roomRequestMutex);
+      if (_roomRequestQueue.size() < MAX_QUEUED_EVENTS)
+        _roomRequestQueue.push(event);
+    } 
+    break;
+  }
+
+  case protocol::MessageType::JoinRoom: {
+    PacketReader reader(payload);
+    protocol::JoinRoomPayload req{};
+    if (!protocol::readJoinRoom(reader, req))
+      return;
+    RoomRequestEvent event{};
+    event.type = RoomRequestEvent::Type::ListRooms;
+    event.connectionId = connectionId;
+    event.roomId = std::move(req.roomId);
+    {
+      std::lock_guard<std::mutex> lock(_roomRequestMutex);
+      if (_roomRequestQueue.size() < MAX_QUEUED_EVENTS)
+        _roomRequestQueue.push(event);
+    } 
+    break;
+  }
+
+  case protocol::MessageType::LeaveRoom: {
+    if (!payload.empty())
+      return;
+    RoomRequestEvent event{};
+    event.type = RoomRequestEvent::Type::LeaveRoom;
+    event.connectionId = connectionId;
+    {
+      std::lock_guard<std::mutex> lock(_roomRequestMutex);
+      if (_roomRequestQueue.size() < MAX_QUEUED_EVENTS)
+        _roomRequestQueue.push(event);
+    } 
+    break;
+  }
+
+  case protocol::MessageType::SetReady: {
+    PacketReader reader(payload);
+    protocol::SetReadyPayload req{};
+    if (!protocol::readSetReady(reader, req))
+      return;
+    RoomRequestEvent event{};
+    event.type = RoomRequestEvent::Type::ListRooms;
+    event.connectionId = connectionId;
+    event.ready = std::move(req.ready);
+    {
+      std::lock_guard<std::mutex> lock(_roomRequestMutex);
+      if (_roomRequestQueue.size() < MAX_QUEUED_EVENTS)
+        _roomRequestQueue.push(event);
+    } 
+    break;
+  }
+
   default:
     break;
   }
@@ -135,6 +216,15 @@ bool Server::pollQueryEntity(QueryEntityEvent &event) {
 
   event = _queryQueue.front();
   _queryQueue.pop();
+  return true;
+}
+
+bool Server::pollRoomRequest(RoomRequestEvent &event) {
+  std::lock_guard<std::mutex> lock(_roomRequestMutex);
+  if (_roomRequestQueue.empty())
+    return false;
+  event = std::move(_roomRequestQueue.front());
+  _roomRequestQueue.pop();
   return true;
 }
 
@@ -192,4 +282,49 @@ bool Server::sendSnapshot(std::uint32_t connectionId,
   return sendMessage(connectionId, protocol::MessageType::Snapshot,
                      writer.getData());
 }
+
+bool Server::sendRoomList(std::uint32_t connectionId, const protocol::RoomListPayload &payload) {
+  PacketWriter writer;
+  if (!protocol::writeRoomList(writer, payload))
+    return false;
+  return sendMessage(connectionId, protocol::MessageType::ListRooms, writer.getData());
+}
+
+bool Server::sendRoomCreated(std::uint32_t connectionId, const protocol::RoomResultPayload &payload) {
+  PacketWriter writer;
+  if (!protocol::writeRoomResult(writer, payload))
+    return false;
+  return sendMessage(connectionId, protocol::MessageType::RoomCreated, writer.getData());
+}
+
+
+bool Server::sendRoomJoined(std::uint32_t connectionId, const protocol::RoomResultPayload &payload) {
+  PacketWriter writer;
+  if (!protocol::writeRoomResult(writer, payload))
+    return false;
+  return sendMessage(connectionId, protocol::MessageType::RoomJoined, writer.getData());
+}
+
+
+bool Server::sendRoomLeft(std::uint32_t connectionId, const protocol::RoomResultPayload &payload) {
+  PacketWriter writer;
+  if (!protocol::writeRoomResult(writer, payload))
+    return false;
+  return sendMessage(connectionId, protocol::MessageType::RoomLeft, writer.getData());
+}
+
+bool Server::sendRoomStateUpdate(std::uint32_t connectionId, const protocol::RoomStateUpdatePayload &payload) {
+  PacketWriter writer;
+  if (!protocol::writeRoomStateUpdate(writer, payload))
+    return false;
+  return sendMessage(connectionId, protocol::MessageType::RoomStateUpdate, writer.getData());
+}
+
+bool Server::sendGameStarting(std::uint32_t connectionId, const protocol::GameStartingPayload &payload) {
+  PacketWriter writer;
+  if (!writer.writeUInt32(payload.roomId.get()))
+    return false;
+  return sendMessage(connectionId, protocol::MessageType::GameStarting, writer.getData());
+}
+
 } // namespace rtype::server
