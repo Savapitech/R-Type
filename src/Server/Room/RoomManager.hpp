@@ -34,6 +34,32 @@ namespace rtype::server {
        */
       bool leaveRoom(std::uint32_t connectionId);
       /**
+       * @brief Updates the ready state of a player in their current room.
+       * @param connectionId Identifier of the player connection.
+       * @param ready New ready state.
+       * @return True if the player belongs to a waiting room
+       *         and their ready state was updated.
+       */
+      bool setPlayerReady(std::uint32_t connectionId, bool ready);
+      /**
+       * @brief Checks whether a player is ready in their current room.
+       * @param connectionId Identifier of the player connection.
+       * @return True if the player belongs to a room and is ready.
+       */
+      bool isPlayerReady(std::uint32_t connectionId) const;
+      /**
+       * @brief Checks whether every player in a room is ready.
+       * @param roomId Identifier of the room.
+       * @return True if the room exists, contains at least one player,
+       *         and all its players are ready.
+       */
+      bool areAllPlayersReady(std::uint32_t roomId) const;
+      /**
+       * @brief Resets the ready states of all players in a room.
+       * @param roomId Identifier of the room.
+       */
+      void resetReadyStates(std::uint32_t roomId);
+      /**
        * @brief Looks up a room by identifier.
        * @param roomId Room identifier.
        * @return Pointer to the room, or nullptr if not found.

@@ -65,6 +65,42 @@ namespace rtype::server {
     return true;
 
   }
+  
+  bool RoomManager::setPlayerReady(std::uint32_t connectionId, bool ready) {
+    auto it = _playersRooms.find(connectionId);
+    if (it == _playersRooms.end())
+      return false;
+
+    Room *room = getRoom(it->second);
+    if (!room)
+      return false;
+    return room->setPlayerReady(connectionId, ready);
+  }
+
+  bool RoomManager::isPlayerReady(std::uint32_t connectionId) const {
+    auto it = _playersRooms.find(connectionId);
+    if (it == _playersRooms.end())
+      return false;
+    auto roomIt = _rooms.find(it->second);
+    if (roomIt == _rooms.end())
+      return false;
+    return roomIt->second->isPlayerReady(connectionId);
+  }
+
+  bool RoomManager::areAllPlayersReady(std::uint32_t roomId) const {
+    auto roomIt = _rooms.find(roomId);
+    if (roomIt == _rooms.end())
+      return false;
+    return roomIt->second->areAllPlayersReady();
+  }
+
+  void RoomManager::resetReadyStates(std::uint32_t roomId) {
+    Room *room = getRoom(roomId);
+    if (!room)
+      return;
+    room->resetReadyStates();
+  }
+
 
   Room *RoomManager::getRoom(std::uint32_t roomId) {
     auto it = _rooms.find(roomId);
