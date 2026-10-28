@@ -44,10 +44,13 @@
 
 
 namespace rtype::server {
-  GameInstance::GameInstance(std::uint32_t roomId, Server &server)
-    : _roomId(roomId),
-    _dependency{*this, server},
-    _sceneManager(_dependency, std::in_place_type<InstanceLobbyScene>)
+  GameInstance::GameInstance(
+      std::uint32_t roomId,
+      Server& server,
+      RoomManager& roomManager)
+      : _roomId(roomId),
+        _dependency{*this, server, roomManager},
+        _sceneManager(_dependency, std::in_place_type<InstanceLobbyScene>)
   {}
 
   std::uint32_t GameInstance::getRoomId() const {

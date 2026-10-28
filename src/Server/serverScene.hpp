@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Room/RoomManager.hpp"
 namespace rtype::server {
 /**
  * @addtogroup api_server
@@ -38,6 +39,8 @@ struct GameInstanceDependency {
     GameInstance& instance;
     /** @brief Shared UDP server used for network messages. */
     Server& server;
+    /** @brief Manager owning the rooms and player ready states. */
+    RoomManager &roomManager;
 };
 
 /** @} */

@@ -135,6 +135,9 @@ private:
   void handleConnections(rtk::EngineContext &context);
   void handleInputs(rtk::EngineContext &context);
   void handleEntityQueries(rtk::EngineContext &context);
+  void handleRoomRequests();
+  void broadcastRoomState(std::uint32_t roomId);
+  bool removePlayerFromRoom(std::uint32_t connectionId);
   void cleanupOffscreenEnvironment(rtk::EngineContext &context);
   void sendSnapshots(rtk::EngineContext &context);
 

@@ -24,11 +24,12 @@ namespace rtype::server {
           static_cast<std::size_t>(-1);
 
       /**
-       * @brief Constructs the simulation for a room.
-       * @param roomId Identifier of the owning room.
+       * @brief Constructs an isolated simulation for a room.
+       * @param roomId Identifier of the room.
        * @param server Shared network server.
+       * @param roomManager Manager containing the room and its ready states.
        */
-      explicit GameInstance(std::uint32_t roomId, Server &server);
+      explicit GameInstance(std::uint32_t roomId,Server& server, RoomManager& roomManager);
 
       /** @brief Instances cannot be copied. */
       GameInstance(const GameInstance&) = delete;

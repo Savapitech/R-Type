@@ -48,7 +48,6 @@ namespace rtype::server {
 
     private:
       GameInstanceDependency &_dependency;
-      float _lobbyTimer = 0.0f;
   };
 
   /**
