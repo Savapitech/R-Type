@@ -22,7 +22,8 @@ enum CollisionLayer : std::uint32_t {
   Enemy = 1 << 1,            ///< Bydos enemies.
   PlayerProjectile = 1 << 2, ///< Missiles fired by players.
   EnemyProjectile = 1 << 3,  ///< Missiles fired by enemies.
-  Environment = 1 << 4       ///< Stage walls and obstacles.
+  Environment = 1 << 4,      ///< Stage walls and obstacles.
+  PowerUp = 1 << 5           ///< PowerUp.
 };
 
 /** @} */
