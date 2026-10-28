@@ -1,9 +1,13 @@
 #pragma once
 
+#include "NetworkIdGenerator.hpp"
 #include "Protocol/EntityPayload.hpp"
 #include "Server.hpp"
 #include "components/Dead.hpp"
 #include "components/NetworkEntity.hpp"
+#include "components/Transform.hpp"
+#include "components/dropPowerUp.hpp"
+#include "factoryDataDriven/factoryDataDriven.hpp"
 #include "game.hpp"
 #include <ISystem.hpp>
 #include <cstdint>
@@ -29,8 +33,10 @@ public:
    */
   ServerDeathSystem(Server &server,
                     std::unordered_map<std::uint32_t, std::size_t> &players,
-                    const std::uint32_t &serverTick)
-      : _server(server), _players(players), _serverTick(serverTick) {}
+                    const std::uint32_t &serverTick,
+                    rtk::factory::EntityFactory &factory)
+      : _server(server), _players(players), _serverTick(serverTick),
+        _factory(factory) {}
 
   ~ServerDeathSystem() override = default;
 
@@ -46,6 +52,8 @@ public:
   void update(rtk::ecs::Registry &reg, float) override {
     auto view = reg.view<component::Dead>();
     auto &netEntities = reg.get_components<component::NetworkEntity>();
+    auto &transforms = reg.get_components<component::Transform>();
+    auto &drops = reg.get_components<component::DropPowerUp>();
 
     std::vector<std::size_t> toDestroy;
     for (auto entity : view) {
@@ -54,6 +62,25 @@ public:
 
     for (auto entity : toDestroy) {
       auto *netEnt = netEntities.get(entity);
+      auto *transform = transforms.get(entity);
+      auto *drop = drops.get(entity);
+
+      if (drop && transform) {
+        std::uint32_t netId = NetworkIdGenerator::getInstance().getNextId();
+        auto powerUpEntity =
+            _factory.createNetwork(reg, drop->blueprintName, netId);
+        auto *powerUpTransform =
+            reg.get_components<component::Transform>().get(powerUpEntity);
+        if (powerUpTransform) {
+          powerUpTransform->position = transform->position;
+          const auto createPayload = protocol::CreateEntityPayload(
+              _serverTick, netId, _factory.getArchetypeID(drop->blueprintName),
+              powerUpTransform->position.x, powerUpTransform->position.y, 0.0f);
+          for (const auto &[playerId, _] : _players) {
+            _server.sendCreateEntity(playerId, createPayload);
+          }
+        }
+      }
       if (netEnt && netEnt->id != 0) {
         const auto payload = protocol::destroyEntityPayload(
             _serverTick, netEnt->id, protocol::DestroyReason::Collision);
@@ -78,6 +105,7 @@ private:
   Server &_server;
   std::unordered_map<std::uint32_t, std::size_t> &_players;
   const std::uint32_t &_serverTick;
+  rtk::factory::EntityFactory &_factory;
 };
 
 /** @} */
