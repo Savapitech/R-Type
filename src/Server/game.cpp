@@ -4,13 +4,19 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
-#include <nlohmann/json.hpp>
+#include <memory>
+#include <stdexcept>
+#include <string>
 
+#include "GameInstance/GameInstance.hpp"
 #include "NetworkIdGenerator.hpp"
+#include "Room/Room.hpp"
+#include "Room/RoomManager.hpp"
 
 #include "EngineContext.hpp"
 #include "Protocol/EntityPayload.hpp"
 #include "Protocol/SnapshotPayload.hpp"
+#include "Server.hpp"
 #include "components/AABBCollider.hpp"
 #include "components/Dead.hpp"
 #include "components/NetworkEntity.hpp"
@@ -38,21 +44,20 @@
 namespace rtype::server {
 
 Game::Game(std::uint16_t port)
-    : _serverContext{*this},
-      _sceneManager(_serverContext, std::in_place_type<ServerLobbyScene>),
-      _server(port) {}
+    : _server(port) {}
 
 Game::~Game() = default;
 
-void Game::onLoad(rtk::EngineContext &context) {
-  registerComponents(context);
-  registerBuilders(context);
-  loadEntityBlueprints(context);
-  subscribeEvents(context);
-  addSystems(context);
+void Game::onLoad(rtk::EngineContext &) {
 
   _server.start();
-  _sceneManager.start(context);
+  _defaultRoomId = _roomManager.createRoom("Default Room");
+  GameInstance *instance = createGameInstance(_defaultRoomId, _server);
+  
+  if (!instance)
+    throw std::runtime_error("Failed to create default game Instance.");
+  
+  instance->start(_server);
   std::cout << "[Server] Game simulation started" << std::endl;
 }
 
@@ -331,79 +336,80 @@ void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<rtk::systems::EnemyShootSystem>(
       rtk::ecs::Order::Update, std::ref(context._entityFactory),
       std::ref(_server), std::ref(_players));
-  // context.scheduler.add<rtk::systems::DestroyableSystem>(rtk::ecs::Order::SecondUpdate,
-  // context.eventBus);
 }
 
-void Game::handleConnections(rtk::EngineContext &context) {
+void Game::handleConnections(rtk::EngineContext &) {
+
   Server::ConnectionEvent connEvent;
   while (_server.pollConnectionEvent(connEvent)) {
     const auto connectionId = connEvent.connectionId;
 
     if (connEvent.type == Server::ConnectionEvent::Type::Connected) {
-      std::cout << "connection" << std::endl;
-      if (_players.contains(connectionId))
+      if (_roomManager.getRoomId(connectionId))
         continue;
 
-      sendExistingEntities(connectionId, context);
+      std::uint32_t roomId = 0;
 
-      std::uint32_t slot = 0;
-      std::array<bool, 4> usedSlots = {false, false, false, false};
-      for (const auto &[cId, pEntity] : _players) {
-        auto *pTransform =
-            context.registry.get_components<component::Transform>().get(
-                pEntity);
-        if (pTransform) {
-          int s = static_cast<int>(
-              std::lround((pTransform->position.y - 150.0f) / 100.0f));
-          if (s >= 0 && s < 4) {
-            usedSlots[s] = true;
-          }
-        }
-      }
-      for (std::uint32_t i = 0; i < 4; ++i) {
-        if (!usedSlots[i]) {
-          slot = i;
-          break;
-        }
+      for (const auto id : _roomManager.listRooms()) {
+        auto *room = _roomManager.getRoom(id);
+        if (!room)
+          continue;
+
+        if (room->getState() != RoomState::Waiting)
+          continue;
+
+        if (room->isFull())
+          continue;
+
+        roomId = id;
+        break;
       }
 
-      const std::uint32_t playerNetId =
-          rtype::server::NetworkIdGenerator::getInstance().getNextId();
-      const auto archetypeId = _playerArchetypes[slot % 4];
-      const auto entity = context._entityFactory.createNetwork(
-          context.registry, archetypeId, playerNetId);
-
-      auto *transform =
-          context.registry.get_components<component::Transform>().get(entity);
-      if (transform) {
-        transform->position = {150.0f,
-                               150.0f + static_cast<float>(slot) * 100.0f};
+      if (roomId == 0) {
+        roomId = _roomManager.createRoom("Room " + std::to_string(_roomManager.listRooms().size() + 1));
+        std::cout << "[Server] Created room " << roomId << std::endl;
       }
 
-      _players[connectionId] = entity;
-      broadcastPlayerCreated(connectionId, context);
-      std::cout << "[Server] Player connected: " << connectionId
-                << " (NetworkId: " << playerNetId << ", Slot: " << slot << ")"
-                << std::endl;
+      if (!_roomManager.joinRoom(connectionId, roomId)) {
+        std::cerr << "[SERVER] Failed to join room " << roomId << std::endl;
+        continue;
+      }
+
+      auto *instance = getGameInstance(roomId);
+
+      if (!instance) 
+        instance = createGameInstance(roomId, _server);
+
+      if (!instance) {
+        _roomManager.leaveRoom(connectionId);
+        continue;
+      }
+
+      instance->start(_server);
+
+      if (!instance->addConnectedPlayer(connectionId, _server)) {
+        _roomManager.leaveRoom(connectionId);
+        
+        if (!_roomManager.getRoom(roomId))
+          destroyGameInstance(roomId);
+        
+        continue;
+      }
+      std::cout << "[Server] Player " << connectionId << " joined room " << roomId << std::endl;
 
     } else if (connEvent.type == Server::ConnectionEvent::Type::Disconnected) {
-      std::cout << "[Server] Removing player entity for connection "
-                << connEvent.connectionId << std::endl;
-      auto it = _players.find(connEvent.connectionId);
-      if (it != _players.end()) {
-        if (it->second != NO_ENTITY) {
-          auto *netEnt =
-              context.registry.get_components<component::NetworkEntity>().get(
-                  it->second);
-          if (netEnt) {
-            broadcastPlayerDestroyed(connectionId, netEnt->id);
-          }
-          context.registry.remove_entity_from_all_pools(it->second);
-          context.registry.kill_entity(it->second);
-        }
-        _players.erase(it);
-      }
+      auto roomId = _roomManager.getRoomId(connectionId);
+      if (!roomId)
+        continue;
+      
+      if (auto* instance = getGameInstance(*roomId))
+        instance->removeConnectedPlayer(connectionId, _server);
+
+      _roomManager.leaveRoom(connectionId);
+
+      if (!_roomManager.getRoom(*roomId)) 
+        destroyGameInstance(*roomId);
+      std::cout << "[Server] Player " << connectionId << " Disconnected" << std::endl;
     }
   }
 }
@@ -426,336 +432,53 @@ void Game::broadcastGameEnded(rtk::EngineContext &context) {
   }
 }
 
-void Game::handleInputs(rtk::EngineContext &context) {
+void Game::handleInputs(rtk::EngineContext &) {
   Server::InputEvent inputEvent;
+
   while (_server.pollInput(inputEvent)) {
-    auto it = _players.find(inputEvent.connectionId);
-    if (it == _players.end())
+    auto roomId = _roomManager.getRoomId(inputEvent.connectionId);
+    if (!roomId)
       continue;
 
-    std::size_t playerEntity = it->second;
-    auto *velocity = context.registry.get_components<component::Velocity>().get(
-        playerEntity);
-    auto *controllable =
-        context.registry.get_components<component::Controllable>().get(
-            playerEntity);
-    auto *transform =
-        context.registry.get_components<component::Transform>().get(
-            playerEntity);
-
-    if (!velocity || !controllable || !transform)
+    auto *instance = getGameInstance(*roomId);
+    if (!instance)
       continue;
-
-    velocity->x = 0.0f;
-    velocity->y = 0.0f;
-
-    const auto actions = inputEvent.input.actions;
-    if (rtype::protocol::hasAction(actions, rtype::protocol::InputAction::Up)) {
-      velocity->y = -controllable->speed;
-    }
-    if (rtype::protocol::hasAction(actions,
-                                   rtype::protocol::InputAction::Down)) {
-      velocity->y = controllable->speed;
-    }
-    if (rtype::protocol::hasAction(actions,
-                                   rtype::protocol::InputAction::Left)) {
-      velocity->x = -controllable->speed;
-    }
-    if (rtype::protocol::hasAction(actions,
-                                   rtype::protocol::InputAction::Right)) {
-      velocity->x = controllable->speed;
-    }
-
-    if (velocity->x != 0.0f && velocity->y != 0.0f) {
-      velocity->x *= 0.7071f;
-      velocity->y *= 0.7071f;
-    }
-
-    const bool isShoot = rtype::protocol::hasAction(
-        actions, rtype::protocol::InputAction::Shoot);
-    if (isShoot) {
-      controllable->isChargingShoot = true;
-    } else if (controllable->isChargingShoot) {
-      controllable->isChargingShoot = false;
-
-      std::uint32_t bulletNetId =
-          rtype::server::NetworkIdGenerator::getInstance().getNextId();
-
-      auto bulletEntity = context._entityFactory.createNetwork(
-          context.registry, "bullet", bulletNetId);
-      auto *bulletTransform =
-          context.registry.get_components<component::Transform>().get(
-              bulletEntity);
-
-      if (bulletTransform) {
-        bulletTransform->position = {transform->position.x + 50.0f,
-                                     transform->position.y};
-
-        const auto payload = protocol::createEntityPayload(
-            _serverTick, bulletNetId,
-            context._entityFactory.getArchetypeID("bullet"),
-            bulletTransform->position.x, bulletTransform->position.y);
-
-        for (const auto &[connectedClientId, dummy] : _players) {
-          _server.sendCreateEntity(connectedClientId, payload);
-        }
-      }
-    }
+    instance->processInput(inputEvent, _server); 
   }
 }
 
-void Game::onUpdate(rtk::EngineContext &context, float dt) {
-  _sceneManager.update(context, _serverInput, dt);
-}
+void Game::onUpdate(rtk::EngineContext &context, float dt)
+{
+  handleConnections(context);
+  handleInputs(context);
+  handleEntityQueries(context);
 
+  for (auto &[roomId, instance] : _gameInstances) {
+
+    instance->update(dt);
+
+    if (auto *room = _roomManager.getRoom(roomId))
+      room->setState(instance->isActive() ? RoomState::Playing : RoomState::Waiting);
+
+    if (instance->isActive()) {
+      instance->incrementServerTick();
+      if (instance->getServerTick() % 3 == 0)
+          instance->sendSnapshots(_server);
+    }
+  }
+}
 bool Game::shouldContinue() const { return _running; }
 
-float Game::spawnStageSegment(rtk::EngineContext &context,
-                              const std::string &blueprint, float startX,
-                              float spacing, bool symmetric) {
-  auto groundEntity = context._entityFactory.createNetwork(
-      context.registry, blueprint,
-      rtype::server::NetworkIdGenerator::getInstance().getNextId());
-  auto *transform =
-      context.registry.get_components<component::Transform>().get(groundEntity);
-  if (transform) {
-    transform->position.x = startX;
+
+void Game::onUnload(rtk::EngineContext &) {
+
+  for (auto &[roomId, instance] : _gameInstances) {
+    instance->stop();
   }
 
-  if (symmetric) {
-    auto ceilingEntity = context._entityFactory.createNetwork(
-        context.registry, blueprint,
-        rtype::server::NetworkIdGenerator::getInstance().getNextId());
-    auto *ceilTransform =
-        context.registry.get_components<component::Transform>().get(
-            ceilingEntity);
-    if (ceilTransform) {
-      ceilTransform->position.x = startX;
-      ceilTransform->position.y = 0.0f;
-    }
-  }
-  return startX + spacing;
-}
-
-void Game::loadStage(rtk::EngineContext &context,
-                     const std::string &stagePath) {
-  std::ifstream file(stagePath);
-  if (!file.is_open()) {
-    std::cerr << "[Server] Failed to open stage file: " << stagePath
-              << std::endl;
-    return;
-  }
-
-  nlohmann::json stageJson;
-  try {
-    file >> stageJson;
-  } catch (const std::exception &e) {
-    std::cerr << "[Server] Failed to parse stage JSON (" << stagePath
-              << "): " << e.what() << std::endl;
-    return;
-  }
-
-  _stageName = stageJson.value("name", "Unnamed Stage");
-  _nextStageId = stageJson.value("nextStage", "");
-  _stageDuration = stageJson.value("duration", 0.0f);
-  _stageTimer = 0.0f;
-  _stageObstaclesSpawned = 0;
-  _stageActive = true;
-
-  float currentX = stageJson.value("startX", 0.0f);
-  if (!stageJson.contains("segments") || !stageJson["segments"].is_array()) {
-    std::cerr << "[Server] Stage file missing 'segments' array: " << stagePath
-              << std::endl;
-    return;
-  }
-
-  for (const auto &segment : stageJson["segments"]) {
-    const std::string blueprint = segment.value("blueprint", "");
-    const bool symmetric = segment.value("symmetric", false);
-    const float spacing = segment.value("spacing", 0.0f);
-    if (blueprint.empty()) {
-      continue;
-    }
-    currentX =
-        spawnStageSegment(context, blueprint, currentX, spacing, symmetric);
-    _stageObstaclesSpawned += symmetric ? 2 : 1;
-  }
-  std::cout << "[Server] Loaded stage from " << stagePath << " (" << _stageName
-            << ") with " << _stageObstaclesSpawned << " obstacle entities"
-            << std::endl;
-}
-
-bool Game::loadStageById(rtk::EngineContext &context,
-                         const std::string &stageId,
-                         const std::string &manifestPath) {
-  std::ifstream file(manifestPath);
-  if (!file.is_open()) {
-    std::cerr << "[Server] Failed to open stage manifest: " << manifestPath
-              << std::endl;
-    return false;
-  }
-
-  nlohmann::json manifestJson;
-  try {
-    file >> manifestJson;
-  } catch (const std::exception &e) {
-    std::cerr << "[Server] Failed to parse stage manifest (" << manifestPath
-              << "): " << e.what() << std::endl;
-    return false;
-  }
-
-  std::string stageFilePath;
-  std::string manifestNextStage;
-  if (manifestJson.contains("stages") && manifestJson["stages"].is_array()) {
-    for (const auto &stageEntry : manifestJson["stages"]) {
-      if (stageEntry.value("id", "") == stageId) {
-        stageFilePath = stageEntry.value("file", "");
-        manifestNextStage = stageEntry.value("nextStage", "");
-        break;
-      }
-    }
-  }
-
-  if (stageFilePath.empty()) {
-    std::cerr << "[Server] Stage id not found in manifest: " << stageId
-              << std::endl;
-    return false;
-  }
-
-  loadStage(context, stageFilePath);
-  _currentStageId = stageId;
-  if (_nextStageId.empty() && !manifestNextStage.empty()) {
-    _nextStageId = manifestNextStage;
-  }
-  return true;
-}
-
-void Game::loadStageManifest(rtk::EngineContext &context,
-                             const std::string &manifestPath) {
-  std::ifstream file(manifestPath);
-  if (!file.is_open()) {
-    std::cerr << "[Server] Failed to open stage manifest: " << manifestPath
-              << std::endl;
-    return;
-  }
-
-  nlohmann::json manifestJson;
-  try {
-    file >> manifestJson;
-  } catch (const std::exception &e) {
-    std::cerr << "[Server] Failed to parse stage manifest (" << manifestPath
-              << "): " << e.what() << std::endl;
-    return;
-  }
-
-  const std::string defaultStageId =
-      manifestJson.value("defaultStage", "stage1");
-  loadStageById(context, defaultStageId, manifestPath);
-}
-
-void Game::createBackground(rtk::EngineContext &context) {
-  loadStageManifest(context);
-}
-
-bool Game::hasActiveEnvironmentEntities(rtk::EngineContext &context) const {
-  auto view =
-      context.registry.view<component::Transform, component::AABBCollider>();
-  auto &colliders = context.registry.get_components<component::AABBCollider>();
-  auto &deads = context.registry.get_components<component::Dead>();
-
-  for (auto entity : view) {
-    if (deads.get(entity) != nullptr) {
-      continue;
-    }
-    const auto *col = colliders.get(entity);
-    if (col && (col->layer & Collider::CollisionLayer::Environment)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-void Game::clearEnvironmentEntities(rtk::EngineContext &context) {
-  auto view =
-      context.registry.view<component::Transform, component::AABBCollider>();
-  auto &colliders = context.registry.get_components<component::AABBCollider>();
-  auto &deads = context.registry.get_components<component::Dead>();
-
-  for (auto entity : view) {
-    const auto *col = colliders.get(entity);
-    if (col && (col->layer & Collider::CollisionLayer::Environment)) {
-      deads.insert_at(entity, {});
-    }
-  }
-}
-
-void Game::clearEnemies(rtk::EngineContext &context) {
-  auto view = context.registry.view<component::Enemy>();
-  auto &deads = context.registry.get_components<component::Dead>();
-
-  for (auto entity : view) {
-    deads.insert_at(entity, {});
-  }
-}
-
-bool Game::isStageFinished(rtk::EngineContext &context) const {
-  if (!_stageActive) {
-    return false;
-  }
-  if (_stageDuration > 0.0f && _stageTimer >= _stageDuration) {
-    return true;
-  }
-  if (_stageObstaclesSpawned > 0 && !hasActiveEnvironmentEntities(context)) {
-    return true;
-  }
-  return false;
-}
-
-bool Game::advanceToNextStage(rtk::EngineContext &context) {
-  if (_nextStageId.empty()) {
-    std::cout << "[Server] No next stage configured after " << _currentStageId
-              << std::endl;
-    _stageActive = false;
-    return false;
-  }
-
-  clearEnvironmentEntities(context);
-  clearEnemies(context);
-
-  const std::string nextId = _nextStageId;
-  _nextStageId.clear();
-
-  if (!loadStageById(context, nextId)) {
-    std::cerr << "[Server] Failed to load next stage: " << nextId << std::endl;
-    _stageActive = false;
-    return false;
-  }
-
-  for (const auto &[playerId, dummy] : _players) {
-    sendExistingEntities(playerId, context);
-  }
-  return true;
-}
-
-void Game::updateStage(rtk::EngineContext &context, float dt) {
-  if (!_isGameActive || !_stageActive) {
-    return;
-  }
-
-  _stageTimer += dt;
-
-  if (isStageFinished(context)) {
-    if (!advanceToNextStage(context)) {
-      _allStagesCompleted = true;
-    }
-  }
-}
-
-void Game::onUnload(rtk::EngineContext &context) {
-  _sceneManager.stop(context);
-  _server.stop();
-  _players.clear();
-  std::cout << "[Server] Game simulation stopped" << std::endl;
+  _gameInstances.clear();
+  _server.stop(); 
+  std::cout << "[Server] Multiples instances stopped" << std::endl;
 }
 
 void Game::sendExistingEntities(std::uint32_t connectionId,
@@ -788,37 +511,17 @@ void Game::sendExistingEntities(std::uint32_t connectionId,
   }
 }
 
-void Game::handleEntityQueries(rtk::EngineContext &context) {
+void Game::handleEntityQueries(rtk::EngineContext &) {
+
   Server::QueryEntityEvent queryEvent;
   while (_server.pollQueryEntity(queryEvent)) {
-    auto view =
-        context.registry.view<component::NetworkEntity, component::Transform>();
-    auto &transforms = context.registry.get_components<component::Transform>();
-    auto &networkEntities =
-        context.registry.get_components<component::NetworkEntity>();
-
-    for (auto entity : view) {
-      const auto *netEnt = networkEntities.get(entity);
-      if (netEnt && netEnt->id == queryEvent.networkId) {
-        const auto *transform = transforms.get(entity);
-        if (transform) {
-          if (!std::isfinite(transform->position.x) ||
-              !std::isfinite(transform->position.y) ||
-              transform->position.x < protocol::MIN_POSITION ||
-              transform->position.x > protocol::MAX_POSITION ||
-              transform->position.y < protocol::MIN_POSITION ||
-              transform->position.y > protocol::MAX_POSITION) {
-            break;
-          }
-          const auto payload = protocol::createEntityPayload(
-              _serverTick, netEnt->id, netEnt->archetypeId,
-              transform->position.x, transform->position.y,
-              transform->rotation);
-          _server.sendCreateEntity(queryEvent.connectionId, payload);
-        }
-        break;
-      }
-    }
+    auto roomId = _roomManager.getRoomId(queryEvent.connectionId);
+    if (!roomId)
+      continue;
+    GameInstance *instance = getGameInstance(*roomId);
+    if (!instance)
+      continue;
+    instance->processEntityQuery(queryEvent, _server);
   }
 }
 
@@ -839,10 +542,8 @@ void Game::broadcastPlayerCreated(std::uint32_t connectionId,
   const auto payload = protocol::createEntityPayload(
       _serverTick, netEnt->id, netEnt->archetypeId, transform->position.x,
       transform->position.y, transform->rotation);
-  for (const auto &[playerId, entity] : _players) {
-    (void)entity;
+  for (const auto &[playerId, _] : _players) 
     _server.sendCreateEntity(playerId, payload);
-  }
 }
 
 void Game::broadcastPlayerDestroyed(std::uint32_t connectionId,
@@ -850,8 +551,7 @@ void Game::broadcastPlayerDestroyed(std::uint32_t connectionId,
   const auto payload = protocol::destroyEntityPayload(
       _serverTick, networkId, protocol::DestroyReason::PlayerDisconnected);
 
-  for (const auto &[playerId, entity] : _players) {
-    (void)entity;
+  for (const auto &[playerId, _] : _players) {
     if (playerId != connectionId)
       _server.sendDestroyEntity(playerId, payload);
   }
@@ -926,5 +626,38 @@ void Game::cleanupOffscreenEnvironment(rtk::EngineContext &context) {
     }
   }
 }
+
+GameInstance *Game::createGameInstance(std::uint32_t roomId, Server &server) {
+  if (_roomManager.getRoom(roomId) == nullptr)
+    return nullptr;
+
+  auto it = _gameInstances.find(roomId);
+  if (it != _gameInstances.end())
+    return it->second.get();
+
+  auto instance = std::make_unique<GameInstance>(roomId, server);
+  GameInstance *ptr = instance.get();
+  _gameInstances.emplace(roomId, std::move(instance));
+  return ptr;
+}
+
+GameInstance* Game::getGameInstance(std::uint32_t roomId) {
+  auto it = _gameInstances.find(roomId);
+  if (it == _gameInstances.end())
+    return nullptr;
+
+  return it->second.get();
+}
+
+ bool Game::destroyGameInstance(std::uint32_t roomId) {
+  auto it = _gameInstances.find(roomId);
+  if (it == _gameInstances.end())
+    return false;
+
+  it->second->stop();
+  _gameInstances.erase(it);
+  return true;
+}
+
 
 } // namespace rtype::server

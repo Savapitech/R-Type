@@ -13,7 +13,6 @@ void ServerGameScene::onEnter(rtk::EngineContext &context) {
       << "[Server InGame] Entering InGame Scene! Creating initial stage..."
       << std::endl;
   _dependency.game.setGameActive(true);
-  _dependency.game.createBackground(context);
   for (const auto &[playerId, dummy] : _dependency.game.getPlayers()) {
     _dependency.game.sendExistingEntities(playerId, context);
   }
@@ -23,26 +22,19 @@ void ServerGameScene::onEnter(rtk::EngineContext &context) {
 }
 
 std::optional<ServerSceneType>
-ServerGameScene::onUpdate(rtk::EngineContext &context, const ServerInput &input,
+ServerGameScene::onUpdate(rtk::EngineContext &context, const ServerInput &,
                           float dt) {
-  (void)input;
-
   _dependency.game.handleConnections(context);
   _dependency.game.handleInputs(context);
   _dependency.game.handleEntityQueries(context);
   _dependency.game.cleanupOffscreenEnvironment(context);
   _dependency.game.incrementServerTick();
-  _dependency.game.updateStage(context, dt);
 
   if (_dependency.game.getServerTick() % 3 == 0) {
     _dependency.game.sendSnapshots(context);
   }
 
   if (_dependency.game.getPlayerCount() == 0) {
-    return ServerSceneType::Lobby;
-  }
-
-  if (_dependency.game.hasCompletedAllStages()) {
     return ServerSceneType::Lobby;
   }
 

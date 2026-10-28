@@ -8,7 +8,10 @@
 #include "factoryDataDriven/factoryDataDriven.hpp"
 #include "sceneManager/sceneManager.hpp"
 #include "serverScene.hpp"
+#include "Room/RoomManager.hpp"
+#include "GameInstance/GameInstance.hpp"
 
+#include <memory>
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -113,14 +116,6 @@ public:
     _players.clear();
     _serverTick = 0;
     _isGameActive = false;
-    _currentStageId.clear();
-    _nextStageId.clear();
-    _stageName.clear();
-    _stageTimer = 0.0f;
-    _stageDuration = 0.0f;
-    _stageObstaclesSpawned = 0;
-    _stageActive = false;
-    _allStagesCompleted = false;
   }
 
   /**
@@ -129,72 +124,6 @@ public:
    * @param context Engine services.
    */
   void broadcastGameEnded(rtk::EngineContext &context);
-
-  /**
-   * @brief Loads a stage defined in a JSON file.
-   * @param context Engine services.
-   * @param stagePath Path to the stage JSON file.
-   */
-  void loadStage(rtk::EngineContext &context, const std::string &stagePath);
-
-  /**
-   * @brief Loads a stage by its identifier from the manifest.
-   * @param context Engine services.
-   * @param stageId Stage identifier in the manifest.
-   * @param manifestPath Path to the stages manifest JSON file.
-   * @return True if the stage was successfully found and loaded.
-   */
-  bool
-  loadStageById(rtk::EngineContext &context, const std::string &stageId,
-                const std::string &manifestPath = "assets/stages/stages.json");
-
-  /**
-   * @brief Loads the default stage from the stages manifest file.
-   * @param context Engine services.
-   * @param manifestPath Path to the stages manifest JSON file.
-   */
-  void loadStageManifest(
-      rtk::EngineContext &context,
-      const std::string &manifestPath = "assets/stages/stages.json");
-
-  /**
-   * @brief Updates stage progression timer and checks stage completion.
-   * @param context Engine services.
-   * @param dt Elapsed time since the last frame, in seconds.
-   */
-  void updateStage(rtk::EngineContext &context, float dt);
-
-  /**
-   * @brief Checks if the current stage has met its completion condition.
-   * @param context Engine services.
-   * @return True if the stage has ended.
-   */
-  bool isStageFinished(rtk::EngineContext &context) const;
-
-  /**
-   * @brief Transitions to the next stage if available.
-   * @param context Engine services.
-   * @return True if a next stage was found and loaded, false if no more stages.
-   */
-  bool advanceToNextStage(rtk::EngineContext &context);
-
-  /**
-   * @brief Returns whether all configured stages have been completed.
-   * @return True if the entire game sequence has finished.
-   */
-  bool hasCompletedAllStages() const { return _allStagesCompleted; }
-
-  /**
-   * @brief Returns the identifier of the current active stage.
-   * @return Current stage id.
-   */
-  const std::string &getCurrentStageId() const { return _currentStageId; }
-
-  /**
-   * @brief Returns the current stage progression timer in seconds.
-   * @return Elapsed time in current stage.
-   */
-  float getStageTimer() const { return _stageTimer; }
 
 private:
   void registerComponents(rtk::EngineContext &context);
@@ -208,15 +137,6 @@ private:
   void handleEntityQueries(rtk::EngineContext &context);
   void cleanupOffscreenEnvironment(rtk::EngineContext &context);
   void sendSnapshots(rtk::EngineContext &context);
-  void createBackground(rtk::EngineContext &context);
-
-  bool hasActiveEnvironmentEntities(rtk::EngineContext &context) const;
-  void clearEnvironmentEntities(rtk::EngineContext &context);
-  void clearEnemies(rtk::EngineContext &context);
-
-  float spawnStageSegment(rtk::EngineContext &context,
-                          const std::string &blueprint, float startX,
-                          float spacing, bool symmetric);
 
   void sendExistingEntities(std::uint32_t connectionId,
                             rtk::EngineContext &context);
@@ -224,13 +144,28 @@ private:
                               rtk::EngineContext &context);
   void broadcastPlayerDestroyed(std::uint32_t connectionId,
                                 std::uint32_t networkId);
+  
+  /**
+   * @brief Creates an instance for an existing room.
+   * @param roomId Room identifier.
+   * @param server Shared network server.
+   * @return Pointer to the instance, or nullptr on failure.
+   */
+  GameInstance* createGameInstance(std::uint32_t roomId, Server &server);
+  /**
+   * @brief Looks up an instance by room identifier.
+   * @param roomId Room identifier.
+   * @return Pointer to the instance, or nullptr if missing.
+   */
+  GameInstance* getGameInstance(std::uint32_t roomId);
+  /**
+   * @brief Stops and removes an instance.
+   * @param roomId Room identifier.
+   * @return True if the instance was removed.
+   */
+  bool destroyGameInstance(std::uint32_t roomId);
 
-  ServerDependency _serverContext;
-  ServerInput _serverInput;
-
-  rtk::SceneManager<ServerSceneType, ServerDependency, ServerInput,
-                    ServerLobbyScene, ServerGameScene>
-      _sceneManager;
+  std::unordered_map<std::uint32_t, std::unique_ptr<GameInstance>> _gameInstances;
 
   Server _server;
   std::unordered_map<std::uint32_t, std::size_t> _players;
@@ -239,16 +174,10 @@ private:
   bool _running = true;
   bool _isGameActive = false;
   rtk::collision::CollisionBuffer _collisionBuffer;
-
-  std::string _currentStageId;
-  std::string _nextStageId;
-  std::string _stageName;
-  float _stageTimer = 0.0f;
-  float _stageDuration = 0.0f;
-  std::size_t _stageObstaclesSpawned = 0;
-  bool _stageActive = false;
-  bool _allStagesCompleted = false;
+  RoomManager _roomManager;
+  std::uint32_t _defaultRoomId = 0;
 };
 
 /** @} */
 } // namespace rtype::server
+

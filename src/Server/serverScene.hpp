@@ -29,5 +29,17 @@ struct ServerDependency {
   Game &game; ///< Game that owns the scenes.
 };
 
+class GameInstance;
+class Server;
+
+/** @brief Dependencies provided to scenes belonging to a game instance. */
+struct GameInstanceDependency {
+    /** @brief Instance owning the scene and its ECS world. */
+    GameInstance& instance;
+    /** @brief Shared UDP server used for network messages. */
+    Server& server;
+};
+
 /** @} */
 } // namespace rtype::server
+

@@ -57,9 +57,8 @@ public:
       if (netEnt && netEnt->id != 0) {
         const auto payload = protocol::destroyEntityPayload(
             _serverTick, netEnt->id, protocol::DestroyReason::Collision);
-        for (const auto &[playerId, dummy] : _players) {
+        for (const auto &[playerId, _] : _players)
           _server.sendDestroyEntity(playerId, payload);
-        }
       }
       for (auto &[playerId, playerEntity] : _players) {
         if (playerEntity == entity)

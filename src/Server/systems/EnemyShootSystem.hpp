@@ -105,8 +105,7 @@ public:
         float closestDistSq = std::numeric_limits<float>::max();
         const component::Transform *targetPlayer = nullptr;
 
-        for (const auto &[connId, playerEntity] : _players) {
-          (void)connId;
+        for (const auto &[_, playerEntity] : _players) {
           if (playerEntity == rtype::server::Game::NO_ENTITY) {
             continue;
           }
