@@ -22,10 +22,8 @@ void ServerGameScene::onEnter(rtk::EngineContext &context) {
 }
 
 std::optional<ServerSceneType>
-ServerGameScene::onUpdate(rtk::EngineContext &context, const ServerInput &input,
+ServerGameScene::onUpdate(rtk::EngineContext &context, const ServerInput &,
                           float dt) {
-  (void)input;
-
   _dependency.game.handleConnections(context);
   _dependency.game.handleInputs(context);
   _dependency.game.handleEntityQueries(context);

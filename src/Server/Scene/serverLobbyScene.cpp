@@ -9,8 +9,7 @@ namespace rtype::server {
 ServerLobbyScene::ServerLobbyScene(ServerDependency &dep)
     : _dependency(dep), _lobbyTimer(0.0f), _lastPrintedCountdown(-1) {}
 
-void ServerLobbyScene::onEnter(rtk::EngineContext &context) {
-  (void)context;
+void ServerLobbyScene::onEnter(rtk::EngineContext &) {
   _lobbyTimer = 0.0f;
   _lastPrintedCountdown = -1;
   std::cout << "[Server Lobby] Waiting for players... (Game starts with >= 2 "
@@ -20,9 +19,7 @@ void ServerLobbyScene::onEnter(rtk::EngineContext &context) {
 
 std::optional<ServerSceneType>
 ServerLobbyScene::onUpdate(rtk::EngineContext &context,
-                           const ServerInput &input, float dt) {
-  (void)input;
-
+                           const ServerInput &, float dt) {
   _dependency.game.handleConnections(context);
   _dependency.game.handleInputs(context);
   _dependency.game.handleEntityQueries(context);
@@ -65,8 +62,7 @@ ServerLobbyScene::onUpdate(rtk::EngineContext &context,
   return std::nullopt;
 }
 
-void ServerLobbyScene::onExit(rtk::EngineContext &context) {
-  (void)context;
+void ServerLobbyScene::onExit(rtk::EngineContext &) {
   std::cout << "[Server Lobby] Lobby closed, transitioning to InGame."
             << std::endl;
 }

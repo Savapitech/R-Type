@@ -39,16 +39,13 @@ namespace rtype::server {
       instance.respawnPlayers();
     instance.createBackground();
 
-    for (const auto &[connectionId, entity] : instance.getPlayers()) {
-      (void) entity;
+    for (const auto &[connectionId, _] : instance.getPlayers()) {
       instance.sendExistingEntities(connectionId, _dependency.server);
     }
     std::cout << "[Room " << _dependency.instance.getRoomId() << "] Game started" << std::endl;
   }
 
-  std::optional<ServerSceneType> InstanceGameScene::onUpdate(rtk::EngineContext &context, const ServerInput &input, float dt) {
-    (void)context;
-    (void)input;
+  std::optional<ServerSceneType> InstanceGameScene::onUpdate(rtk::EngineContext &, const ServerInput &, float dt) {
 
     auto &instance = _dependency.instance;
     if (instance.getPlayerCount() == 0) 
@@ -65,9 +62,7 @@ namespace rtype::server {
     return std::nullopt;
 }
 
-  void InstanceGameScene::onExit(rtk::EngineContext& context) {
-    (void)context;
-
+  void InstanceGameScene::onExit(rtk::EngineContext&) {
     _dependency.instance.setGameActive(false);
     std::cout << "[Room " << _dependency.instance.getRoomId() << "] Leaving game" << std::endl;
     _dependency.instance.endGame(_dependency.server);

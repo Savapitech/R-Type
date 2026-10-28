@@ -584,8 +584,7 @@ bool GameInstance::addConnectedPlayer(std::uint32_t connectionId, Server& server
   initialize();
   auto &registry = _context.registry;
   std::array<bool, 4> slots = {false, false, false, false};
-  for (const auto &[id, entity] : _players) {
-    (void)id;
+  for (const auto &[_, entity] : _players) {
 
     auto *transform = registry.get_components<component::Transform>().get(entity);
     if (!transform)
@@ -627,8 +626,7 @@ bool GameInstance::addConnectedPlayer(std::uint32_t connectionId, Server& server
     transform->position.y,
     transform->rotation
   );
-  for (const auto& [clientId, playerEntity] : _players) {
-    (void)playerEntity;
+  for (const auto& [clientId, _] : _players) {
     server.sendCreateEntity(clientId, payload);
   }
 
@@ -686,8 +684,7 @@ bool GameInstance::removeConnectedPlayer( std::uint32_t connectionId, Server& se
   
   if (netEnt) {
     const auto payload = protocol::destroyEntityPayload(_serverTick, netEnt->id, protocol::DestroyReason::Unknown);
-    for (const auto &[clientId, Pentity]: _players) {
-      (void)Pentity;
+    for (const auto &[clientId, _]: _players) {
       if (clientId == connectionId)
         continue;
       server.sendDestroyEntity(clientId, payload);
@@ -712,10 +709,8 @@ void GameInstance::sendSnapshots(Server& server) {
     if (snapshot.entities.empty())
       return;
 
-    for (const auto& [connectionId, entity] : _players) {
-      (void)entity;
+    for (const auto& [connectionId, _] : _players)
       server.sendSnapshot(connectionId, snapshot);
-    }
     snapshot.entities.clear();
   };
 
@@ -970,10 +965,8 @@ void GameInstance::endGame(Server &server) {
     const auto payload = protocol::destroyEntityPayload(_serverTick,
         netEnt->id, protocol::DestroyReason::GameEnded);
     
-    for (const auto &[connectionId, playerEnt] : _players) {
-      (void) playerEnt;
+    for (const auto &[connectionId, _] : _players)
       server.sendDestroyEntity(connectionId, payload);
-    }
   }
   std::vector<std::size_t> entities;
 
@@ -986,10 +979,8 @@ void GameInstance::endGame(Server &server) {
   }
   registry.flush();
 
-  for (auto &[connectionId, entity] : _players) {
-    (void) connectionId;
+  for (auto &[_, entity] : _players)
     entity = NO_ENTITY;
-  }
   _isActive = false;
   _serverTick = 0;
 }
@@ -998,8 +989,7 @@ void GameInstance::respawnPlayers() {
   auto &registry = _context.registry;
   std::vector<std::uint32_t> connectionIds;
 
-  for (auto &[connectionId, entity] : _players) {
-    (void) entity;
+  for (auto &[connectionId, _] : _players) {
     connectionIds.push_back(connectionId);
   }
 
@@ -1029,9 +1019,7 @@ void GameInstance::respawnPlayers() {
 bool GameInstance::hasAlivePlayers() {
   auto &transform = _registry.get_components<component::Transform>();
 
-  for (const auto &[connectionId, entity] : _players) {
-    (void)connectionId;
-
+  for (const auto &[_, entity] : _players) {
     if (entity == NO_ENTITY)
       continue;
     if (transform.get(entity) != nullptr)
@@ -1244,8 +1232,7 @@ bool GameInstance::advanceToNextStage(rtk::EngineContext &context) {
     _stageActive = false;
     return false;
   }
-  for (const auto &[playerId, entity] : _players) {
-    (void)entity;
+  for (const auto &[playerId, _] : _players) {
     sendExistingEntities(playerId, _dependency.server);
   }
   return true;

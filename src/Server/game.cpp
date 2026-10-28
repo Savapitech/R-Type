@@ -48,8 +48,7 @@ Game::Game(std::uint16_t port)
 
 Game::~Game() = default;
 
-void Game::onLoad(rtk::EngineContext &context) {
-  (void) context;
+void Game::onLoad(rtk::EngineContext &) {
 
   _server.start();
   _defaultRoomId = _roomManager.createRoom("Default Room");
@@ -339,8 +338,7 @@ void Game::addSystems(rtk::EngineContext &context) {
       std::ref(_server), std::ref(_players));
 }
 
-void Game::handleConnections(rtk::EngineContext &context) {
-  (void) context;
+void Game::handleConnections(rtk::EngineContext &) {
 
   Server::ConnectionEvent connEvent;
   while (_server.pollConnectionEvent(connEvent)) {
@@ -434,8 +432,7 @@ void Game::broadcastGameEnded(rtk::EngineContext &context) {
   }
 }
 
-void Game::handleInputs(rtk::EngineContext &context) {
-  (void) context;
+void Game::handleInputs(rtk::EngineContext &) {
   Server::InputEvent inputEvent;
 
   while (_server.pollInput(inputEvent)) {
@@ -473,8 +470,7 @@ void Game::onUpdate(rtk::EngineContext &context, float dt)
 bool Game::shouldContinue() const { return _running; }
 
 
-void Game::onUnload(rtk::EngineContext &context) {
-  (void) context;
+void Game::onUnload(rtk::EngineContext &) {
 
   for (auto &[roomId, instance] : _gameInstances) {
     instance->stop();
@@ -515,8 +511,7 @@ void Game::sendExistingEntities(std::uint32_t connectionId,
   }
 }
 
-void Game::handleEntityQueries(rtk::EngineContext &context) {
-  (void) context;
+void Game::handleEntityQueries(rtk::EngineContext &) {
 
   Server::QueryEntityEvent queryEvent;
   while (_server.pollQueryEntity(queryEvent)) {
@@ -547,10 +542,8 @@ void Game::broadcastPlayerCreated(std::uint32_t connectionId,
   const auto payload = protocol::createEntityPayload(
       _serverTick, netEnt->id, netEnt->archetypeId, transform->position.x,
       transform->position.y, transform->rotation);
-  for (const auto &[playerId, entity] : _players) {
-    (void)entity;
+  for (const auto &[playerId, _] : _players) 
     _server.sendCreateEntity(playerId, payload);
-  }
 }
 
 void Game::broadcastPlayerDestroyed(std::uint32_t connectionId,
@@ -558,8 +551,7 @@ void Game::broadcastPlayerDestroyed(std::uint32_t connectionId,
   const auto payload = protocol::destroyEntityPayload(
       _serverTick, networkId, protocol::DestroyReason::PlayerDisconnected);
 
-  for (const auto &[playerId, entity] : _players) {
-    (void)entity;
+  for (const auto &[playerId, _] : _players) {
     if (playerId != connectionId)
       _server.sendDestroyEntity(playerId, payload);
   }
