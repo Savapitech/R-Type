@@ -1,0 +1,50 @@
+{
+    "components": {
+        "transform": {
+            "position": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "scale": {
+                "x": 2.0,
+                "y": 2.0
+            },
+            "rotation": 0.0
+        },
+        "sprite": {
+            "texture": "assets/entityTexture/explosion.png",
+            "size": {
+                "w": 48.0,
+                "h": 48.0
+            },
+            "origin": {
+                "x": 24.0,
+                "y": 24.0
+            },
+            "textureRect": {
+                "x": 0,
+                "y": 0,
+                "w": 48,
+                "h": 48
+            },
+            "color": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 255
+            },
+            "layer": 10
+        },
+        "animation": {
+            "frameDuration": 0.05,
+            "totalFrames": 6,
+            "frameWidth": 48,
+            "frameHeight": 48,
+            "startX": 0,
+            "startY": 0,
+            "columns": 6,
+            "loop": false,
+            "playing": true
+        }
+    }
+}

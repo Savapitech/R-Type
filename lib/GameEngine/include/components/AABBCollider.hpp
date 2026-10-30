@@ -66,6 +66,8 @@ inline std::uint32_t stringToLayer(const std::string &name) {
     return Collider::CollisionLayer::EnemyProjectile;
   if (name == "Environment")
     return Collider::CollisionLayer::Environment;
+  if (name == "PowerUp")
+    return Collider::CollisionLayer::PowerUp;
   return 0;
 }
 

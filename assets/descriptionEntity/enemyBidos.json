@@ -1,16 +1,38 @@
 {
   "components": {
-    "transform": { 
-      "position": { "x": 0.0, "y": 0.0 }, 
-      "scale": { "x": 2.0, "y": 2.0 },
-      "rotation": 0.0 
+    "transform": {
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "scale": {
+        "x": 2.0,
+        "y": 2.0
+      },
+      "rotation": 0.0
     },
-    "sprite": { 
-      "texture": "assets/entityTexture/bidos.png", 
-      "size": { "w": 32.0, "h": 32.0 }, 
-      "origin": { "x": 0.0, "y": 0.0 },
-      "textureRect": { "x": 0, "y": 0, "w": 32, "h": 32 }, 
-      "color": { "r": 255, "g": 255, "b": 255, "a": 255 },
+    "sprite": {
+      "texture": "assets/entityTexture/bidos.png",
+      "size": {
+        "w": 32.0,
+        "h": 32.0
+      },
+      "origin": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "textureRect": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "color": {
+        "r": 255,
+        "g": 255,
+        "b": 255,
+        "a": 255
+      },
       "layer": 0,
       "flags": 0
     },
@@ -20,11 +42,15 @@
       "offsetX": 3.0,
       "offsetY": 2.0,
       "layer": "Enemy",
-      "mask": ["PlayerProjectile", "Player", "Environment"]
+      "mask": [
+        "PlayerProjectile",
+        "Player",
+        "Environment"
+      ]
     },
-    "velocity": { 
-      "x": -200.0, 
-      "y": 0.0 
+    "velocity": {
+      "x": -200.0,
+      "y": 0.0
     },
     "animation": {
       "frameDuration": 0.2,
@@ -44,6 +70,9 @@
       "health": 1.0,
       "fireRate": 2.5
     },
-    "networkEntity": {}
+    "networkEntity": {},
+    "dropPowerup": {
+      "blueprint": "powerup_speed"
+    }
   }
 }
