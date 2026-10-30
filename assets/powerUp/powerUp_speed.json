@@ -1,0 +1,56 @@
+{
+    "components": {
+        "transform": {
+            "position": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "scale": {
+                "x": 1.0,
+                "y": 1.0
+            },
+            "rotation": 0.0
+        },
+        "sprite": {
+            "texture": "assets/entityTexture/speedBoost.png",
+            "size": {
+                "w": 32.0,
+                "h": 32.0
+            },
+            "origin": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "textureRect": {
+                "x": 0,
+                "y": 0,
+                "w": 32,
+                "h": 32
+            },
+            "color": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 255
+            },
+            "layer": 0
+        },
+        "collider": {
+            "width": 32.0,
+            "height": 32.0,
+            "layer": "PowerUp",
+            "mask": [
+                "Player"
+            ]
+        },
+        "powerup": {
+            "type": "speed",
+            "value": 100.0
+        },
+        "velocity": {
+            "x": -100.0,
+            "y": 0.0
+        },
+        "networkEntity": {}
+    }
+}
