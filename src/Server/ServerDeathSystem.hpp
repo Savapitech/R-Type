@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Logger/Logger.hpp"
 #include "NetworkIdGenerator.hpp"
 #include "Protocol/EntityPayload.hpp"
 #include "Server.hpp"
@@ -65,27 +66,32 @@ public:
       auto *transform = transforms.get(entity);
       auto *drop = drops.get(entity);
 
-      if (drop && transform) {
-        std::uint32_t netId = NetworkIdGenerator::getInstance().getNextId();
-        auto powerUpEntity =
-            _factory.createNetwork(reg, drop->blueprintName, netId);
-        auto *powerUpTransform =
-            reg.get_components<component::Transform>().get(powerUpEntity);
-        if (powerUpTransform) {
-          powerUpTransform->position = transform->position;
-          const auto createPayload = protocol::CreateEntityPayload(
-              _serverTick, netId, _factory.getArchetypeID(drop->blueprintName),
-              powerUpTransform->position.x, powerUpTransform->position.y, 0.0f);
-          for (const auto &[playerId, _] : _players) {
-            _server.sendCreateEntity(playerId, createPayload);
-          }
-        }
-      }
       if (netEnt && netEnt->id != 0) {
         const auto payload = protocol::destroyEntityPayload(
             _serverTick, netEnt->id, protocol::DestroyReason::Collision);
         for (const auto &[playerId, _] : _players)
           _server.sendDestroyEntity(playerId, payload);
+      }
+      if (drop && transform) {
+        float posX = transform->position.x;
+        float posY = transform->position.y;
+        std::string blueprint = drop->blueprintName;
+        std::uint32_t netId = NetworkIdGenerator::getInstance().getNextId();
+        auto powerUpEntity = _factory.createNetwork(reg, blueprint, netId);
+        auto *powerUpTransform =
+            reg.get_components<component::Transform>().get(powerUpEntity);
+
+        if (powerUpTransform) {
+          powerUpTransform->position.x = posX;
+          powerUpTransform->position.y = posY;
+          const auto createPayload = protocol::createEntityPayload(
+              _serverTick, netId, _factory.getArchetypeID(blueprint), posX,
+              posY, 0.0f);
+
+          for (const auto &[playerId, _] : _players) {
+            _server.sendCreateEntity(playerId, createPayload);
+          }
+        }
       }
       for (auto &[playerId, playerEntity] : _players) {
         if (playerEntity == entity)
