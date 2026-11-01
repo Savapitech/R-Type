@@ -12,20 +12,39 @@ EMBED_TRIPLET	?= x64-windows-static
 endif
 
 VCPKG_DIR	= $(subst \,/,$(VCPKG_ROOT))
+TOOLCHAIN	= $(VCPKG_DIR)/scripts/buildsystems/vcpkg.cmake
+
+ifeq ($(OS),Windows_NT)
+ifdef VSCMD_VER
+NINJA		?= ninja
+endif
+else
+NINJA		?= $(firstword $(shell command -v ninja 2>/dev/null) \
+			$(wildcard $(VCPKG_DIR)/downloads/tools/ninja-*/ninja))
+endif
+GENERATOR	?= $(if $(NINJA),Ninja)
+GENERATOR_FLAGS	= $(if $(GENERATOR),-G "$(GENERATOR)") \
+		$(if $(and $(NINJA),$(filter Ninja,$(GENERATOR))),-DCMAKE_MAKE_PROGRAM="$(NINJA)")
 
 DOCS_THEME_DIR	= External/doxygen-awesome-css
 DOCS_THEME_TAG	= v2.3.4
 
 all: build
 
+# $(call cmake_configure,<build dir>,<extra cmake args>)
+define cmake_configure
+	@ cmake -DBUILD_DIR=$(1) -DGENERATOR="$(GENERATOR)" -P cmake/ResetGenerator.cmake
+	@ cmake -B $(1) $(GENERATOR_FLAGS) -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DCMAKE_TOOLCHAIN_FILE=$(TOOLCHAIN) $(2)
+endef
+
 build: check_vcpkg
-	@ cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DCMAKE_TOOLCHAIN_FILE=$(VCPKG_DIR)/scripts/buildsystems/vcpkg.cmake
+	$(call cmake_configure,$(BUILD_DIR))
 	@ cmake --build $(BUILD_DIR) --config $(BUILD_TYPE)
 	@ $(LOG_TIME) "$(C_BLUE) OK $(C_GREEN) build finished $(C_RESET)"
 
 # $(call cmake_build,<build dir>,<target>,<extra cmake args>)
 define cmake_build
-	@ cmake -B $(1) -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DCMAKE_TOOLCHAIN_FILE=$(VCPKG_DIR)/scripts/buildsystems/vcpkg.cmake $(3)
+	$(call cmake_configure,$(1),$(3))
 	@ cmake --build $(1) --config $(BUILD_TYPE) --target $(2)
 	@ $(LOG_TIME) "$(C_BLUE) OK $(C_GREEN) $(2) built $(C_RESET)"
 endef
