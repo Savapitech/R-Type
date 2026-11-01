@@ -18,8 +18,8 @@ void ServerLobbyScene::onEnter(rtk::EngineContext &) {
 }
 
 std::optional<ServerSceneType>
-ServerLobbyScene::onUpdate(rtk::EngineContext &context,
-                           const ServerInput &, float dt) {
+ServerLobbyScene::onUpdate(rtk::EngineContext &context, const ServerInput &,
+                           float dt) {
   _dependency.game.handleConnections(context);
   _dependency.game.handleInputs(context);
   _dependency.game.handleEntityQueries(context);
@@ -52,7 +52,7 @@ ServerLobbyScene::onUpdate(rtk::EngineContext &context,
               << "s (or when 2nd player connects)..." << std::endl;
   }
 
-  if (_lobbyTimer >= 30.0f) {
+  if (_lobbyTimer >= 10.0f) {
     std::cout << "[Server Lobby] 30 seconds timer expired! Starting InGame "
                  "scene with "
               << playerCount << " player(s)!" << std::endl;
