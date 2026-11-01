@@ -1,10 +1,14 @@
-    cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.20)
 
 option(RTYPE_BUILD_CLIENT "Build the client (needs Vulkan and GraphicLib)" ON)
 
 if(RTYPE_BUILD_CLIENT)
     list(APPEND VCPKG_MANIFEST_FEATURES "client")
 endif()
+
+list(APPEND VCPKG_INSTALL_OPTIONS "--no-print-usage")
+
+set(VCPKG_INSTALLED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed" CACHE PATH "")
 
 project(R-Type VERSION 0.1 LANGUAGES CXX)
 #force CMP0135 new force a timestamps on fetch
