@@ -86,7 +86,7 @@ if(RTYPE_BUILD_CLIENT)
 
     #check if the lib is already dowload
     if(NOT graphiclib_POPULATED)
-        FetchContent_Populate(GraphicLib)
+        FetchContent_MakeAvailable(GraphicLib)
     endif()
 
     #add dynamic lib
@@ -127,7 +127,7 @@ FetchContent_GetProperties(ECSLib)
 
 #check if the lib is already dowload
 if(NOT ecslib_POPULATED)
-    FetchContent_Populate(ECSLib)
+    FetchContent_MakeAvailable(ECSLib)
 endif()
 
 add_library(ECSLib INTERFACE)
@@ -285,7 +285,7 @@ if(RTYPE_BUILD_CLIENT AND RTYPE_EMBEDDED)
     )
     FetchContent_GetProperties(GraphicLibStatic)
     if(NOT graphiclibstatic_POPULATED)
-        FetchContent_Populate(GraphicLibStatic)
+        FetchContent_MakeAvailable(GraphicLibStatic)
     endif()
 
     add_library(GraphicLibStatic STATIC IMPORTED)
