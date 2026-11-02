@@ -279,6 +279,8 @@ void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
       "powerup_speed", "assets/powerUp/powerUp_speed.json");
   context._entityFactory.loadBlueprintFromPath(
       "enemyMecha", "assets/descriptionEntity/enemyMecha.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "mecha_bullet", "assets/descriptionEntity/mecha_bullet.json");
 }
 
 const std::array<std::uint16_t, 4> &GameInstance::getPlayerArchetypes() const {
