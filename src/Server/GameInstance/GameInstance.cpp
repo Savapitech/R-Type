@@ -9,6 +9,7 @@
 #include "components/Bullet.hpp"
 #include "components/Controllable.hpp"
 #include "components/Dead.hpp"
+#include "components/DeathEffect.hpp"
 #include "components/DestroyableTile.hpp"
 #include "components/Enemy.hpp"
 #include "components/EnemyEvent.hpp"
@@ -124,6 +125,7 @@ void GameInstance::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::WaveMovement>();
   context.registry.register_component<component::powerUp>();
   context.registry.register_component<component::DropPowerUp>();
+  context.registry.register_component<component::DeathEffect>();
 }
 
 void GameInstance::registerBuilders(rtk::EngineContext &context) {
@@ -215,6 +217,8 @@ void GameInstance::registerBuilders(rtk::EngineContext &context) {
                                          component::dropPowerupFromJson);
   context._entityFactory.registerBuilder("DropPowerup",
                                          component::dropPowerupFromJson);
+  context._entityFactory.registerBuilder("deathEffect",
+                                         component::deathEffectFromJson);
 }
 
 void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {

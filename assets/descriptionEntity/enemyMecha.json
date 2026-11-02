@@ -70,6 +70,9 @@
             "health": 1.0,
             "fireRate": 2.5
         },
-        "networkEntity": {}
+        "networkEntity": {},
+        "deathEffect": {
+            "blueprintName": "bidos_explosion"
+        }
     }
 }
