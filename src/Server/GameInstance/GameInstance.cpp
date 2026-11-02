@@ -9,6 +9,7 @@
 #include "components/Bullet.hpp"
 #include "components/Controllable.hpp"
 #include "components/Dead.hpp"
+#include "components/DeathEffect.hpp"
 #include "components/DestroyableTile.hpp"
 #include "components/Enemy.hpp"
 #include "components/EnemyEvent.hpp"
@@ -124,6 +125,7 @@ void GameInstance::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::WaveMovement>();
   context.registry.register_component<component::powerUp>();
   context.registry.register_component<component::DropPowerUp>();
+  context.registry.register_component<component::DeathEffect>();
 }
 
 void GameInstance::registerBuilders(rtk::EngineContext &context) {
@@ -215,6 +217,8 @@ void GameInstance::registerBuilders(rtk::EngineContext &context) {
                                          component::dropPowerupFromJson);
   context._entityFactory.registerBuilder("DropPowerup",
                                          component::dropPowerupFromJson);
+  context._entityFactory.registerBuilder("deathEffect",
+                                         component::deathEffectFromJson);
 }
 
 void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
@@ -273,6 +277,12 @@ void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
       "explosion", "assets/descriptionEntity/explosion.json");
   context._entityFactory.loadBlueprintFromPath(
       "powerup_speed", "assets/powerUp/powerUp_speed.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "enemyMecha", "assets/descriptionEntity/enemyMecha.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "mecha_bullet", "assets/descriptionEntity/mecha_bullet.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bidos_death_effect", "assets/descriptionEntity/bidos_death_effect.json");
 }
 
 const std::array<std::uint16_t, 4> &GameInstance::getPlayerArchetypes() const {
@@ -335,8 +345,8 @@ void GameInstance::subscribeEvents(Server &server) {
       [this, &server](const rtype::events::EnemySpawnedEvent &event) {
         const auto payload = protocol::createEntityPayload(
             _serverTick, event.networkId,
-            _context._entityFactory.getArchetypeID("enemyBidos"), event.x,
-            event.y);
+            _context._entityFactory.getArchetypeID(event.enemyBlueprint),
+            event.x, event.y);
 
         for (const auto &[connectionId, entity] : _players)
           server.sendCreateEntity(connectionId, payload);

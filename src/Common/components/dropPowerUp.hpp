@@ -27,7 +27,7 @@ struct DropPowerUp {
 inline void dropPowerupFromJson(rtk::ecs::Registry &reg, std::size_t entity,
                                 const nlohmann::json &data) {
   component::DropPowerUp drop{};
-  drop.blueprintName = data.value("blueprint", "powerup");
+  drop.blueprintName = data.value("blueprintName", "powerup");
   reg.get_components<component::DropPowerUp>().insert_at(entity, drop);
 }
 } // namespace component
