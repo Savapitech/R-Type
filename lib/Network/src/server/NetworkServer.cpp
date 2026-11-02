@@ -13,6 +13,7 @@
 #include <iostream>
 #include <iterator>
 #include <memory>
+#include <mutex>
 #include <ostream>
 #include <thread>
 #include <vector>
@@ -118,7 +119,7 @@ void NetworkServer::handleConnectedPacket(
 
   const auto now = std::chrono::steady_clock::now();
   auto &tracker = connection.getTracker();
-  const auto previousDup = tracker.getDroppedCount();
+  const auto previousDup = tracker.getDuplicateCount();
   const auto previousOut = tracker.getOutOfOrderCount();
   const auto previousRttSamples = tracker.getRttSampleCount();
   const bool accepted = tracker.onPacketReceived(header, now);
@@ -135,6 +136,9 @@ void NetworkServer::handleConnectedPacket(
     const float rttMs = static_cast<float>(tracker.getLastRttSample().count()) / 1000.0f;
     updateRttMetrics(_metrics, rttMs);
   }
+
+  if (!accepted)
+    return;
 
   connection.touch(now);
 
@@ -259,6 +263,10 @@ void NetworkServer::startFlushTimer() {
       }
       flush(id);
     }
+    {
+      std::lock_guard<std::mutex> lock(_metricsMutex);
+      _metricsSnapshot = _metrics;
+    }
     startFlushTimer();
   });
 }
@@ -327,4 +335,9 @@ void NetworkServer::setOnClientDisconnected(ConnectionCallback callback) {
 
 void NetworkServer::setOnMessage(MessageCallback callback) {
   _onMessage = std::move(callback);
+}
+
+NetworkMetrics NetworkServer::getMetrics() const {
+  std::lock_guard<std::mutex> lock(_metricsMutex);
+  return _metricsSnapshot;
 }

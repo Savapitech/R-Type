@@ -14,6 +14,7 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
+#include <mutex>
 
 #include "../connection/Connection.hpp"
 #include "../metrics/Metrics.hpp"
@@ -68,6 +69,16 @@ public:
   void send(std::uint32_t connectionId,
             const std::vector<std::uint8_t> &payload,
             PacketPriority priority = PacketPriority::Unreliable);
+  
+  /**
+   * @brief Returns a thread-safe snapshot of network metrics.
+   *
+   * The returned metrics represent the latest snapshot
+   * published by the network thread.
+   *
+   * @return Copy of the latest network metrics.
+   */
+  NetworkMetrics getMetrics() const;
 
   /**
    * @brief Sets the function called after a successful handshake.
@@ -117,6 +128,8 @@ private:
   ConnectionCallback _onClientConnected;
   ConnectionCallback _onClientDisconnected;
   MessageCallback _onMessage;
+  mutable std::mutex _metricsMutex;
+  NetworkMetrics _metricsSnapshot{};
 };
 
 /** @} */

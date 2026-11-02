@@ -107,6 +107,12 @@ public:
   void stop();
 
   /**
+   * @brief Returns a thread-safe snapshot of network statistics.
+   * @return Current network metrics.
+   */
+  NetworkMetrics getMetrics() const;
+
+  /**
    * @brief Sends already encoded messages to a client.
    * @param connectionId Destination connection.
    * @param payload Messages, headers included.

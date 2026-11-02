@@ -7,6 +7,8 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <chrono>
+#include <iomanip>
 
 #include "GameInstance/GameInstance.hpp"
 #include "NetworkIdGenerator.hpp"
@@ -404,6 +406,7 @@ void Game::onUpdate(rtk::EngineContext &context, float dt)
           instance->sendSnapshots(_server);
     }
   }
+  updateNetworkMetrics();
 }
 bool Game::shouldContinue() const { return _running; }
 
@@ -777,6 +780,81 @@ void Game::handleRoomRequests() {
       }
     }
   }
+}
+
+void Game::updateNetworkMetrics()
+{
+    using Clock = std::chrono::steady_clock;
+    const auto now = Clock::now();
+    const auto metrics = _server.getMetrics();
+
+    if (!_metricsInitialized) {
+        _previousMetrics = metrics;
+        _lastMetricsTime = now;
+        _metricsInitialized = true;
+        return;
+    }
+    const double elapsed =
+        std::chrono::duration<double>(
+            now - _lastMetricsTime
+        ).count();
+
+    if (elapsed < 1.0)
+        return;
+
+    const auto bytesIn =
+        metrics.bytesReceived - _previousMetrics.bytesReceived;
+
+    const auto bytesOut =
+        metrics.bytesSent - _previousMetrics.bytesSent;
+
+    const auto packetsIn =
+        metrics.packetsReceived - _previousMetrics.packetsReceived;
+
+    const auto packetsOut =
+        metrics.packetsSent - _previousMetrics.packetsSent;
+
+    const auto retransmissions =
+        metrics.retransmissions - _previousMetrics.retransmissions;
+
+    const auto duplicates =
+        metrics.packetsDuplicated - _previousMetrics.packetsDuplicated;
+
+    const auto outOfOrder =
+        metrics.packetsOut - _previousMetrics.packetsOut;
+
+    const double bandwidthIn = static_cast<double>(bytesIn) / elapsed / 1024.0;
+    const double bandwidthOut = static_cast<double>(bytesOut) / elapsed / 1024.0;
+    const double packetsInPerSecond = static_cast<double>(packetsIn) / elapsed;
+    const double packetsOutPerSecond = static_cast<double>(packetsOut) / elapsed;
+    std::cout << std::fixed << std::setprecision(2);
+    std::cout
+
+        << "Bandwidth IN: "
+        << bandwidthIn << " KiB/s\n"
+        << "Bandwidth OUT: "
+        << bandwidthOut << " KiB/s\n"
+        << "Packets IN: "
+        << packetsInPerSecond << " pkt/s\n"
+        << "Packets OUT: "
+        << packetsOutPerSecond << " pkt/s\n"
+        << "RTT: "
+        << metrics.rtt << " ms\n"
+        << "Smooth RTT: "
+        << metrics.smoothRtt << " ms\n"
+        << "Jitter: "
+        << metrics.jitter << " ms\n"
+        << "Retransmissions: "
+        << retransmissions << "\n"
+
+        << "Duplicates: "
+        << duplicates << "\n"
+
+        << "Out of order: "
+        << outOfOrder << "\n\n\n";
+
+    _previousMetrics = metrics;
+    _lastMetricsTime = now;
 }
 
 

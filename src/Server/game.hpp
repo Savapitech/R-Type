@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <limits>
 #include <unordered_map>
+#include <chrono>
 
 namespace rtype::server {
 /**
@@ -147,6 +148,10 @@ private:
                               rtk::EngineContext &context);
   void broadcastPlayerDestroyed(std::uint32_t connectionId,
                                 std::uint32_t networkId);
+  /**
+  * @brief Displays network statistics at one-second intervals.
+  */
+  void updateNetworkMetrics();
   
   /**
    * @brief Creates an instance for an existing room.
@@ -179,7 +184,12 @@ private:
   rtk::collision::CollisionBuffer _collisionBuffer;
   RoomManager _roomManager;
   std::uint32_t _defaultRoomId = 0;
-};
+  std::chrono::steady_clock::time_point _lastMetricsTime{
+      std::chrono::steady_clock::now()
+  };
+  NetworkMetrics _previousMetrics{};
+  bool _metricsInitialized = false;
+  };
 
 /** @} */
 } // namespace rtype::server

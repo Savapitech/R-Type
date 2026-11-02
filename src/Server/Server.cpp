@@ -10,6 +10,7 @@
 #include "Protocol/SnapshotPayload.hpp"
 #include "Protocol/RoomPayload.hpp"
 #include "config/NetworkConfig.hpp"
+#include "metrics/Metrics.hpp"
 #include "protocol/MessageHeader.hpp"
 #include "protocol/PacketReader.hpp"
 #include "protocol/PacketWriter.hpp"
@@ -50,6 +51,8 @@ Server::~Server() { stop(); }
 void Server::start() { _network.start(); }
 
 void Server::stop() { _network.stop(); }
+
+NetworkMetrics Server::getMetrics() const { return _network.getMetrics();}
 
 void Server::send(std::uint32_t connectionId,
                   const std::vector<std::uint8_t> &payload,
@@ -122,7 +125,7 @@ void Server::handleMessage(std::uint32_t connectionId, MessageId type,
     if (!protocol::readCreateRoom(reader, req))
       return;
     RoomRequestEvent event{};
-    event.type = RoomRequestEvent::Type::ListRooms;
+    event.type = RoomRequestEvent::Type::CreateRoom;
     event.connectionId = connectionId;
     event.roomName = std::move(req.name);
     {
@@ -139,7 +142,7 @@ void Server::handleMessage(std::uint32_t connectionId, MessageId type,
     if (!protocol::readJoinRoom(reader, req))
       return;
     RoomRequestEvent event{};
-    event.type = RoomRequestEvent::Type::ListRooms;
+    event.type = RoomRequestEvent::Type::JoinRoom;
     event.connectionId = connectionId;
     event.roomId = std::move(req.roomId);
     {
