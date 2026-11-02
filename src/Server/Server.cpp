@@ -173,7 +173,7 @@ void Server::handleMessage(std::uint32_t connectionId, MessageId type,
     if (!protocol::readSetReady(reader, req))
       return;
     RoomRequestEvent event{};
-    event.type = RoomRequestEvent::Type::ListRooms;
+    event.type = RoomRequestEvent::Type::SetReady;
     event.connectionId = connectionId;
     event.ready = std::move(req.ready);
     {

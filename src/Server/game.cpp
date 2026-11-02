@@ -753,17 +753,17 @@ void Game::handleRoomRequests() {
         auto roomId = _roomManager.getRoomId(connectionId);
         if (!roomId) {
           res.result = protocol::RoomResult::NotInRoom;
-          _server.sendRoomCreated(connectionId, res);
+          _server.sendRoomLeft(connectionId, res);
           break;
         }
         res.roomId = *roomId;
         if (!removePlayerFromRoom(connectionId)) {
           res.result = protocol::RoomResult::InternalError;
-          _server.sendRoomCreated(connectionId, res);
+          _server.sendRoomLeft(connectionId, res);
           break;
         }
         res.result = protocol::RoomResult::Success;
-        _server.sendRoomCreated(connectionId, res);
+        _server.sendRoomLeft(connectionId, res);
         break;
 
       }

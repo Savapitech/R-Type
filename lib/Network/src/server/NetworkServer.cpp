@@ -119,7 +119,7 @@ void NetworkServer::handleConnectedPacket(
     return;
 
   auto &clientMetrics = connection.getMetrics();
-  onPacketReceived(_metrics, data.size());
+  onPacketReceived(clientMetrics, data.size());
 
   const auto now = std::chrono::steady_clock::now();
   auto &tracker = connection.getTracker();
