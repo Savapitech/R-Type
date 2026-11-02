@@ -2,6 +2,7 @@
 
 #include "EngineContext.hpp"
 #include "NetworkClient.hpp"
+#include "Scheduler.hpp"
 #include "components/AABBCollider.hpp"
 #include "components/Animation.hpp"
 #include "components/Animator.hpp"
@@ -9,6 +10,7 @@
 #include "components/Bullet.hpp"
 #include "components/Controllable.hpp"
 #include "components/Dead.hpp"
+#include "components/DestroyAnimEnd.hpp"
 #include "components/DestroyableTile.hpp"
 #include "components/Enemy.hpp"
 #include "components/EnemyEvent.hpp"
@@ -21,12 +23,14 @@
 #include "components/dropPowerUp.hpp"
 #include "components/powerUp.hpp"
 
+#include "systems/AnimationCleanSystem.hpp"
 #include "systems/AnimationSystem.hpp"
 #include "systems/AnimatorSystem.hpp"
 #include "systems/AttachmentSystem.hpp"
 #include "systems/AudioSystem.hpp"
 #include "systems/ColliderSystem.hpp"
 #include "systems/CollisionFlashSystem.hpp"
+#include "systems/DeadSystem.hpp"
 #include "systems/DebugCollisionSystem.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/MovementSystem.hpp"
@@ -41,6 +45,7 @@
 
 #include <type_traits>
 #include <variant>
+#include <vulkan/vulkan_core.h>
 
 namespace rtype::client {
 Game::Game(std::string host, std::string port)
@@ -232,6 +237,8 @@ void Game::registerBuilders(rtk::EngineContext &context) {
                                          component::dropPowerupFromJson);
   context._entityFactory.registerBuilder("droppowerup",
                                          component::dropPowerupFromJson);
+  context._entityFactory.registerBuilder("destroyAnimEnd",
+                                         component::destroyAnimEndFromJson);
 }
 
 void Game::registerComponents(rtk::EngineContext &context) {
@@ -255,6 +262,7 @@ void Game::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::WaveMovement>();
   context.registry.register_component<component::powerUp>();
   context.registry.register_component<component::DropPowerUp>();
+  context.registry.register_component<component::DestroyAnimEnd>();
 }
 
 void Game::createBindings() {
@@ -338,6 +346,9 @@ void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<rtk::systems::ParallaxSystem>(rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::AttachmentSystem>(
       rtk::ecs::Order::Update);
+  context.scheduler.add<rtk::systems::AnimationCleanSystem>(
+      rtk::ecs::Order::Update);
+  context.scheduler.add<rtk::systems::DeathSystem>(rtk::ecs::Order::Update);
 }
 
 bool Game::shouldContinue() const {
@@ -447,6 +458,25 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
               auto viewEnemies =
                   context.registry
                       .view<component::Enemy, component::Transform>();
+              float explosionX = bulletTrans->position.x;
+              float explosionY = bulletTrans->position.y;
+              if (explosionX > -50.0f && explosionX < 1330.0f &&
+                  explosionY > -50.0f && explosionY < 770.0f) {
+                auto explosion = context._entityFactory.createFromBlueprint(
+                    context.registry, "explosion");
+                auto *explosionCF =
+                    context.registry.get_components<component::Animation>().get(
+                        explosion);
+                if (explosionCF->currentFrame == 7) {
+                  context.registry.kill_entity(explosion);
+                }
+                std::cout << "creation de l'explosion" << std::endl;
+                auto *explosionTrans =
+                    context.registry.get_components<component::Transform>().get(
+                        explosion);
+                explosionTrans->position.x = explosionX;
+                explosionTrans->position.y = explosionY;
+              }
               std::size_t closestEnemy = 0;
               float closestDist = 120.0f;
               for (auto enemyEnt : viewEnemies) {

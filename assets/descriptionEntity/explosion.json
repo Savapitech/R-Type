@@ -37,7 +37,7 @@
         },
         "animation": {
             "frameDuration": 0.05,
-            "totalFrames": 6,
+            "totalFrames": 7,
             "frameWidth": 48,
             "frameHeight": 48,
             "startX": 0,
@@ -45,6 +45,7 @@
             "columns": 6,
             "loop": false,
             "playing": true
-        }
+        },
+        "destroyAnimEnd": {}
     }
 }
