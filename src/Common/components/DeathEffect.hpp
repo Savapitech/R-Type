@@ -27,7 +27,7 @@ struct DeathEffect {
 inline void deathEffectFromJson(rtk::ecs::Registry &reg, std::size_t entity,
                                 const nlohmann::json &data) {
   component::DeathEffect effect{};
-  effect.blueprintName = data.value("blueprint", "explosion");
+  effect.blueprintName = data.value("blueprintName", "explosion");
 
   reg.get_components<component::DeathEffect>().insert_at(entity, effect);
 }
