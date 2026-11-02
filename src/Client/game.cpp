@@ -131,6 +131,8 @@ void Game::loadEntityBluePrint(rtk::EngineContext &context) {
       "powerup_speed", "assets/powerUp/powerUp_speed.json");
   context._entityFactory.loadBlueprintFromPath(
       "enemyMecha", "assets/descriptionEntity/enemyMecha.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "mecha_bullet", "assets/descriptionEntity/mecha_bullet.json");
 }
 
 void Game::registerBuilders(rtk::EngineContext &context) {

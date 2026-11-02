@@ -33,7 +33,7 @@ inline void enemyFromJson(rtk::ecs::Registry &reg, std::size_t entity,
   enemy.health = data.value("health", 100.0f);
   enemy.fireRate = data.value("fireRate", 2.0f);
   enemy.fireTimer = enemy.fireRate;
-  enemy.blueprintName = data.value("blueprint", "enemy_bullet");
+  enemy.blueprintName = data.value("blueprintName", "enemy_bullet");
   reg.get_components<component::Enemy>().insert_at(entity, enemy);
 }
 
