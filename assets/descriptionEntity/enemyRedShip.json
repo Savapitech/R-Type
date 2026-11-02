@@ -53,7 +53,8 @@
     },
     "enemy": {
       "health": 20.0,
-      "fireRate": 3.0
+      "fireRate": 3.0,
+      "blueprintName": "enemy_bullet"
     },
     "waveMovement": {
       "baseY": 300.0,

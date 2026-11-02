@@ -68,11 +68,12 @@
         },
         "enemy": {
             "health": 1.0,
-            "fireRate": 2.5
+            "fireRate": 2.5,
+            "blueprintName": "mecha_bullet"
         },
         "networkEntity": {},
         "deathEffect": {
-            "blueprintName": "bidos_explosion"
+            "blueprintName": "mecha_explosion"
         }
     }
 }
