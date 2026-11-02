@@ -1,0 +1,82 @@
+{
+    "components": {
+        "transform": {
+            "position": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "scale": {
+                "x": 2.0,
+                "y": 2.0
+            },
+            "rotation": 0.0
+        },
+        "sprite": {
+            "texture": "assets/entityTexture/mecha.png",
+            "size": {
+                "w": 60.0,
+                "h": 58.0
+            },
+            "origin": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "textureRect": {
+                "x": 0,
+                "y": 0,
+                "w": 60,
+                "h": 58
+            },
+            "color": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 255
+            },
+            "layer": 0,
+            "flags": 0
+        },
+        "collider": {
+            "width": 56.0,
+            "height": 54.0,
+            "offsetX": 3.0,
+            "offsetY": 2.0,
+            "layer": "Enemy",
+            "mask": [
+                "PlayerProjectile",
+                "Player",
+                "Environment"
+            ]
+        },
+        "velocity": {
+            "x": -200.0,
+            "y": 0.0
+        },
+        "animation": {
+            "frameDuration": 0.2,
+            "currentFrame": 0,
+            "totalFrames": 3,
+            "frameWidth": 60,
+            "frameHeight": 58,
+            "startX": 0,
+            "startY": 0,
+            "loop": true,
+            "playing": true,
+            "columns": 3,
+            "paddingX": 0,
+            "paddingY": 0
+        },
+        "enemy": {
+            "health": 5.0,
+            "fireRate": 2.5,
+            "blueprintName": "mecha_bullet"
+        },
+        "networkEntity": {},
+        "deathEffect": {
+            "blueprintName": "explosion"
+        },
+        "dropPowerUp": {
+            "blueprintName": "powerup_speed"
+        }
+    }
+}
