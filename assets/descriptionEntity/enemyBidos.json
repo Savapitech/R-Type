@@ -70,9 +70,6 @@
       "health": 1.0,
       "fireRate": 2.5
     },
-    "networkEntity": {},
-    "dropPowerup": {
-      "blueprint": "powerup_speed"
-    }
+    "networkEntity": {}
   }
 }
