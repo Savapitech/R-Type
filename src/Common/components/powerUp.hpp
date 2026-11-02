@@ -18,8 +18,8 @@ enum class powerUpType { Heal, Speed, Shield };
  * @brief Represents the power up.
  */
 struct powerUp {
-  powerUpType type{powerUpType::Heal}; // The type of the power up.
-  float value{10.0f};                  // The value associated to the type.
+  powerUpType type{powerUpType::Heal}; ///< The type of the power up.
+  float value{10.0f};                  ///< The value associated to the type.
 };
 
 /**
