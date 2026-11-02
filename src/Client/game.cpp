@@ -10,6 +10,7 @@
 #include "components/Bullet.hpp"
 #include "components/Controllable.hpp"
 #include "components/Dead.hpp"
+#include "components/DeathEffect.hpp"
 #include "components/DestroyAnimEnd.hpp"
 #include "components/DestroyableTile.hpp"
 #include "components/Enemy.hpp"
@@ -241,6 +242,8 @@ void Game::registerBuilders(rtk::EngineContext &context) {
                                          component::dropPowerupFromJson);
   context._entityFactory.registerBuilder("destroyAnimEnd",
                                          component::destroyAnimEndFromJson);
+  context._entityFactory.registerBuilder("deathEffect",
+                                         component::deathEffectFromJson);
 }
 
 void Game::registerComponents(rtk::EngineContext &context) {
@@ -265,6 +268,7 @@ void Game::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::powerUp>();
   context.registry.register_component<component::DropPowerUp>();
   context.registry.register_component<component::DestroyAnimEnd>();
+  context.registry.register_component<component::DeathEffect>();
 }
 
 void Game::createBindings() {
@@ -466,12 +470,6 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
                   explosionY > -50.0f && explosionY < 770.0f) {
                 auto explosion = context._entityFactory.createFromBlueprint(
                     context.registry, "explosion");
-                auto *explosionCF =
-                    context.registry.get_components<component::Animation>().get(
-                        explosion);
-                if (explosionCF->currentFrame == 7) {
-                  context.registry.kill_entity(explosion);
-                }
                 auto *explosionTrans =
                     context.registry.get_components<component::Transform>().get(
                         explosion);
@@ -500,6 +498,23 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
                                                     closestEnemy);
               }
             }
+          }
+          auto *deathEffect =
+              context.registry.get_components<component::DeathEffect>().get(e);
+          auto *transform =
+              context.registry.get_components<component::Transform>().get(e);
+          std::string effect = "explosion";
+          if (transform) {
+            if (deathEffect) {
+              effect = deathEffect->blueprintName;
+            }
+            auto effectDeath = context._entityFactory.createFromBlueprint(
+                context.registry, effect);
+            auto *effectTransform =
+                context.registry.get_components<component::Transform>().get(
+                    effectDeath);
+            effectTransform->position.x = transform->position.x;
+            effectTransform->position.y = transform->position.y;
           }
           context.registry.remove_entity_from_all_pools(e);
           context.registry.kill_entity(e);
