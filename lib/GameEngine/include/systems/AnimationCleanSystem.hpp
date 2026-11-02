@@ -25,6 +25,12 @@ public:
     LOG_INFO("Load AnimationClean System");
   }
 
+  /**
+   * @brief Check all entities with animation component, if the playing is
+   * finished destroy it.
+   * @param reg Registry holding the entities.
+   * @param dt Unused.
+   */
   void update(rtk::ecs::Registry &reg, float dt) override {
     auto view = reg.view<component::DestroyAnimEnd, component::Animation>();
     auto &animations = reg.get_components<component::Animation>();
@@ -43,7 +49,10 @@ public:
       }
     }
   }
-
+  /**
+   * @brief Does nothing.
+   */
   void onStop(rtk::ecs::Registry &reg) override {}
 };
+/** @} */
 } // namespace rtk::systems
