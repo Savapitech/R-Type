@@ -31,6 +31,7 @@ public:
    * @param server Server used to send DestroyEntity.
    * @param players Connected players, keyed by connection id.
    * @param serverTick Current server tick.
+   * @param factory Factory wich create entity thank to a blueprint.
    */
   ServerDeathSystem(Server &server,
                     std::unordered_map<std::uint32_t, std::size_t> &players,

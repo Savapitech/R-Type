@@ -13,6 +13,9 @@ namespace rtk::systems {
  * @{
  */
 
+/**
+ * @brief Clean the animation which are finished.
+ */
 class AnimationCleanSystem final : public rtk::ecs::ISystem {
 public:
   AnimationCleanSystem() = default;
