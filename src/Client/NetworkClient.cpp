@@ -7,6 +7,7 @@
 #include "Protocol/PayloadCodec.hpp"
 #include "Protocol/SnapshotPayload.hpp"
 #include "config/NetworkConfig.hpp"
+#include "metrics/Metrics.hpp"
 #include "protocol/HandshakeHeader.hpp"
 #include "protocol/MessageHeader.hpp"
 #include "protocol/MessageParser.hpp"
@@ -26,6 +27,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <utility>
 
 namespace rtype::client {
 
@@ -153,9 +155,15 @@ void NetworkClient::flush() {
   if (!_running.load() || !_connected.load())
     return;
 
-  for (auto &datagram : _tracker.collectOutgoing(
-           std::chrono::steady_clock::now(), _connectionId.load()))
-    doSend(std::move(datagram));
+  const auto previousResends = _tracker.getResendCount();
+  auto datagrams = _tracker.collectOutgoing(std::chrono::steady_clock::now(),
+      _connectionId.load());
+  const auto newResends = _tracker.getResendCount() - previousResends;
+  for (std::uint32_t i = 0; i < newResends; i++) 
+    onRetransmission(_metrics);
+
+  for (auto &datagram : datagrams)
+      doSend(std::move(datagram));
 }
 
 void NetworkClient::startFlushTimer() {
@@ -171,6 +179,10 @@ void NetworkClient::startFlushTimer() {
     }
     sendKeepalive();
     flush();
+    {
+      std::lock_guard<std::mutex> lock(_metricsMutex);
+      _metricsSnapshot = _metrics;
+    }
     startFlushTimer();
   });
 }
@@ -223,12 +235,13 @@ void NetworkClient::doSend(std::vector<uint8_t> data) {
 
   _socket.async_send_to(
       asio::buffer(*buffer), _serverEndpoint,
-      [buffer](const asio::error_code &error, std::size_t bytesSent) {
+      [this, buffer](const asio::error_code &error, std::size_t bytesSent) {
         if (error) {
           std::cerr << "[NetworkClient] UDP send failed: " << error.message()
                     << std::endl;
           return;
         }
+        onPacketSend(_metrics, bytesSent);
       });
 }
 void NetworkClient::startReceive() {
@@ -244,6 +257,7 @@ void NetworkClient::startReceive() {
         if (!error) {
           if (_receiveEndpoint == _serverEndpoint && bytesReceived > 0 &&
               bytesReceived <= MAX_PAYLOAD_SIZE) {
+            onPacketReceived(_metrics, bytesReceived);
             handleDatagram(bytesReceived);
           }
         }
@@ -331,7 +345,27 @@ void NetworkClient::handleConnectedPackets(const std::uint8_t *data,
   if (!MessageParser::parse(reader, messages))
     return;
 
-  if (!_tracker.onPacketReceived(header, std::chrono::steady_clock::now()))
+  const auto previousDup = _tracker.getDuplicateCount();
+  const auto previousOut = _tracker.getOutOfOrderCount();
+  const auto previousRttSamples = _tracker.getRttSampleCount();
+  const bool accepted = _tracker.onPacketReceived(header, std::chrono::steady_clock::now());
+
+  const auto newDup = _tracker.getDuplicateCount() - previousDup;
+  for (std::uint64_t i = 0; i < newDup; i++) {
+    onPacketDuplicated(_metrics);
+  }
+  
+  const auto newOut = _tracker.getOutOfOrderCount() - previousOut;
+  for (std::uint64_t i = 0; i < newOut; i++) {
+    onPacketOut(_metrics);
+  }
+
+  if (_tracker.getRttSampleCount() > previousRttSamples) {
+    const float rttMs = static_cast<float>(_tracker.getLastRttSample().count()) / 1000.0f;
+    updateRttMetrics(_metrics, rttMs);
+  }
+
+  if (!accepted)
     return;
 
   for (auto &message : messages) {
@@ -488,6 +522,11 @@ void NetworkClient::handleReplicationMessage(
   default:
     return;
   }
+}
+
+NetworkMetrics NetworkClient::getMetrics() const {
+  std::lock_guard<std::mutex> lock(_metricsMutex);
+  return _metricsSnapshot;
 }
 
 } // namespace rtype::client

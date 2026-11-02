@@ -20,6 +20,7 @@
 #include "Protocol/SnapshotPayload.hpp"
 #include "protocol/MessageHeader.hpp"
 #include "tracking/PacketTracker.hpp"
+#include "metrics/Metrics.hpp"
 
 namespace rtype::client {
 /**
@@ -89,6 +90,9 @@ private:
   std::mutex _eventMutex;
   std::queue<NetworkEvent> _events;
   std::queue<ReplicationEvent> _replicationEvents;
+  NetworkMetrics _metrics{};
+  mutable std::mutex _metricsMutex;
+  NetworkMetrics _metricsSnapshot{};
 
   void startReceive();
   void handleDatagram(std::size_t size);
@@ -187,6 +191,12 @@ public:
    * @brief Closes the socket and joins the network thread.
    */
   void stop();
+  
+  /**
+  * @brief Returns the client's current network metrics.
+  * @return Thread-safe snapshot of network statistics.
+  */
+  NetworkMetrics getMetrics() const;
 };
 
 /** @} */

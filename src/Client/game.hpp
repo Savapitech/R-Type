@@ -2,6 +2,7 @@
 
 #include <array>
 #include <unordered_set>
+#include <chrono>
 
 #include "GameEngine.hpp"
 #include "collision/collisionBuffer.hpp"
@@ -19,6 +20,8 @@
 #include "scene/introScene.hpp"
 #include "scene/menuScene.hpp"
 #include "scene/networkConnectionScene.hpp"
+#include "ClientMetrics.hpp"
+#include "metrics/Metrics.hpp"
 
 namespace rtk::systems {
 class CollisionFlashSystem;
@@ -91,6 +94,12 @@ public:
    */
   void onUnload(rtk::EngineContext &context);
 
+  /**
+   * @brief Returns network statistics prepared for display.
+   * @return Current network statistics.
+   */
+  const ClientNetworkStats &getNetworkStats() const;
+
 private:
   void registerBuilders(rtk::EngineContext &context);
   void registerComponents(rtk::EngineContext &context);
@@ -105,6 +114,7 @@ private:
                                const protocol::DestroyEntityPayload &payload);
   void applySnapshot(rtk::EngineContext &context,
                      const protocol::SnapshotPayload &payload);
+  void updateNetworkStats();
 
   std::unordered_map<protocol::NetworkEntityId, std::size_t> _networkEntities;
   std::unordered_set<std::uint32_t> _pendingEntityQueries;
@@ -128,6 +138,10 @@ private:
   bool _shouldQuit = false;
   std::string _host = "127.0.0.1";
   std::string _port = "4242";
+  ClientNetworkStats _networkStats{};
+  NetworkMetrics _previousNetworkMetrics{};
+  std::chrono::steady_clock::time_point _lastNetworkMetricsTime{};
+  bool _networkMetricsInitialized = false;
 };
 
 /** @} */

@@ -1,5 +1,6 @@
 #include "game.hpp"
 
+#include "ClientMetrics.hpp"
 #include "EngineContext.hpp"
 #include "NetworkClient.hpp"
 #include "components/AABBCollider.hpp"
@@ -19,6 +20,7 @@
 #include "components/Velocity.hpp"
 #include "components/WaveMovement.hpp"
 
+#include "metrics/Metrics.hpp"
 #include "systems/AnimationSystem.hpp"
 #include "systems/AnimatorSystem.hpp"
 #include "systems/AttachmentSystem.hpp"
@@ -37,6 +39,7 @@
 #include "Protocol/SnapshotPayload.hpp"
 #include "factoryDataDriven/factoryDataDriven.hpp"
 
+#include <chrono>
 #include <type_traits>
 #include <variant>
 
@@ -311,6 +314,7 @@ bool Game::shouldContinue() const {
 }
 
 void Game::onUpdate(rtk::EngineContext &context, float dt) {
+  updateNetworkStats();
   NetworkEvent netEvent;
   while (_networkClient.pollEvent(netEvent)) {
     if (netEvent.type == NetworkEventType::Connected) {
@@ -617,4 +621,62 @@ void Game::handleReplication(rtk::EngineContext &context) {
   }
 }
 
+const ClientNetworkStats &Game::getNetworkStats() const {
+  return _networkStats;
+}
+
+void Game::updateNetworkStats() {
+  const auto now = std::chrono::steady_clock::now();
+  const NetworkMetrics metrics = _networkClient.getMetrics();
+
+  _networkStats.pingMs = metrics.rtt;
+  _networkStats.smoothPingMs = metrics.smoothRtt;
+  _networkStats.jitterMs = metrics.jitter;
+  _networkStats.totalRetransmissions = metrics.retransmissions;
+  _networkStats.totalDuplicates = metrics.packetsDuplicated;
+  _networkStats.totalOutOfOrder = metrics.packetsOut;
+  _networkStats.totalBytesReceived = metrics.bytesReceived;
+  _networkStats.totalBytesSent = metrics.bytesSent;
+
+  if (!_networkMetricsInitialized) {
+   _previousNetworkMetrics = metrics;
+   _lastNetworkMetricsTime = now;
+   _networkMetricsInitialized = true;
+   return;
+  }
+
+  const double elapsed = std::chrono::duration<double>(now - _lastNetworkMetricsTime).count();
+  if (elapsed < 1.0)
+   return;
+  const auto previous = _previousNetworkMetrics;
+
+  if (metrics.bytesReceived < previous.bytesReceived ||
+    metrics.bytesSent < previous.bytesSent ||
+    metrics.packetsReceived < previous.packetsReceived ||
+    metrics.packetsSent < previous.packetsSent ||
+    metrics.retransmissions < previous.retransmissions)
+  {
+    _networkStats.downloadKiBs = 0.0;
+    _networkStats.uploadKiBs = 0.0;
+    _networkStats.packetsInPerSecond = 0.0;
+    _networkStats.packetsOutPerSecond = 0.0;
+    _networkStats.retransmissionsPerSecond = 0.0;
+    _previousNetworkMetrics = metrics;
+    _lastNetworkMetricsTime = now;
+    return;
+  }
+
+  _networkStats.downloadKiBs = static_cast<double>(
+    metrics.bytesReceived - previous.bytesReceived) / elapsed / 1024.0;
+  _networkStats.uploadKiBs =static_cast<double>(
+    metrics.bytesSent - previous.bytesSent) / elapsed / 1024.0;
+  _networkStats.packetsInPerSecond = static_cast<double>(
+    metrics.packetsReceived - previous.packetsReceived) / elapsed;
+  _networkStats.packetsOutPerSecond = static_cast<double>(
+    metrics.packetsSent - previous.packetsSent) / elapsed;
+  _networkStats.retransmissionsPerSecond = static_cast<double>(
+    metrics.retransmissions - previous.retransmissions) / elapsed;
+  _previousNetworkMetrics = metrics;
+  _lastNetworkMetricsTime = now;
+}
 } // namespace rtype::client
