@@ -337,8 +337,8 @@ void GameInstance::subscribeEvents(Server &server) {
       [this, &server](const rtype::events::EnemySpawnedEvent &event) {
         const auto payload = protocol::createEntityPayload(
             _serverTick, event.networkId,
-            _context._entityFactory.getArchetypeID("enemyBidos"), event.x,
-            event.y);
+            _context._entityFactory.getArchetypeID(event.enemyBlueprint),
+            event.x, event.y);
 
         for (const auto &[connectionId, entity] : _players)
           server.sendCreateEntity(connectionId, payload);
