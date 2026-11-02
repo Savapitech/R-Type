@@ -470,7 +470,6 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
                 if (explosionCF->currentFrame == 7) {
                   context.registry.kill_entity(explosion);
                 }
-                std::cout << "creation de l'explosion" << std::endl;
                 auto *explosionTrans =
                     context.registry.get_components<component::Transform>().get(
                         explosion);
