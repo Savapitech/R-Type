@@ -18,7 +18,8 @@ struct Enemy {
   float health{100.0f};  ///< Remaining health points.
   float fireTimer{0.0f}; ///< Timer to open fire
   float fireRate{2.0f};  ///< Fire rate in second
-  std::string blueprintName{"enemy_bullet"};
+  std::string blueprintName{
+      "enemy_bullet"}; ///< Blueprint of the enemy's bullet
 };
 
 /**
