@@ -5,6 +5,7 @@
 #include "../protocol/PingMessage.hpp"
 #include "../protocol/PongMessage.hpp"
 #include "../protocol/SystemMessages.hpp"
+#include "metrics/Metrics.hpp"
 
 #include <asio/post.hpp>
 #include <chrono>
@@ -116,8 +117,24 @@ void NetworkServer::handleConnectedPacket(
     return;
 
   const auto now = std::chrono::steady_clock::now();
-  if (!connection.getTracker().onPacketReceived(header, now))
-    return;
+  auto &tracker = connection.getTracker();
+  const auto previousDup = tracker.getDroppedCount();
+  const auto previousOut = tracker.getOutOfOrderCount();
+  const auto previousRttSamples = tracker.getRttSampleCount();
+  const bool accepted = tracker.onPacketReceived(header, now);
+
+  const auto newDup = tracker.getDuplicateCount() - previousDup;
+  for (std::uint64_t i = 0; i < newDup; i++)
+    onPacketDuplicated(_metrics);
+  
+  const auto newOut = tracker.getOutOfOrderCount() - previousOut;
+  for (std::uint64_t i = 0; i < newOut; i++)
+    onPacketOut(_metrics);
+
+  if (tracker.getRttSampleCount() > previousRttSamples) {
+    const float rttMs = static_cast<float>(tracker.getLastRttSample().count()) / 1000.0f;
+    updateRttMetrics(_metrics, rttMs);
+  }
 
   connection.touch(now);
 
@@ -193,8 +210,14 @@ void NetworkServer::flush(std::uint32_t connectionId) {
     return;
 
   Connection &connection = *it->second;
-  for (const auto &datagram : connection.getTracker().collectOutgoing(
-           std::chrono::steady_clock::now(), connectionId))
+  auto &tracker = connection.getTracker();
+  const auto previousResends = tracker.getResendCount();
+  const auto datagrams = tracker.collectOutgoing(std::chrono::steady_clock::now(), connectionId);
+  const auto newResends = tracker.getResendCount() - previousResends;
+  for (std::uint32_t i = 0; i < newResends; i++)
+    onRetransmission(_metrics);
+
+  for (const auto &datagram : datagrams)
     _transport.send(connection.getEndpoint(), datagram);
 }
 

@@ -18,8 +18,10 @@ PacketReceiveRes PacketTracker::onPacketReceived(std::uint32_t sequence) {
     return PacketReceiveRes::New;
   }
 
-  if (sequence == _lastReceived)
+  if (sequence == _lastReceived) {
+    ++_duplicateCount;
     return PacketReceiveRes::Dup;
+  }
 
   if (sequence > _lastReceived) {
     const std::uint32_t diff = sequence - _lastReceived;
@@ -36,13 +38,17 @@ PacketReceiveRes PacketTracker::onPacketReceived(std::uint32_t sequence) {
   }
 
   const std::uint32_t diff = _lastReceived - sequence;
-  if (diff > 32)
+  if (diff > 32) {
+    ++_tooOldCount;
     return PacketReceiveRes::TooOld;
-
+  }
   const std::uint32_t mask = 1u << (diff - 1);
-  if ((_receivedBits & mask) != 0)
+  if ((_receivedBits & mask) != 0) {
+    ++_duplicateCount;
     return PacketReceiveRes::Dup;
+  }
   _receivedBits |= mask;
+  ++_outOfOrderCount;
   return PacketReceiveRes::Out;
 }
 
@@ -230,6 +236,8 @@ void PacketTracker::acknowledge(std::uint32_t ack, std::uint32_t ackBits,
     if (it->second.resends == 0) {
       const auto sample = std::chrono::duration_cast<std::chrono::microseconds>(
           now - it->second.lastSend);
+      _lastRttSample = sample;
+      ++_rttSampleCount;
       _roundTrip =
           _roundTrip.count() == 0 ? sample : (_roundTrip * 7 + sample) / 8;
     }
@@ -296,4 +304,30 @@ std::uint32_t PacketTracker::getCriticalLossCount() const {
 
 std::chrono::milliseconds PacketTracker::getRoundTripTime() const {
   return std::chrono::duration_cast<std::chrono::milliseconds>(_roundTrip);
+}
+
+std::uint64_t PacketTracker::getDuplicateCount() const
+{
+    return _duplicateCount;
+}
+
+std::uint64_t PacketTracker::getOutOfOrderCount() const
+{
+    return _outOfOrderCount;
+}
+
+std::uint64_t PacketTracker::getTooOldCount() const
+{
+    return _tooOldCount;
+}
+
+std::chrono::microseconds
+PacketTracker::getLastRttSample() const
+{
+    return _lastRttSample;
+}
+
+std::uint64_t PacketTracker::getRttSampleCount() const
+{
+    return _rttSampleCount;
 }
