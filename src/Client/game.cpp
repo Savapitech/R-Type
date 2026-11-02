@@ -133,6 +133,8 @@ void Game::loadEntityBluePrint(rtk::EngineContext &context) {
       "enemyMecha", "assets/descriptionEntity/enemyMecha.json");
   context._entityFactory.loadBlueprintFromPath(
       "mecha_bullet", "assets/descriptionEntity/mecha_bullet.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bidos_death_effect", "assets/descriptionEntity/bidos_death_effect.json");
 }
 
 void Game::registerBuilders(rtk::EngineContext &context) {
@@ -505,13 +507,9 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
               context.registry.get_components<component::DeathEffect>().get(e);
           auto *transform =
               context.registry.get_components<component::Transform>().get(e);
-          std::string effect = "explosion";
-          if (transform) {
-            if (deathEffect) {
-              effect = deathEffect->blueprintName;
-            }
+          if (transform && deathEffect) {
             auto effectDeath = context._entityFactory.createFromBlueprint(
-                context.registry, effect);
+                context.registry, deathEffect->blueprintName);
             auto *effectTransform =
                 context.registry.get_components<component::Transform>().get(
                     effectDeath);
