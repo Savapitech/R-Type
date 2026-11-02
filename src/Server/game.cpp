@@ -30,6 +30,8 @@
 #include "components/EnemyEvent.hpp"
 #include "components/Health.hpp"
 #include "components/WaveMovement.hpp"
+#include "components/dropPowerUp.hpp"
+#include "components/powerUp.hpp"
 
 #include "ServerDeathSystem.hpp"
 #include "systems/BulletSystem.hpp"
@@ -43,8 +45,7 @@
 
 namespace rtype::server {
 
-Game::Game(std::uint16_t port)
-    : _server(port) {}
+Game::Game(std::uint16_t port) : _server(port) {}
 
 Game::~Game() = default;
 
@@ -53,10 +54,10 @@ void Game::onLoad(rtk::EngineContext &) {
   _server.start();
   _defaultRoomId = _roomManager.createRoom("Default Room");
   GameInstance *instance = createGameInstance(_defaultRoomId, _server);
-  
+
   if (!instance)
     throw std::runtime_error("Failed to create default game Instance.");
-  
+
   instance->start(_server);
   std::cout << "[Server] Game simulation started" << std::endl;
 }
@@ -74,6 +75,8 @@ void Game::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::Health>();
   context.registry.register_component<component::DestroyableTile>();
   context.registry.register_component<component::WaveMovement>();
+  context.registry.register_component<component::powerUp>();
+  context.registry.register_component<component::DropPowerUp>();
 }
 
 void Game::registerBuilders(rtk::EngineContext &context) {
@@ -125,6 +128,13 @@ void Game::registerBuilders(rtk::EngineContext &context) {
                                          component::waveMovementFromJson);
   context._entityFactory.registerBuilder("WaveMovement",
                                          component::waveMovementFromJson);
+  context._entityFactory.registerBuilder("powerUp", component::powerupFromJson);
+  context._entityFactory.registerBuilder("powerup", component::powerupFromJson);
+  context._entityFactory.registerBuilder("Powerup", component::powerupFromJson);
+  context._entityFactory.registerBuilder("dropPowerup",
+                                         component::dropPowerupFromJson);
+  context._entityFactory.registerBuilder("DropPowerup",
+                                         component::dropPowerupFromJson);
 }
 
 void Game::loadEntityBlueprints(rtk::EngineContext &context) {
@@ -132,32 +142,57 @@ void Game::loadEntityBlueprints(rtk::EngineContext &context) {
       "player_blue", "assets/descriptionEntity/player_blue.json");
   _playerArchetypes[1] = context._entityFactory.loadBlueprintFromPath(
       "player_green", "assets/descriptionEntity/player_green.json");
+
   _playerArchetypes[2] = context._entityFactory.loadBlueprintFromPath(
       "player_pink", "assets/descriptionEntity/player_pink.json");
+
   _playerArchetypes[3] = context._entityFactory.loadBlueprintFromPath(
       "player_red", "assets/descriptionEntity/player_red.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "player", "assets/descriptionEntity/player.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "bullet", "assets/descriptionEntity/bullet.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "enemyBidos", "assets/descriptionEntity/enemyBidos.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "enemyRedShip", "assets/descriptionEntity/enemyRedShip.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "gate", "assets/descriptionEntity/gate.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "ramp", "assets/descriptionEntity/ramp.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "reactor", "assets/descriptionEntity/reactor.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "high_ground", "assets/descriptionEntity/high_ground.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "low_ground", "assets/descriptionEntity/low_ground.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "medium_ground", "assets/descriptionEntity/medium_ground.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "enemy_bullet", "assets/descriptionEntity/enemy_bullet.json");
+
+  context._entityFactory.loadBlueprintFromPath(
+      "background_stars", "assets/descriptionEntity/background_star.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "background_fast_stars",
+      "assets/descriptionEntity/background_fast_star.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "thruster", "assets/descriptionEntity/thruster.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "explosion", "assets/descriptionEntity/explosion.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "powerup_speed", "assets/powerUp/powerUp_speed.json");
 }
 
 void Game::subscribeEvents(rtk::EngineContext &context) {
@@ -318,7 +353,7 @@ void Game::subscribeEvents(rtk::EngineContext &context) {
 void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<ServerDeathSystem>(
       rtk::ecs::Order::Update, std::ref(_server), std::ref(_players),
-      std::cref(_serverTick));
+      std::cref(_serverTick), std::ref(context._entityFactory));
   context.scheduler.add<rtk::systems::BulletSystem>(rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::EnemySpawnerSystem>(
       rtk::ecs::Order::Update, std::ref(context._entityFactory),
@@ -327,7 +362,7 @@ void Game::addSystems(rtk::EngineContext &context) {
       rtk::ecs::Order::SecondUpdate, context.eventBus);
   context.scheduler.add<ServerDeathSystem>(
       rtk::ecs::Order::SecondUpdate, std::ref(_server), std::ref(_players),
-      std::cref(_serverTick));
+      std::cref(_serverTick), std::ref(context._entityFactory));
   context.scheduler.add<rtk::systems::WaveMovementSystem>(
       rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
@@ -366,7 +401,8 @@ void Game::handleConnections(rtk::EngineContext &) {
       }
 
       if (roomId == 0) {
-        roomId = _roomManager.createRoom("Room " + std::to_string(_roomManager.listRooms().size() + 1));
+        roomId = _roomManager.createRoom(
+            "Room " + std::to_string(_roomManager.listRooms().size() + 1));
         std::cout << "[Server] Created room " << roomId << std::endl;
       }
 
@@ -377,7 +413,7 @@ void Game::handleConnections(rtk::EngineContext &) {
 
       auto *instance = getGameInstance(roomId);
 
-      if (!instance) 
+      if (!instance)
         instance = createGameInstance(roomId, _server);
 
       if (!instance) {
@@ -389,27 +425,29 @@ void Game::handleConnections(rtk::EngineContext &) {
 
       if (!instance->addConnectedPlayer(connectionId, _server)) {
         _roomManager.leaveRoom(connectionId);
-        
+
         if (!_roomManager.getRoom(roomId))
           destroyGameInstance(roomId);
-        
+
         continue;
       }
-      std::cout << "[Server] Player " << connectionId << " joined room " << roomId << std::endl;
+      std::cout << "[Server] Player " << connectionId << " joined room "
+                << roomId << std::endl;
 
     } else if (connEvent.type == Server::ConnectionEvent::Type::Disconnected) {
       auto roomId = _roomManager.getRoomId(connectionId);
       if (!roomId)
         continue;
-      
-      if (auto* instance = getGameInstance(*roomId))
+
+      if (auto *instance = getGameInstance(*roomId))
         instance->removeConnectedPlayer(connectionId, _server);
 
       _roomManager.leaveRoom(connectionId);
 
-      if (!_roomManager.getRoom(*roomId)) 
+      if (!_roomManager.getRoom(*roomId))
         destroyGameInstance(*roomId);
-      std::cout << "[Server] Player " << connectionId << " Disconnected" << std::endl;
+      std::cout << "[Server] Player " << connectionId << " Disconnected"
+                << std::endl;
     }
   }
 }
@@ -443,12 +481,11 @@ void Game::handleInputs(rtk::EngineContext &) {
     auto *instance = getGameInstance(*roomId);
     if (!instance)
       continue;
-    instance->processInput(inputEvent, _server); 
+    instance->processInput(inputEvent, _server);
   }
 }
 
-void Game::onUpdate(rtk::EngineContext &context, float dt)
-{
+void Game::onUpdate(rtk::EngineContext &context, float dt) {
   handleConnections(context);
   handleInputs(context);
   handleEntityQueries(context);
@@ -458,17 +495,17 @@ void Game::onUpdate(rtk::EngineContext &context, float dt)
     instance->update(dt);
 
     if (auto *room = _roomManager.getRoom(roomId))
-      room->setState(instance->isActive() ? RoomState::Playing : RoomState::Waiting);
+      room->setState(instance->isActive() ? RoomState::Playing
+                                          : RoomState::Waiting);
 
     if (instance->isActive()) {
       instance->incrementServerTick();
       if (instance->getServerTick() % 3 == 0)
-          instance->sendSnapshots(_server);
+        instance->sendSnapshots(_server);
     }
   }
 }
 bool Game::shouldContinue() const { return _running; }
-
 
 void Game::onUnload(rtk::EngineContext &) {
 
@@ -477,7 +514,7 @@ void Game::onUnload(rtk::EngineContext &) {
   }
 
   _gameInstances.clear();
-  _server.stop(); 
+  _server.stop();
   std::cout << "[Server] Multiples instances stopped" << std::endl;
 }
 
@@ -542,7 +579,7 @@ void Game::broadcastPlayerCreated(std::uint32_t connectionId,
   const auto payload = protocol::createEntityPayload(
       _serverTick, netEnt->id, netEnt->archetypeId, transform->position.x,
       transform->position.y, transform->rotation);
-  for (const auto &[playerId, _] : _players) 
+  for (const auto &[playerId, _] : _players)
     _server.sendCreateEntity(playerId, payload);
 }
 
@@ -641,7 +678,7 @@ GameInstance *Game::createGameInstance(std::uint32_t roomId, Server &server) {
   return ptr;
 }
 
-GameInstance* Game::getGameInstance(std::uint32_t roomId) {
+GameInstance *Game::getGameInstance(std::uint32_t roomId) {
   auto it = _gameInstances.find(roomId);
   if (it == _gameInstances.end())
     return nullptr;
@@ -649,7 +686,7 @@ GameInstance* Game::getGameInstance(std::uint32_t roomId) {
   return it->second.get();
 }
 
- bool Game::destroyGameInstance(std::uint32_t roomId) {
+bool Game::destroyGameInstance(std::uint32_t roomId) {
   auto it = _gameInstances.find(roomId);
   if (it == _gameInstances.end())
     return false;
@@ -658,6 +695,5 @@ GameInstance* Game::getGameInstance(std::uint32_t roomId) {
   _gameInstances.erase(it);
   return true;
 }
-
 
 } // namespace rtype::server
