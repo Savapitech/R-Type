@@ -72,7 +72,7 @@
     },
     "networkEntity": {},
     "deathEffect": {
-      "blueprintName": "bidos_explosion"
+      "blueprintName": "bidos_death_effect"
     }
   }
 }
