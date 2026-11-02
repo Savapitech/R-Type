@@ -290,7 +290,7 @@ bool Server::sendRoomList(std::uint32_t connectionId, const protocol::RoomListPa
   PacketWriter writer;
   if (!protocol::writeRoomList(writer, payload))
     return false;
-  return sendMessage(connectionId, protocol::MessageType::ListRooms, writer.getData());
+  return sendMessage(connectionId, protocol::MessageType::RoomList, writer.getData());
 }
 
 bool Server::sendRoomCreated(std::uint32_t connectionId, const protocol::RoomResultPayload &payload) {
