@@ -330,4 +330,8 @@ bool Server::sendGameStarting(std::uint32_t connectionId, const protocol::GameSt
   return sendMessage(connectionId, protocol::MessageType::GameStarting, writer.getData());
 }
 
+std::unordered_map<std::uint32_t, NetworkMetrics> Server::getAllClientMetrics() const {
+  return _network.getAllClientMetrics();
+}
+
 } // namespace rtype::server

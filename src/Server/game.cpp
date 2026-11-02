@@ -851,7 +851,66 @@ void Game::updateNetworkMetrics()
         << duplicates << "\n"
 
         << "Out of order: "
-        << outOfOrder << "\n\n\n";
+        << outOfOrder << "\n\n";
+
+  const auto clients = _server.getAllClientMetrics();
+
+  for (const auto &[connectionId, metrics] : clients) {
+
+      const auto previousIt = _previousClientMetrics.find(connectionId);
+      if (previousIt == _previousClientMetrics.end()) {
+          continue;
+      }
+
+      const auto &previous = previousIt->second;
+
+      if (metrics.bytesSent < previous.bytesSent ||
+          metrics.bytesReceived < previous.bytesReceived ||
+          metrics.packetsSent < previous.packetsSent ||
+          metrics.packetsReceived < previous.packetsReceived)
+          continue;
+
+      const double bandwidthIn =
+          static_cast<double>(
+              metrics.bytesReceived - previous.bytesReceived
+          ) / elapsed / 1024.0;
+
+      const double bandwidthOut =
+          static_cast<double>(
+              metrics.bytesSent - previous.bytesSent
+          ) / elapsed / 1024.0;
+
+      const double packetsIn =
+          static_cast<double>(
+              metrics.packetsReceived - previous.packetsReceived
+          ) / elapsed;
+
+      const double packetsOut =
+          static_cast<double>(
+              metrics.packetsSent - previous.packetsSent
+          ) / elapsed;
+
+      const auto retransmissions =
+          static_cast<std::uint64_t>(metrics.retransmissions) -
+          previous.retransmissions;
+
+      std::cout << std::fixed << std::setprecision(2);
+
+      std::cout
+          << "\n CLIENT " << connectionId
+          << ":\n"
+          << "Bandwidth IN  : " << bandwidthIn << " KiB/s\n"
+          << "Bandwidth OUT : " << bandwidthOut << " KiB/s\n"
+          << "Packets IN    : " << packetsIn << " pkt/s\n"
+          << "Packets OUT   : " << packetsOut << " pkt/s\n"
+          << "RTT           : " << metrics.rtt << " ms\n"
+          << "Smooth RTT    : " << metrics.smoothRtt << " ms\n"
+          << "Jitter        : " << metrics.jitter << " ms\n"
+          << "Retransmits   : " << retransmissions << "\n"
+          << "Duplicates    : " << metrics.packetsDuplicated << "\n"
+          << "Out of order  : " << metrics.packetsOut << "\n\n\n";
+  }
+  _previousClientMetrics = clients;
 
     _previousMetrics = metrics;
     _lastMetricsTime = now;

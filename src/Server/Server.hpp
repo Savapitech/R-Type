@@ -113,6 +113,12 @@ public:
   NetworkMetrics getMetrics() const;
 
   /**
+   * @brief Returns metrics for every connected client.
+   * @return Network metrics indexed by connection ID.
+   */
+  std::unordered_map<std::uint32_t, NetworkMetrics> getAllClientMetrics() const;
+
+  /**
    * @brief Sends already encoded messages to a client.
    * @param connectionId Destination connection.
    * @param payload Messages, headers included.

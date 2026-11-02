@@ -9,6 +9,7 @@
 
 #include <asio/post.hpp>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <iterator>
@@ -232,8 +233,17 @@ void NetworkServer::flush(std::uint32_t connectionId) {
     onRetransmission(clientMetrics);
   }
 
-  for (const auto &datagram : datagrams)
-    _transport.send(connection.getEndpoint(), datagram);
+  for (const auto &datagram : datagrams) {
+    _transport.send(connection.getEndpoint(), datagram,
+      [this, connectionId](std::size_t bytesSent) {
+        auto it = _connections.find(connectionId);
+        if (it == _connections.end())
+          return;
+        auto &clientMetrics = it->second->getMetrics();
+        onPacketSend(clientMetrics, bytesSent);
+      }
+    );
+  }
 }
 
 void NetworkServer::startFlushTimer() {
@@ -278,6 +288,17 @@ void NetworkServer::startFlushTimer() {
       std::lock_guard<std::mutex> lock(_metricsMutex);
       _metricsSnapshot = _metrics;
     }
+
+    std::unordered_map<std::uint32_t, NetworkMetrics> snapshot;
+    snapshot.reserve(_connections.size());
+    for (const auto &[connectionId, connection] : _connections)
+      snapshot.emplace(connectionId, connection->getMetrics());
+    
+    {
+      std::lock_guard<std::mutex> lock(_clientMetricsMutex);
+      _clientMetricsSnapshot.swap(snapshot);
+    }
+
     startFlushTimer();
   });
 }
@@ -351,4 +372,9 @@ void NetworkServer::setOnMessage(MessageCallback callback) {
 NetworkMetrics NetworkServer::getMetrics() const {
   std::lock_guard<std::mutex> lock(_metricsMutex);
   return _metricsSnapshot;
+}
+
+std::unordered_map<std::uint32_t, NetworkMetrics> NetworkServer::getAllClientMetrics() const {
+  std::lock_guard<std::mutex> lock(_clientMetricsMutex);
+  return _clientMetricsSnapshot;
 }

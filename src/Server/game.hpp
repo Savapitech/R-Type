@@ -189,6 +189,7 @@ private:
   };
   NetworkMetrics _previousMetrics{};
   bool _metricsInitialized = false;
+  std::unordered_map<std::uint32_t, NetworkMetrics> _previousClientMetrics;
   };
 
 /** @} */

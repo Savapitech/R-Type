@@ -41,7 +41,8 @@ public:
    * @param data Bytes to send.
    */
   void send(const asio::ip::udp::endpoint &destination,
-            const std::vector<std::uint8_t> &data);
+            const std::vector<std::uint8_t> &data,
+            std::function<void(std::size_t)> onSucess = {});
 
   /**
    * @brief Cancels pending operations and closes the socket.
