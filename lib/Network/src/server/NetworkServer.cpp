@@ -117,6 +117,9 @@ void NetworkServer::handleConnectedPacket(
   if (connection.getEndpoint() != endpoint)
     return;
 
+  auto &clientMetrics = connection.getMetrics();
+  onPacketReceived(_metrics, data.size());
+
   const auto now = std::chrono::steady_clock::now();
   auto &tracker = connection.getTracker();
   const auto previousDup = tracker.getDuplicateCount();
@@ -125,16 +128,21 @@ void NetworkServer::handleConnectedPacket(
   const bool accepted = tracker.onPacketReceived(header, now);
 
   const auto newDup = tracker.getDuplicateCount() - previousDup;
-  for (std::uint64_t i = 0; i < newDup; i++)
+  for (std::uint64_t i = 0; i < newDup; i++) {
     onPacketDuplicated(_metrics);
+    onPacketDuplicated(clientMetrics);
+  }
   
   const auto newOut = tracker.getOutOfOrderCount() - previousOut;
-  for (std::uint64_t i = 0; i < newOut; i++)
+  for (std::uint64_t i = 0; i < newOut; i++) {
     onPacketOut(_metrics);
+    onPacketOut(clientMetrics);
+  }
 
   if (tracker.getRttSampleCount() > previousRttSamples) {
     const float rttMs = static_cast<float>(tracker.getLastRttSample().count()) / 1000.0f;
     updateRttMetrics(_metrics, rttMs);
+    updateRttMetrics(clientMetrics, rttMs);
   }
 
   if (!accepted)
@@ -218,8 +226,11 @@ void NetworkServer::flush(std::uint32_t connectionId) {
   const auto previousResends = tracker.getResendCount();
   const auto datagrams = tracker.collectOutgoing(std::chrono::steady_clock::now(), connectionId);
   const auto newResends = tracker.getResendCount() - previousResends;
-  for (std::uint32_t i = 0; i < newResends; i++)
+  auto &clientMetrics = connection.getMetrics();
+  for (std::uint32_t i = 0; i < newResends; i++) {
     onRetransmission(_metrics);
+    onRetransmission(clientMetrics);
+  }
 
   for (const auto &datagram : datagrams)
     _transport.send(connection.getEndpoint(), datagram);
