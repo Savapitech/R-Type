@@ -8,6 +8,7 @@
 #include "scene/menuScene.hpp"
 #include "scene/sceneType.hpp"
 #include "systems/RenderConcept.hpp"
+#include <cstdint>
 #include <optional>
 #include <string>
 
@@ -195,9 +196,38 @@ RoomListScene::onUpdate(rtk::EngineContext &context,
     }
   }
   if (_dependency.game.getCurrentRoomId().has_value()) {
-    return std::nullopt;
+    return SceneType::Game;
   }
   updateSelectionVisuals(context);
+  if (_dependency.game.getAvailableRooms().size() !=
+      _roomsDynamicEntities.size()) {
+    for (uint16_t i = 0U; i < _roomsDynamicEntities.size(); i++) {
+      context.registry.kill_entity(_roomsDynamicEntities[i]);
+    }
+    _roomsDynamicEntities.clear();
+
+    float startY = 200.0f;
+    for (uint32_t i = 0U; i < _dependency.game.getAvailableRooms().size();
+         i++) {
+      auto entity = context.registry.spawn_entity();
+      rtk::ecs::concepts::SpriteData roomIdxSprite{};
+      roomIdxSprite.textureId = _roomTextureId;
+      roomIdxSprite.scale = {0.15f, 0.15f};
+      roomIdxSprite.size = {1651.0f, 512.0f};
+      roomIdxSprite.color = {255, 255, 255, 255};
+      roomIdxSprite.textureRect = {0, 0, 1651, 512};
+      component::Transform roomIdxTransform{};
+      roomIdxTransform.position.x = (1280.0f - (1651.0f * 0.15f)) / 2.0f;
+      roomIdxTransform.position.y = startY + (i * 96.8f);
+      roomIdxTransform.scale = {0.15f, 0.15f};
+      context.registry.get_components<component::Transform>().insert_at(
+          entity, roomIdxTransform);
+      context.registry.get_components<rtk::ecs::concepts::SpriteData>()
+          .insert_at(entity, roomIdxSprite);
+      _roomsDynamicEntities.push_back(entity);
+      _entities.push_back(entity);
+    }
+  }
   return std::nullopt;
 }
 

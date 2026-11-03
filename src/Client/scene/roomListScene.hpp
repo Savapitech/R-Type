@@ -71,6 +71,7 @@ private:
   std::size_t _createRoomEntity = 0;
   int _selectedOption = 0;
   uint32_t _previousActionMask = 0;
+  std::vector<std::size_t> _roomsDynamicEntities;
 };
 
 /** @} */
