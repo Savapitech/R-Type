@@ -262,7 +262,7 @@ void NetworkClient::startFlushTimer() {
   });
 }
 
-void NetworkClient::sendCreateRoom() void NetworkClient::sendKeepalive() {
+void NetworkClient::sendKeepalive() {
   if (!_connected.load())
     return;
 

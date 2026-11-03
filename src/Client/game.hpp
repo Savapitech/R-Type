@@ -1,8 +1,8 @@
 #pragma once
 
 #include <array>
-#include <unordered_set>
 #include <chrono>
+#include <unordered_set>
 
 #include "GameEngine.hpp"
 #include "collision/collisionBuffer.hpp"
@@ -15,13 +15,14 @@
 #include "rtkAudiManagerAdapter.hpp"
 #include "rtkWindowAdapter.hpp"
 
+#include "ClientMetrics.hpp"
 #include "NetworkClient.hpp"
+#include "Protocol/RoomPayload.hpp"
+#include "metrics/Metrics.hpp"
 #include "scene/gameScene.hpp"
 #include "scene/introScene.hpp"
 #include "scene/menuScene.hpp"
 #include "scene/networkConnectionScene.hpp"
-#include "ClientMetrics.hpp"
-#include "metrics/Metrics.hpp"
 
 namespace rtk::systems {
 class CollisionFlashSystem;
@@ -142,6 +143,11 @@ private:
   NetworkMetrics _previousNetworkMetrics{};
   std::chrono::steady_clock::time_point _lastNetworkMetricsTime{};
   bool _networkMetricsInitialized = false;
+  std::vector<protocol::RoomInfoPayload> _availableRooms;
+  std::optional<std::uint32_t> _currentRoomId;
+  std::vector<protocol::RoomPlayerState> _roomPlayers;
+  bool _localReady = false;
+  bool _readyRequestPending = false;
 };
 
 /** @} */
