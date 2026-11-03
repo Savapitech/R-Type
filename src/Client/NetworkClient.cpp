@@ -5,6 +5,7 @@
 #include "Protocol/InputPayload.hpp"
 #include "Protocol/MessageType.hpp"
 #include "Protocol/PayloadCodec.hpp"
+#include "Protocol/RoomPayload.hpp"
 #include "Protocol/SnapshotPayload.hpp"
 #include "config/NetworkConfig.hpp"
 #include "metrics/Metrics.hpp"
@@ -13,6 +14,7 @@
 #include "protocol/MessageParser.hpp"
 #include "protocol/PacketHeader.hpp"
 #include "protocol/PacketReader.hpp"
+#include "protocol/PacketWriter.hpp"
 #include "protocol/PingMessage.hpp"
 #include "protocol/SystemMessages.hpp"
 #include "tracking/PacketTracker.hpp"
@@ -151,19 +153,92 @@ void NetworkClient::enqueue(std::vector<std::uint8_t> payload,
     flush();
 }
 
+void NetworkClient::sendRoomCommand(protocol::MessageType type,
+                                    const std::vector<std::uint8_t> &payload) {
+  if (!_running.load() || !_connected.load()) {
+    return;
+  }
+  if (payload.size() > MAX_MESSAGE_SIZE - MessageHeader::HEADER_SIZE) {
+    return;
+  }
+  PacketWriter writer;
+  MessageHeader header;
+  header.setType(protocol::toMessageId(type));
+  header.size = static_cast<std::uint16_t>(payload.size());
+
+  if (!header.serialize(writer)) {
+    return;
+  }
+  if (!payload.empty()) {
+    if (!writer.writeBytes(payload.data(), payload.size()))
+      return;
+  }
+  asio::post(_ioContext, [this, type, data = writer.getData()]() mutable {
+    if (!_running.load() || !_connected.load()) {
+      return;
+    }
+    enqueue(std::move(data), protocol::messagePriority(type));
+  });
+}
+
+void NetworkClient::sendListRoom() {
+  sendRoomCommand(protocol::MessageType::ListRooms, {});
+}
+
+void NetworkClient::sendCreateRoom(const std::string &name) {
+  if (name.empty() || name.size() > protocol::MAX_ROOM_NAME_LENGTH) {
+    return;
+  }
+
+  PacketWriter writer;
+  protocol::CreateRoomPayload payload{};
+  payload.name = name;
+
+  if (!protocol::writeCreateRoom(writer, payload)) {
+    return;
+  }
+  sendRoomCommand(protocol::MessageType::CreateRoom, writer.getData());
+}
+
+void NetworkClient::sendJoinRoom(std::uint32_t roomId) {
+  PacketWriter writer;
+
+  if (!writer.writeUInt32(roomId)) {
+    return;
+  }
+  sendRoomCommand(protocol::MessageType::JoinRoom, writer.getData());
+}
+
+void NetworkClient::sendLeaveRoom() {
+  sendRoomCommand(protocol::MessageType::LeaveRoom, {});
+}
+
+void NetworkClient::sendSetReady(bool ready) {
+  PacketWriter writer;
+  std::uint8_t status = 0U;
+
+  if (ready == true) {
+    status = 1U;
+  }
+  if (!writer.writeUInt8(status)) {
+    return;
+  }
+  sendRoomCommand(protocol::MessageType::SetReady, writer.getData());
+}
+
 void NetworkClient::flush() {
   if (!_running.load() || !_connected.load())
     return;
 
   const auto previousResends = _tracker.getResendCount();
   auto datagrams = _tracker.collectOutgoing(std::chrono::steady_clock::now(),
-      _connectionId.load());
+                                            _connectionId.load());
   const auto newResends = _tracker.getResendCount() - previousResends;
-  for (std::uint32_t i = 0; i < newResends; i++) 
+  for (std::uint32_t i = 0; i < newResends; i++)
     onRetransmission(_metrics);
 
   for (auto &datagram : datagrams)
-      doSend(std::move(datagram));
+    doSend(std::move(datagram));
 }
 
 void NetworkClient::startFlushTimer() {
@@ -187,7 +262,7 @@ void NetworkClient::startFlushTimer() {
   });
 }
 
-void NetworkClient::sendKeepalive() {
+void NetworkClient::sendCreateRoom() void NetworkClient::sendKeepalive() {
   if (!_connected.load())
     return;
 
@@ -348,20 +423,22 @@ void NetworkClient::handleConnectedPackets(const std::uint8_t *data,
   const auto previousDup = _tracker.getDuplicateCount();
   const auto previousOut = _tracker.getOutOfOrderCount();
   const auto previousRttSamples = _tracker.getRttSampleCount();
-  const bool accepted = _tracker.onPacketReceived(header, std::chrono::steady_clock::now());
+  const bool accepted =
+      _tracker.onPacketReceived(header, std::chrono::steady_clock::now());
 
   const auto newDup = _tracker.getDuplicateCount() - previousDup;
   for (std::uint64_t i = 0; i < newDup; i++) {
     onPacketDuplicated(_metrics);
   }
-  
+
   const auto newOut = _tracker.getOutOfOrderCount() - previousOut;
   for (std::uint64_t i = 0; i < newOut; i++) {
     onPacketOut(_metrics);
   }
 
   if (_tracker.getRttSampleCount() > previousRttSamples) {
-    const float rttMs = static_cast<float>(_tracker.getLastRttSample().count()) / 1000.0f;
+    const float rttMs =
+        static_cast<float>(_tracker.getLastRttSample().count()) / 1000.0f;
     updateRttMetrics(_metrics, rttMs);
   }
 
