@@ -8,9 +8,11 @@
 #include "scene/menuScene.hpp"
 #include "scene/sceneType.hpp"
 #include "systems/RenderConcept.hpp"
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace rtype::client {
 RoomListScene::RoomListScene(clientDependancy &dep) : _dependency(dep) {}
@@ -139,9 +141,17 @@ void RoomListScene::updateSelectionVisuals(rtk::EngineContext &context) {
 
   std::size_t buttons[2] = {_createRoomEntity, _refreshEntity};
 
-  for (int i = 0; i < 2; ++i) {
-    auto *transform = transforms.get(buttons[i]);
-    auto *sprite = sprites.get(buttons[i]);
+  std::vector<size_t> allSelectable;
+  allSelectable.push_back(_createRoomEntity);
+  allSelectable.push_back(_refreshEntity);
+  if (_roomsDynamicEntities.size() > 0) {
+    for (uint32_t i = 0U; i < _roomsDynamicEntities.size(); i++) {
+      allSelectable.push_back(_roomsDynamicEntities[i]);
+    }
+  }
+  for (int i = 0; i < allSelectable.size(); ++i) {
+    auto *transform = transforms.get(allSelectable[i]);
+    auto *sprite = sprites.get(allSelectable[i]);
 
     if (!transform || !sprite)
       continue;
