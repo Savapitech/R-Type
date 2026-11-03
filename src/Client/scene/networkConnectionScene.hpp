@@ -62,7 +62,7 @@ public:
   std::optional<SceneType> onUpdate(rtk::EngineContext &context,
                                     const rtk::InputState &, float dt) {
     if (_isConnected) {
-      return SceneType::Game;
+      return SceneType::RoomList;
     }
 
     _retryTimer += dt;

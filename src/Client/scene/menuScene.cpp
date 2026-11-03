@@ -242,7 +242,7 @@ std::optional<SceneType> MenuScene::onUpdate(rtk::EngineContext &context,
   if (confirmPressed) {
     switch (static_cast<MenuOption>(_selectedOption)) {
     case MenuOption::Play:
-      return SceneType::RoomList;
+      return SceneType::Connection;
     case MenuOption::Setting:
       return SceneType::Intro;
     case MenuOption::Quit:
