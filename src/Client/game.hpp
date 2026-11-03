@@ -8,8 +8,10 @@
 #include "collision/collisionBuffer.hpp"
 #include "inputAction/InputAction.hpp"
 #include "inputAction/inputMapping.hpp"
+#include "scene/clientDependency.hpp"
 
 #include "factoryDataDriven/factoryDataDriven.hpp"
+#include "scene/roomListScene.hpp"
 #include "sceneManager/sceneManager.hpp"
 
 #include "rtkAudiManagerAdapter.hpp"
@@ -101,6 +103,18 @@ public:
    */
   const ClientNetworkStats &getNetworkStats() const;
 
+  /**
+   * @brief Returns the available rooms vector.
+   * @return Current available rooms.
+   */
+  const std::vector<protocol::RoomInfoPayload> &getAvailableRooms() const;
+
+  /**
+   * @brief Returns the available rooms vector.
+   * @return Current available rooms.
+   */
+  const std::optional<std::uint32_t> &getCurrentRoomId() const;
+
 private:
   void registerBuilders(rtk::EngineContext &context);
   void registerComponents(rtk::EngineContext &context);
@@ -129,9 +143,9 @@ private:
   rtk::collision::CollisionBuffer _collisionBuffer;
   rtk::Input::InputMapping _inputMapping;
   rtype::client::NetworkClient _networkClient;
-
-  rtk::SceneManager<SceneType, rtk::RenderWindow, rtk::InputState, IntroScene,
-                    MenuScene, NetworkConnectionScene, GameScene>
+  clientDependancy _dependency;
+  rtk::SceneManager<SceneType, clientDependancy, rtk::InputState, IntroScene,
+                    MenuScene, NetworkConnectionScene, RoomListScene, GameScene>
       _sceneManager;
 
   rtk::Font _fontRtype;

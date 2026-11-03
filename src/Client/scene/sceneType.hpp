@@ -16,14 +16,8 @@ enum class SceneType {
   Menu,       ///< Title screen.
   Connection, ///< Handshake with the server.
   RoomList,   ///< List of all the rooms available.
-  Game        ///< In game.
-};
-
-class Game;
-struct clientDependency {
-  rtk::RenderWindow &window;
-  rtype::client::NetworkClient &networkClient;
-  Game &game;
+  // Lobby,      ///< Lobby of a room before the game start.
+  Game ///< In game.
 };
 /** @} */
 } // namespace rtype::client

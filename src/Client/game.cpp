@@ -44,15 +44,18 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <type_traits>
 #include <variant>
+#include <vector>
 
 namespace rtype::client {
 Game::Game(std::string host, std::string port)
     : _window({1280.f, 720.f}, "R-Type"), _adapter(_window),
-      _sceneManager(_window, std::in_place_type<IntroScene>),
+      _dependency{_window, _networkClient, *this},
+      _sceneManager(_dependency, std::in_place_type<IntroScene>),
       _host(std::move(host)), _port(std::move(port)) {}
 
 void Game::onLoad(rtk::EngineContext &context) {
@@ -787,4 +790,13 @@ void Game::updateNetworkStats() {
   _previousNetworkMetrics = metrics;
   _lastNetworkMetricsTime = now;
 }
+
+const std::vector<protocol::RoomInfoPayload> &Game::getAvailableRooms() const {
+  return _availableRooms;
+}
+
+const std::optional<std::uint32_t> &Game::getCurrentRoomId() const {
+  return _currentRoomId;
+}
+
 } // namespace rtype::client
