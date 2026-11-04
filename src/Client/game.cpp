@@ -33,6 +33,7 @@
 #include "systems/CollisionFlashSystem.hpp"
 #include "systems/DeadSystem.hpp"
 #include "systems/DebugCollisionSystem.hpp"
+#include "systems/HudSystem.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/ParallaxSystem.hpp"
@@ -307,6 +308,8 @@ void Game::createBindings() {
 
   _inputMapping.bindKey(6, rtk::ecs::concepts::Key::F3);
   _inputMapping.bindGamepad(6, rtk::ecs::concepts::GamepadButton::Select);
+
+  _inputMapping.bindKey(7, rtk::ecs::concepts::Key::H);
 }
 
 void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
@@ -359,6 +362,8 @@ void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<rtk::systems::AnimationCleanSystem>(
       rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::DeathSystem>(rtk::ecs::Order::Update);
+  _hudSystem = &context.scheduler.add<rtk::systems::HudSystem>(
+      rtk::ecs::Order::Update, std::ref(_window), std::ref(_inputState));
 }
 
 bool Game::shouldContinue() const {
@@ -578,6 +583,10 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
         }
       }
     }
+  }
+
+  if (_hudSystem) {
+    _hudSystem->setInGameScene(_sceneManager.get<GameScene>() != nullptr);
   }
 
   _sceneManager.update(context, _inputState, dt);
