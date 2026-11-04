@@ -40,7 +40,7 @@
             "offsetY": 0.0,
             "width": 476.0,
             "height": 240.0,
-            "layer": "Environment",
+            "layer": "BossRoom",
             "mask": [
                 "Player",
                 "Enemy",
