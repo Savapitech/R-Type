@@ -1,6 +1,11 @@
 #include "InstanceScenes.hpp"
 #include "../GameInstance.hpp"
+#include "Protocol/RoomPayload.hpp"
+#include "Room/Room.hpp"
 #include "serverScene.hpp"
+
+#include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <optional>
 
@@ -12,27 +17,40 @@ void InstanceLobbyScene::onEnter(rtk::EngineContext &) {
 }
 
 std::optional<ServerSceneType>
-InstanceLobbyScene::onUpdate(rtk::EngineContext &, const ServerInput &,
+InstanceLobbyScene::onUpdate(rtk::EngineContext &context, const ServerInput &,
                              float dt) {
-
   auto &instance = _dependency.instance;
-  const auto nbPlayer = instance.getPlayerCount();
-  if (nbPlayer == 0) {
-    _lobbyTimer = 0.0f;
-    return std::nullopt;
-  }
-  if (nbPlayer >= 4)
-    return ServerSceneType::InGame;
-  _lobbyTimer += dt;
+  auto &roomManager = _dependency.roomManager;
+  const std::uint32_t roomId = instance.getRoomId();
+  auto *room = roomManager.getRoom(roomId);
 
-  if (_lobbyTimer >= 10.0f)
+  if (!room)
+    return std::nullopt;
+
+  const std::size_t nbPlayer = room->getPlayers().size();
+  if (nbPlayer < 1)
+    return std::nullopt;
+
+  if (roomManager.areAllPlayersReady(roomId)) {
+    room->setState(RoomState::Playing);
+    protocol::GameStartingPayload payload{};
+    payload.roomId = roomId;
+    for (const auto connectionId : room->getPlayers()) {
+      _dependency.server.sendGameStarting(connectionId, payload);
+    }
+    std::cout << "[Room " << roomId << "] All players ready. Starting game!"
+              << std::endl;
     return ServerSceneType::InGame;
+  }
+
   return std::nullopt;
 }
 
-void InstanceLobbyScene::onExit(rtk::EngineContext &) {
-  std::cout << "[Room " << _dependency.instance.getRoomId() << "] Leaving lobby"
-            << std::endl;
+void InstanceLobbyScene::onExit(rtk::EngineContext &)
+{
+    std::cout << "[Room " << _dependency.instance.getRoomId()
+              << "] Leaving lobby, starting game"
+              << std::endl;
 }
 
 void InstanceGameScene::onEnter(rtk::EngineContext &) {
@@ -69,11 +87,12 @@ std::optional<ServerSceneType> InstanceGameScene::onUpdate(rtk::EngineContext &,
   return std::nullopt;
 }
 
-void InstanceGameScene::onExit(rtk::EngineContext &) {
-  _dependency.instance.setGameActive(false);
-  std::cout << "[Room " << _dependency.instance.getRoomId() << "] Leaving game"
-            << std::endl;
-  _dependency.instance.endGame(_dependency.server);
+void InstanceGameScene::onExit(rtk::EngineContext &)
+{
+    _dependency.instance.setGameActive(false);
+    std::cout << "[Room " << _dependency.instance.getRoomId()
+              << "] Leaving game scene"
+              << std::endl;
 }
 
 } // namespace rtype::server

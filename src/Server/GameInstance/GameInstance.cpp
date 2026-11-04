@@ -40,8 +40,9 @@
 #include <utility>
 
 namespace rtype::server {
-GameInstance::GameInstance(std::uint32_t roomId, Server &server)
-    : _roomId(roomId), _dependency{*this, server},
+GameInstance::GameInstance(std::uint32_t roomId, Server &server,
+                           RoomManager &roomManager)
+    : _roomId(roomId), _dependency{*this, server, roomManager},
       _sceneManager(_dependency, std::in_place_type<InstanceLobbyScene>) {}
 
 std::uint32_t GameInstance::getRoomId() const { return _roomId; }
@@ -97,7 +98,8 @@ void GameInstance::update(float dt) {
     return;
 
   _sceneManager.update(_context, _sceneInput, dt);
-  _scheduler.run(_registry, dt);
+  if (_isActive)
+    _scheduler.run(_registry, dt);
   _registry.flush();
 }
 

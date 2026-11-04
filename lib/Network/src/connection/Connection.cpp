@@ -1,4 +1,5 @@
 #include "Connection.hpp"
+#include "metrics/Metrics.hpp"
 
 Connection::Connection(std::uint32_t id,
                        const asio::ip::udp::endpoint &endpoint)
@@ -34,4 +35,12 @@ void Connection::touch(std::chrono::steady_clock::time_point now) {
 
 std::chrono::steady_clock::time_point Connection::getLastReceived() const {
   return _lastReceived;
+}
+
+NetworkMetrics &Connection::getMetrics() {
+  return _metrics;
+}
+
+const NetworkMetrics &Connection::getMetrics() const {
+  return _metrics;
 }

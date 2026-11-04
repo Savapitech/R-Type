@@ -5,13 +5,16 @@
 #include "../protocol/PingMessage.hpp"
 #include "../protocol/PongMessage.hpp"
 #include "../protocol/SystemMessages.hpp"
+#include "metrics/Metrics.hpp"
 
 #include <asio/post.hpp>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <iterator>
 #include <memory>
+#include <mutex>
 #include <ostream>
 #include <thread>
 #include <vector>
@@ -115,8 +118,35 @@ void NetworkServer::handleConnectedPacket(
   if (connection.getEndpoint() != endpoint)
     return;
 
+  auto &clientMetrics = connection.getMetrics();
+  onPacketReceived(clientMetrics, data.size());
+
   const auto now = std::chrono::steady_clock::now();
-  if (!connection.getTracker().onPacketReceived(header, now))
+  auto &tracker = connection.getTracker();
+  const auto previousDup = tracker.getDuplicateCount();
+  const auto previousOut = tracker.getOutOfOrderCount();
+  const auto previousRttSamples = tracker.getRttSampleCount();
+  const bool accepted = tracker.onPacketReceived(header, now);
+
+  const auto newDup = tracker.getDuplicateCount() - previousDup;
+  for (std::uint64_t i = 0; i < newDup; i++) {
+    onPacketDuplicated(_metrics);
+    onPacketDuplicated(clientMetrics);
+  }
+  
+  const auto newOut = tracker.getOutOfOrderCount() - previousOut;
+  for (std::uint64_t i = 0; i < newOut; i++) {
+    onPacketOut(_metrics);
+    onPacketOut(clientMetrics);
+  }
+
+  if (tracker.getRttSampleCount() > previousRttSamples) {
+    const float rttMs = static_cast<float>(tracker.getLastRttSample().count()) / 1000.0f;
+    updateRttMetrics(_metrics, rttMs);
+    updateRttMetrics(clientMetrics, rttMs);
+  }
+
+  if (!accepted)
     return;
 
   connection.touch(now);
@@ -193,9 +223,27 @@ void NetworkServer::flush(std::uint32_t connectionId) {
     return;
 
   Connection &connection = *it->second;
-  for (const auto &datagram : connection.getTracker().collectOutgoing(
-           std::chrono::steady_clock::now(), connectionId))
-    _transport.send(connection.getEndpoint(), datagram);
+  auto &tracker = connection.getTracker();
+  const auto previousResends = tracker.getResendCount();
+  const auto datagrams = tracker.collectOutgoing(std::chrono::steady_clock::now(), connectionId);
+  const auto newResends = tracker.getResendCount() - previousResends;
+  auto &clientMetrics = connection.getMetrics();
+  for (std::uint32_t i = 0; i < newResends; i++) {
+    onRetransmission(_metrics);
+    onRetransmission(clientMetrics);
+  }
+
+  for (const auto &datagram : datagrams) {
+    _transport.send(connection.getEndpoint(), datagram,
+      [this, connectionId](std::size_t bytesSent) {
+        auto it = _connections.find(connectionId);
+        if (it == _connections.end())
+          return;
+        auto &clientMetrics = it->second->getMetrics();
+        onPacketSend(clientMetrics, bytesSent);
+      }
+    );
+  }
 }
 
 void NetworkServer::startFlushTimer() {
@@ -236,6 +284,21 @@ void NetworkServer::startFlushTimer() {
       }
       flush(id);
     }
+    {
+      std::lock_guard<std::mutex> lock(_metricsMutex);
+      _metricsSnapshot = _metrics;
+    }
+
+    std::unordered_map<std::uint32_t, NetworkMetrics> snapshot;
+    snapshot.reserve(_connections.size());
+    for (const auto &[connectionId, connection] : _connections)
+      snapshot.emplace(connectionId, connection->getMetrics());
+    
+    {
+      std::lock_guard<std::mutex> lock(_clientMetricsMutex);
+      _clientMetricsSnapshot.swap(snapshot);
+    }
+
     startFlushTimer();
   });
 }
@@ -304,4 +367,14 @@ void NetworkServer::setOnClientDisconnected(ConnectionCallback callback) {
 
 void NetworkServer::setOnMessage(MessageCallback callback) {
   _onMessage = std::move(callback);
+}
+
+NetworkMetrics NetworkServer::getMetrics() const {
+  std::lock_guard<std::mutex> lock(_metricsMutex);
+  return _metricsSnapshot;
+}
+
+std::unordered_map<std::uint32_t, NetworkMetrics> NetworkServer::getAllClientMetrics() const {
+  std::lock_guard<std::mutex> lock(_clientMetricsMutex);
+  return _clientMetricsSnapshot;
 }

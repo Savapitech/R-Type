@@ -1,6 +1,7 @@
 #include <cstdint>
 
 #include "components/Transform.hpp"
+#include "scene/clientDependency.hpp"
 #include "systems/RenderConcept.hpp"
 
 #include "introScene.hpp"
@@ -8,12 +9,13 @@
 #include "../input/action.hpp"
 
 namespace rtype::client {
-IntroScene::IntroScene(rtk::RenderWindow &window) : _window(window) {}
+IntroScene::IntroScene(clientDependancy &dep) : _dependency(dep) {}
 void IntroScene::onEnter(rtk::EngineContext &context) {
-  utils::vec2 windowSize = std::bit_cast<utils::vec2>(_window.getWindowSize());
+  utils::vec2 windowSize =
+      std::bit_cast<utils::vec2>(_dependency.window.getWindowSize());
 
-  rtk::Texture textureBackground =
-      _window.loadTexture("assets/menu_assets/texture/R-Type_logo.png");
+  rtk::Texture textureBackground = _dependency.window.loadTexture(
+      "assets/menu_assets/texture/R-Type_logo.png");
   _textureId = textureBackground.getHandle();
 
   _logoEntity = context.registry.spawn_entity();
@@ -53,7 +55,8 @@ void IntroScene::onEnter(rtk::EngineContext &context) {
                           static_cast<uint16_t>(windowSize.y)};
   bgSprite.color = {50, 50, 255, 255};
   bgSprite.textureId =
-      _window.loadTexture("assets/entityTexture/Background/withe.jpg")
+      _dependency.window
+          .loadTexture("assets/entityTexture/Background/withe.jpg")
           .getHandle();
 
   context.registry.get_components<component::Transform>().insert_at(

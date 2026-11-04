@@ -5,9 +5,9 @@
 #include <optional>
 #include <vector>
 
+#include "clientDependency.hpp"
 #include "graphical/renderWindow.hpp"
 #include "sceneManager/sceneConcept.hpp"
-
 #include "sceneType.hpp"
 
 namespace rtype::client {
@@ -23,9 +23,9 @@ class IntroScene {
 public:
   /**
    * @brief Creates the scene.
-   * @param window Window used to load the intro textures.
+   * * @param dependency clientDependancy with all the feature needed.
    */
-  explicit IntroScene(rtk::RenderWindow &window);
+  explicit IntroScene(clientDependancy &dependency);
   ~IntroScene() = default;
 
   /// Identifier of this scene.
@@ -55,8 +55,7 @@ public:
   void onExit(rtk::EngineContext &context);
 
 private:
-  rtk::RenderWindow &_window;
-
+  clientDependancy &_dependency;
   std::vector<std::size_t> _entities;
   std::uint32_t _textureId = 0;
 

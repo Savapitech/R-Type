@@ -1,4 +1,5 @@
 #include "components/Transform.hpp"
+#include "scene/clientDependency.hpp"
 #include "systems/RenderConcept.hpp"
 
 #include "menuScene.hpp"
@@ -7,18 +8,22 @@
 #include "../input/action.hpp"
 
 namespace rtype::client {
-MenuScene::MenuScene(rtk::RenderWindow &window) : _window(window) {}
+MenuScene::MenuScene(clientDependancy &dep) : _dependency(dep) {}
 
 void MenuScene::onEnter(rtk::EngineContext &context) {
   _logoTextureId =
-      _window.loadTexture("assets/menu_assets/texture/R-Type_logo.png")
+      _dependency.window
+          .loadTexture("assets/menu_assets/texture/R-Type_logo.png")
           .getHandle();
   _playTextureId =
-      _window.loadTexture("assets/menu_assets/texture/play.png").getHandle();
+      _dependency.window.loadTexture("assets/menu_assets/texture/play.png")
+          .getHandle();
   _settingTextureId =
-      _window.loadTexture("assets/menu_assets/texture/setting.png").getHandle();
+      _dependency.window.loadTexture("assets/menu_assets/texture/setting.png")
+          .getHandle();
   _quitTextureId =
-      _window.loadTexture("assets/menu_assets/texture/quit.png").getHandle();
+      _dependency.window.loadTexture("assets/menu_assets/texture/quit.png")
+          .getHandle();
 
   const auto logoEntity = context.registry.spawn_entity();
 
@@ -39,15 +44,6 @@ void MenuScene::onEnter(rtk::EngineContext &context) {
   context.registry.get_components<rtk::ecs::concepts::SpriteData>().insert_at(
       logoEntity, logoSprite);
   _entities.push_back(logoEntity);
-
-  struct ButtonInit {
-    std::size_t *entityPtr;
-    uint32_t textureId;
-    float baseWidth;
-    float baseHeight;
-    uint16_t texWidth;
-    uint16_t texHeight;
-  };
 
   ButtonInit buttonInits[3] = {
       {&_playEntity, _playTextureId, 242.f, 65.f, 1600, 430},

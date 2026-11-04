@@ -7,6 +7,7 @@
 
 #include "EngineContext.hpp"
 #include "graphical/renderWindow.hpp"
+#include "scene/clientDependency.hpp"
 #include "sceneManager/sceneConcept.hpp"
 
 #include "components/AABBCollider.hpp"
@@ -33,9 +34,9 @@ class GameScene {
 public:
   /**
    * @brief Creates the scene.
-   * @param window Window of the client.
+   * @param dep clientDependancy with all the feature needed.
    */
-  explicit GameScene(rtk::RenderWindow &window);
+  explicit GameScene(clientDependancy &dep);
   ~GameScene() = default;
 
   /// Identifier of this scene.
@@ -268,7 +269,7 @@ private:
     //_entities.push_back(entity);
     //_playerEntity.emplace(entity);
   }
-  rtk::RenderWindow &_window;
+  clientDependancy &_dependency;
 
   std::vector<std::size_t> _entities;
   std::optional<std::size_t> _playerEntity;
