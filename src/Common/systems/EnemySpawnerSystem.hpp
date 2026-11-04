@@ -2,6 +2,7 @@
 
 #include "Logger/Logger.hpp"
 #include "NetworkIdGenerator.hpp"
+#include "Registry.hpp"
 #include "components/Transform.hpp"
 #include "components/WaveMovement.hpp"
 #include "factoryDataDriven/factoryDataDriven.hpp"
@@ -20,9 +21,10 @@ namespace rtype::events {
  * @brief Published by the server when a new enemy is spawned.
  */
 struct EnemySpawnedEvent {
-  std::uint32_t networkId; ///< Network id of the enemy.
-  float x;                 ///< Spawn position on the x axis, in pixels.
-  float y;                 ///< Spawn position on the y axis, in pixels.
+  std::uint32_t networkId;    ///< Network id of the enemy.
+  float x;                    ///< Spawn position on the x axis, in pixels.
+  float y;                    ///< Spawn position on the y axis, in pixels.
+  std::string enemyBlueprint; ///< The enemy who will spawn.
 };
 
 /** @} */
@@ -45,6 +47,8 @@ private:
 
   float _bidosTimer{0.0f};
   float _bidosInterval{2.5f};
+  float _mechaTimer{0.0f};
+  float _mechaInterval{7.0f};
 
   float _waveTimer{0.0f};
   float _waveInterval{10.0f};
@@ -91,9 +95,16 @@ public:
       return;
 
     _bidosTimer += dt;
+    _mechaTimer += dt;
+
     if (_bidosTimer >= _bidosInterval) {
       _bidosTimer = 0.0f;
       spawnBidos(reg);
+    }
+
+    if (_mechaTimer >= _mechaInterval) {
+      _mechaTimer = 0.0f;
+      spawnMechas(reg);
     }
 
     _waveTimer += dt;
@@ -126,6 +137,20 @@ public:
   void onStop(rtk::ecs::Registry &) override {}
 
 private:
+  void spawnMechas(rtk::ecs::Registry &reg) {
+    std::uint32_t netId =
+        rtype::server::NetworkIdGenerator::getInstance().getNextId();
+    auto enemyEntity = _factory.createNetwork(reg, "enemyMecha", netId);
+    auto *transform =
+        reg.get_components<component::Transform>().get(enemyEntity);
+    if (transform) {
+      transform->position.x = _distX(_rng);
+      transform->position.y = _distY(_rng);
+
+      _eventBus.publish(rtype::events::EnemySpawnedEvent{
+          netId, transform->position.x, transform->position.y, "enemyMecha"});
+    }
+  }
   void spawnBidos(rtk::ecs::Registry &reg) {
     std::uint32_t netId =
         rtype::server::NetworkIdGenerator::getInstance().getNextId();
@@ -139,7 +164,7 @@ private:
       transform->position.y = _distY(_rng);
 
       _eventBus.publish(rtype::events::EnemySpawnedEvent{
-          netId, transform->position.x, transform->position.y});
+          netId, transform->position.x, transform->position.y, "enemyBidos"});
     }
   }
 
@@ -165,7 +190,7 @@ private:
       }
 
       _eventBus.publish(rtype::events::EnemySpawnedEvent{
-          netId, transform->position.x, transform->position.y});
+          netId, transform->position.x, transform->position.y, "enemyRedShip"});
     }
   }
 };
