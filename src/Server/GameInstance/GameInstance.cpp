@@ -40,8 +40,9 @@
 #include <utility>
 
 namespace rtype::server {
-GameInstance::GameInstance(std::uint32_t roomId, Server &server)
-    : _roomId(roomId), _dependency{*this, server},
+GameInstance::GameInstance(std::uint32_t roomId, Server &server,
+                           RoomManager &roomManager)
+    : _roomId(roomId), _dependency{*this, server, roomManager},
       _sceneManager(_dependency, std::in_place_type<InstanceLobbyScene>) {}
 
 std::uint32_t GameInstance::getRoomId() const { return _roomId; }
@@ -232,6 +233,11 @@ void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
 
   _playerArchetypes[3] = context._entityFactory.loadBlueprintFromPath(
       "player_red", "assets/descriptionEntity/player_red.json");
+
+  context._entityFactory.loadBlueprintFromPath(
+      "player", "assets/descriptionEntity/player.json");
+
+  context._entityFactory.loadBlueprintFromPath(
 
   context._entityFactory.loadBlueprintFromPath(
       "player", "assets/descriptionEntity/player.json");
@@ -615,6 +621,13 @@ bool GameInstance::addConnectedPlayer(std::uint32_t connectionId,
   std::cout << "[GameInstance " << _roomId << "] Player " << connectionId
             << " created (NetworkId: " << networkId << ", Slot: " << slot << ")"
             << std::endl;
+
+  if (_players.size() == 4) {
+    std::cout << "[GameInstance " << _roomId
+              << "] Quota atteint (4/4). Démarrage de la partie !" << std::endl;
+    setGameActive(true);
+    createBackground();
+  }
   return true;
 }
 

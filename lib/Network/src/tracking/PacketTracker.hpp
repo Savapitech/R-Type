@@ -122,6 +122,31 @@ public:
   std::uint32_t getCriticalLossCount() const;
   /// Smoothed round trip time, zero until the first ack.
   std::chrono::milliseconds getRoundTripTime() const;
+  /**
+   * @brief Returns the number of duplicated packet sequences received.
+   * @return Total number of duplicates.
+   */
+  std::uint64_t getDuplicateCount() const;
+  /**
+   * @brief Returns the number of packets received out of order.
+   * @return Total number of out-of-order packets.
+   */
+  std::uint64_t getOutOfOrderCount() const;
+  /**
+   * @brief Returns the number of packets rejected as too old.
+   * @return Total number of packets outside the receive window.
+   */
+  std::uint64_t getTooOldCount() const;
+  /**
+   * @brief Returns the most recent valid RTT sample.
+   * @return Last RTT sample in microseconds.
+   */
+  std::chrono::microseconds getLastRttSample() const;
+  /**
+   * @brief Returns the number of valid RTT samples collected.
+   * @return Total number of RTT samples.
+   */
+  std::uint64_t getRttSampleCount() const;
 
 private:
   struct Pending {
@@ -159,6 +184,11 @@ private:
   std::uint32_t _resendCount = 0;
   std::uint32_t _droppedCount = 0;
   std::uint32_t _criticalLosses = 0;
+  std::uint64_t _duplicateCount = 0;
+  std::uint64_t _outOfOrderCount = 0;
+  std::uint64_t _tooOldCount = 0;
+  std::chrono::microseconds _lastRttSample{0};
+  std::uint64_t _rttSampleCount = 0;
   TimePoint _lastLossChange;
   std::chrono::microseconds _roundTrip{0};
 

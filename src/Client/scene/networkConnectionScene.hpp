@@ -8,6 +8,7 @@
 #include "protocol/HandshakeHeader.hpp"
 #include "protocol/PacketWriter.hpp"
 
+#include "scene/clientDependency.hpp"
 #include "scene/sceneType.hpp"
 
 namespace rtype::client {
@@ -33,7 +34,7 @@ public:
   /**
    * @brief Creates the scene.
    */
-  NetworkConnectionScene(rtk::RenderWindow &) {}
+  NetworkConnectionScene(clientDependancy &dep) {}
 
   /**
    * @brief Subscribes to the connection result events.
@@ -61,7 +62,7 @@ public:
   std::optional<SceneType> onUpdate(rtk::EngineContext &context,
                                     const rtk::InputState &, float dt) {
     if (_isConnected) {
-      return SceneType::Game;
+      return SceneType::RoomList;
     }
 
     _retryTimer += dt;

@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "graphical/renderWindow.hpp"
+#include "scene/clientDependency.hpp"
 #include "sceneManager/sceneConcept.hpp"
 
 #include "sceneType.hpp"
@@ -27,6 +28,18 @@ enum class MenuOption {
 };
 
 /**
+ * @brief Structure for buttons.
+ */
+struct ButtonInit {
+  std::size_t *entityPtr; ///< the entity associated.
+  uint32_t textureId;     ///< the texture of the button.
+  float baseWidth;        ///< the width of the button.
+  float baseHeight;       ///< the height of the button.
+  uint16_t texWidth;      ///< the width of the texture.
+  uint16_t texHeight;     ///< the height of the texture.
+};
+
+/**
  * @brief Title screen with PLAY, SETTING, and QUIT options.
  */
 class MenuScene {
@@ -35,7 +48,7 @@ public:
    * @brief Creates the scene.
    * @param window Window used to load textures.
    */
-  explicit MenuScene(rtk::RenderWindow &window);
+  explicit MenuScene(clientDependancy &dep);
   ~MenuScene() = default;
 
   /// Identifier of this scene.
@@ -78,7 +91,7 @@ private:
    */
   void updateTransitionVisuals(rtk::EngineContext &context, float time);
 
-  rtk::RenderWindow &_window;
+  clientDependancy &_dependency;
 
   std::vector<std::size_t> _entities;
   std::uint32_t _logoTextureId = 0;
