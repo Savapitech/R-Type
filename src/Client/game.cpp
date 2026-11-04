@@ -65,7 +65,7 @@ void Game::onLoad(rtk::EngineContext &context) {
   registerBuilders(context);
   loadEntityBluePrint(context);
 
-  _fontRtype = _window.loadFont("./assets/font/r-type.otf", 1);
+  _fontRtype = _window.loadFont("./assets/font/r-type.otf", 40);
 
   _networkClient.connect(_host, _port);
 
@@ -799,4 +799,5 @@ const std::optional<std::uint32_t> &Game::getCurrentRoomId() const {
   return _currentRoomId;
 }
 
+const rtk::Font &Game::getFont() const { return _fontRtype; }
 } // namespace rtype::client

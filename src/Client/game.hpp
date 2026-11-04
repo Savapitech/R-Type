@@ -2,6 +2,7 @@
 
 #include <array>
 #include <chrono>
+#include <font/font.hpp>
 #include <unordered_set>
 
 #include "GameEngine.hpp"
@@ -114,6 +115,12 @@ public:
    * @return Current available rooms.
    */
   const std::optional<std::uint32_t> &getCurrentRoomId() const;
+
+  /**
+   * @brief Returns the font loaded in the window context.
+   * @return return the loaded font.
+   */
+  const rtk::Font &getFont() const;
 
 private:
   void registerBuilders(rtk::EngineContext &context);
