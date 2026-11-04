@@ -238,11 +238,6 @@ void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
       "player", "assets/descriptionEntity/player.json");
 
   context._entityFactory.loadBlueprintFromPath(
-
-  context._entityFactory.loadBlueprintFromPath(
-      "player", "assets/descriptionEntity/player.json");
-
-  context._entityFactory.loadBlueprintFromPath(
       "bullet", "assets/descriptionEntity/bullet.json");
 
   context._entityFactory.loadBlueprintFromPath(

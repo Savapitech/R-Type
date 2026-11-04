@@ -38,17 +38,13 @@ InstanceLobbyScene::onUpdate(rtk::EngineContext &context, const ServerInput &,
     for (const auto connectionId : room->getPlayers()) {
       _dependency.server.sendGameStarting(connectionId, payload);
     }
-    std::cout << "[Room " << roomId << "] All players ready. Starting game!" << std::endl;
+    std::cout << "[Room " << roomId << "] All players ready. Starting game!"
+              << std::endl;
     return ServerSceneType::InGame;
   }
 
   if (nbPlayer >= 4)
     return ServerSceneType::InGame;
-
-  _lobbyTimer += dt;
-  if (_lobbyTimer >= 10.0f)
-    return ServerSceneType::InGame;
-
   return std::nullopt;
 }
 
