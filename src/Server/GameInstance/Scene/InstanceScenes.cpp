@@ -11,23 +11,27 @@
 
 namespace rtype::server {
 
-  void InstanceLobbyScene::onEnter(rtk::EngineContext &) {
-    std::cout << "[Room " << _dependency.instance.getRoomId() << "] Lobby started" << std::endl;
-  }
+void InstanceLobbyScene::onEnter(rtk::EngineContext &) {
+  std::cout << "[Room " << _dependency.instance.getRoomId() << "] Lobby started"
+            << std::endl;
+}
 
-  std::optional<ServerSceneType> InstanceLobbyScene::onUpdate(rtk::EngineContext &, const ServerInput &, float dt) {
+std::optional<ServerSceneType>
+InstanceLobbyScene::onUpdate(rtk::EngineContext &context, const ServerInput &,
+                             float dt) {
+  auto &instance = _dependency.instance;
+  auto &roomManager = _dependency.roomManager;
+  const std::uint32_t roomId = instance.getRoomId();
+  auto *room = roomManager.getRoom(roomId);
 
-    auto &instance = _dependency.instance;
-    auto &roomManager = _dependency.roomManager;
-    const std::uint32_t roomId = instance.getRoomId();
-    auto *room = roomManager.getRoom(roomId);
-    if (!room)
-      return std::nullopt;
-    const std::size_t nbPlayer = room->getPlayers().size();
-    if (nbPlayer < 1)
-      return std::nullopt;
-    if (!roomManager.areAllPlayersReady(roomId))
-      return std::nullopt;
+  if (!room)
+    return std::nullopt;
+
+  const std::size_t nbPlayer = room->getPlayers().size();
+  if (nbPlayer < 1)
+    return std::nullopt;
+
+  if (roomManager.areAllPlayersReady(roomId)) {
     room->setState(RoomState::Playing);
     protocol::GameStartingPayload payload{};
     payload.roomId = roomId;
@@ -38,45 +42,60 @@ namespace rtype::server {
     return ServerSceneType::InGame;
   }
 
-  void InstanceLobbyScene::onExit(rtk::EngineContext&) {
-    std::cout << "[Room " << _dependency.instance.getRoomId() << "] Leaving lobby" << std::endl;
-  }
+  if (nbPlayer >= 4)
+    return ServerSceneType::InGame;
 
+  _lobbyTimer += dt;
+  if (_lobbyTimer >= 10.0f)
+    return ServerSceneType::InGame;
 
-  void InstanceGameScene::onEnter(rtk::EngineContext &) {
-    auto &instance = _dependency.instance;
-    instance.setGameActive(true);
-    if (!instance.hasAlivePlayers())
-      instance.respawnPlayers();
-    instance.createBackground();
-
-    for (const auto &[connectionId, _] : instance.getPlayers()) {
-      instance.sendExistingEntities(connectionId, _dependency.server);
-    }
-    std::cout << "[Room " << _dependency.instance.getRoomId() << "] Game started" << std::endl;
-  }
-
-  std::optional<ServerSceneType> InstanceGameScene::onUpdate(rtk::EngineContext &, const ServerInput &, float dt) {
-
-    auto &instance = _dependency.instance;
-    if (instance.getPlayerCount() == 0) 
-        return ServerSceneType::Lobby;
-    if (!instance.hasAlivePlayers()) {
-        std::cout << "[Room " << instance.getRoomId() << "] Game Over" << std::endl;
-        return ServerSceneType::Lobby;
-    }
-    instance.updateStage(dt);
-    if (instance.hasCompletedAllStages()) {
-        std::cout << "[Room " << instance.getRoomId() << "] All stages completed" << std::endl;
-        return ServerSceneType::Lobby;
-    }
-    return std::nullopt;
+  return std::nullopt;
 }
 
-  void InstanceGameScene::onExit(rtk::EngineContext&) {
-    _dependency.instance.setGameActive(false);
-    std::cout << "[Room " << _dependency.instance.getRoomId() << "] Leaving game" << std::endl;
-    _dependency.instance.endGame(_dependency.server);
-  }
+void InstanceLobbyScene::onExit(rtk::EngineContext &) {
+  std::cout << "[Room " << _dependency.instance.getRoomId() << "] Leaving lobby"
+            << std::endl;
+}
 
-} //namespace rtype::server
+void InstanceGameScene::onEnter(rtk::EngineContext &) {
+  auto &instance = _dependency.instance;
+  instance.setGameActive(true);
+  if (!instance.hasAlivePlayers())
+    instance.respawnPlayers();
+  instance.createBackground();
+
+  for (const auto &[connectionId, _] : instance.getPlayers()) {
+    instance.sendExistingEntities(connectionId, _dependency.server);
+  }
+  std::cout << "[Room " << _dependency.instance.getRoomId() << "] Game started"
+            << std::endl;
+}
+
+std::optional<ServerSceneType> InstanceGameScene::onUpdate(rtk::EngineContext &,
+                                                           const ServerInput &,
+                                                           float dt) {
+
+  auto &instance = _dependency.instance;
+  if (instance.getPlayerCount() == 0)
+    return ServerSceneType::Lobby;
+  if (!instance.hasAlivePlayers()) {
+    std::cout << "[Room " << instance.getRoomId() << "] Game Over" << std::endl;
+    return ServerSceneType::Lobby;
+  }
+  instance.updateStage(dt);
+  if (instance.hasCompletedAllStages()) {
+    std::cout << "[Room " << instance.getRoomId() << "] All stages completed"
+              << std::endl;
+    return ServerSceneType::Lobby;
+  }
+  return std::nullopt;
+}
+
+void InstanceGameScene::onExit(rtk::EngineContext &) {
+  _dependency.instance.setGameActive(false);
+  std::cout << "[Room " << _dependency.instance.getRoomId() << "] Leaving game"
+            << std::endl;
+  _dependency.instance.endGame(_dependency.server);
+}
+
+} // namespace rtype::server

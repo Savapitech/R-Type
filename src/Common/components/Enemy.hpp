@@ -18,6 +18,8 @@ struct Enemy {
   float health{100.0f};  ///< Remaining health points.
   float fireTimer{0.0f}; ///< Timer to open fire
   float fireRate{2.0f};  ///< Fire rate in second
+  std::string blueprintName{
+      "enemy_bullet"}; ///< Blueprint of the enemy's bullet
 };
 
 /**
@@ -32,6 +34,7 @@ inline void enemyFromJson(rtk::ecs::Registry &reg, std::size_t entity,
   enemy.health = data.value("health", 100.0f);
   enemy.fireRate = data.value("fireRate", 2.0f);
   enemy.fireTimer = enemy.fireRate;
+  enemy.blueprintName = data.value("blueprintName", "enemy_bullet");
   reg.get_components<component::Enemy>().insert_at(entity, enemy);
 }
 

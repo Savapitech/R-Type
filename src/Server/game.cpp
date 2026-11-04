@@ -33,6 +33,8 @@
 #include "components/EnemyEvent.hpp"
 #include "components/Health.hpp"
 #include "components/WaveMovement.hpp"
+#include "components/dropPowerUp.hpp"
+#include "components/powerUp.hpp"
 
 #include "ServerDeathSystem.hpp"
 #include "systems/BulletSystem.hpp"
@@ -76,6 +78,8 @@ void Game::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::Health>();
   context.registry.register_component<component::DestroyableTile>();
   context.registry.register_component<component::WaveMovement>();
+  context.registry.register_component<component::powerUp>();
+  context.registry.register_component<component::DropPowerUp>();
 }
 
 void Game::registerBuilders(rtk::EngineContext &context) {
@@ -127,6 +131,13 @@ void Game::registerBuilders(rtk::EngineContext &context) {
                                          component::waveMovementFromJson);
   context._entityFactory.registerBuilder("WaveMovement",
                                          component::waveMovementFromJson);
+  context._entityFactory.registerBuilder("powerUp", component::powerupFromJson);
+  context._entityFactory.registerBuilder("powerup", component::powerupFromJson);
+  context._entityFactory.registerBuilder("Powerup", component::powerupFromJson);
+  context._entityFactory.registerBuilder("dropPowerup",
+                                         component::dropPowerupFromJson);
+  context._entityFactory.registerBuilder("DropPowerup",
+                                         component::dropPowerupFromJson);
 }
 
 void Game::loadEntityBlueprints(rtk::EngineContext &context) {
@@ -134,32 +145,57 @@ void Game::loadEntityBlueprints(rtk::EngineContext &context) {
       "player_blue", "assets/descriptionEntity/player_blue.json");
   _playerArchetypes[1] = context._entityFactory.loadBlueprintFromPath(
       "player_green", "assets/descriptionEntity/player_green.json");
+
   _playerArchetypes[2] = context._entityFactory.loadBlueprintFromPath(
       "player_pink", "assets/descriptionEntity/player_pink.json");
+
   _playerArchetypes[3] = context._entityFactory.loadBlueprintFromPath(
       "player_red", "assets/descriptionEntity/player_red.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "player", "assets/descriptionEntity/player.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "bullet", "assets/descriptionEntity/bullet.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "enemyBidos", "assets/descriptionEntity/enemyBidos.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "enemyRedShip", "assets/descriptionEntity/enemyRedShip.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "gate", "assets/descriptionEntity/gate.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "ramp", "assets/descriptionEntity/ramp.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "reactor", "assets/descriptionEntity/reactor.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "high_ground", "assets/descriptionEntity/high_ground.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "low_ground", "assets/descriptionEntity/low_ground.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "medium_ground", "assets/descriptionEntity/medium_ground.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "enemy_bullet", "assets/descriptionEntity/enemy_bullet.json");
+
+  context._entityFactory.loadBlueprintFromPath(
+      "background_stars", "assets/descriptionEntity/background_star.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "background_fast_stars",
+      "assets/descriptionEntity/background_fast_star.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "thruster", "assets/descriptionEntity/thruster.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "explosion", "assets/descriptionEntity/explosion.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "powerup_speed", "assets/powerUp/powerUp_speed.json");
 }
 
 void Game::subscribeEvents(rtk::EngineContext &context) {
@@ -320,7 +356,7 @@ void Game::subscribeEvents(rtk::EngineContext &context) {
 void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<ServerDeathSystem>(
       rtk::ecs::Order::Update, std::ref(_server), std::ref(_players),
-      std::cref(_serverTick));
+      std::cref(_serverTick), std::ref(context._entityFactory));
   context.scheduler.add<rtk::systems::BulletSystem>(rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::EnemySpawnerSystem>(
       rtk::ecs::Order::Update, std::ref(context._entityFactory),
@@ -329,7 +365,7 @@ void Game::addSystems(rtk::EngineContext &context) {
       rtk::ecs::Order::SecondUpdate, context.eventBus);
   context.scheduler.add<ServerDeathSystem>(
       rtk::ecs::Order::SecondUpdate, std::ref(_server), std::ref(_players),
-      std::cref(_serverTick));
+      std::cref(_serverTick), std::ref(context._entityFactory));
   context.scheduler.add<rtk::systems::WaveMovementSystem>(
       rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
