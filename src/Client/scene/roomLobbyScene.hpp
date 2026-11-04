@@ -73,6 +73,15 @@ private:
      * @param context Engine services.
      */
     void updatePlayerDisplay(rtk::EngineContext &context);
+    /**
+     * @brief Creates decorative scrolling backgrounds for the lobby.
+     *
+     * These entities are client-side only and have no collision
+     * or gameplay components.
+     *
+     * @param context Engine services.
+     */
+    void createPreviewBackground(rtk::EngineContext &context);
     clientDependancy &_dependency;
     std::vector<std::size_t> _entities;
     std::vector<std::size_t> _playerEntities;

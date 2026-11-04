@@ -97,17 +97,54 @@ RoomLobbyScene::RoomLobbyScene(clientDependancy &dep)
 {
 }
 
+void RoomLobbyScene::createPreviewBackground(
+    rtk::EngineContext &context)
+{
+    constexpr float backgroundWidth = 720.0f;
+
+    const auto createLayer =
+        [&](const std::string &blueprint) {
+
+        for (int i = 0; i < 3; ++i) {
+
+            const auto entity =
+                context._entityFactory.createFromBlueprint(
+                    context.registry,
+                    blueprint
+                );
+
+            auto *transform =
+                context.registry
+                    .get_components<component::Transform>()
+                    .get(entity);
+
+            if (transform) {
+                transform->position.x =
+                    static_cast<float>(i) * backgroundWidth;
+
+                transform->position.y = 0.0f;
+            }
+
+            _entities.push_back(entity);
+        }
+    };
+
+    createLayer("background_stars");
+    createLayer("background_fast_stars");
+}
+
 void RoomLobbyScene::onEnter(rtk::EngineContext &context)
 {
+std::cerr << "[CLIENT DEBUG] Entering GameScene"
+          << std::endl;
     _font = _dependency.game.getFont();
-
     _previousActionMask = 0;
     _leaveRequested = false;
     _displaySignature.clear();
-
     _entities.clear();
     _playerEntities.clear();
 
+    createPreviewBackground(context);
     updatePlayerDisplay(context);
 }
 
@@ -306,6 +343,8 @@ void RoomLobbyScene::updatePlayerDisplay(
 
 void RoomLobbyScene::onExit(rtk::EngineContext &context)
 {
+std::cerr << "[CLIENT DEBUG] Leaving RoomLobbyScene"
+          << std::endl;
     for (const auto entity : _entities) {
         context.registry.kill_entity(entity);
     }

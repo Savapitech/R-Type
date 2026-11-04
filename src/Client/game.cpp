@@ -375,8 +375,19 @@ void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<rtk::systems::DeathSystem>(rtk::ecs::Order::Update);
 }
 
-bool Game::shouldContinue() const {
-  return !_inputState.closeRequested && !_shouldQuit;
+bool Game::shouldContinue() const
+{
+    if (_inputState.closeRequested) {
+        std::cerr << "[CLIENT DEBUG] Window close requested"
+                  << std::endl;
+    }
+
+    if (_shouldQuit) {
+        std::cerr << "[CLIENT DEBUG] _shouldQuit is TRUE"
+                  << std::endl;
+    }
+
+    return !_inputState.closeRequested && !_shouldQuit;
 }
 
 void Game::onUpdate(rtk::EngineContext &context, float dt) {
@@ -576,11 +587,13 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
       _networkEntities.erase(destroyPayload.networkId.get());
       _destroyedEntities.insert(destroyPayload.networkId.get());
 
-      if (destroyPayload.reason == protocol::DestroyReason::GameEnded &&
-          !_shouldQuit) {
-        LOG_INFO("GAME OVER");
-        _shouldQuit = true;
-      }
+if (destroyPayload.reason == protocol::DestroyReason::GameEnded) {
+    std::cerr
+        << "[CLIENT] GameEnded received"
+        << " | Entity: " << destroyPayload.networkId.get()
+        << " | Tick: " << destroyPayload.serverTick.get()
+        << std::endl;
+}
 
       auto view = context.registry.view<component::NetworkEntity>();
       for (auto e : view) {

@@ -98,7 +98,8 @@ void GameInstance::update(float dt) {
     return;
 
   _sceneManager.update(_context, _sceneInput, dt);
-  _scheduler.run(_registry, dt);
+  if (_isActive)
+    _scheduler.run(_registry, dt);
   _registry.flush();
 }
 

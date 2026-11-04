@@ -47,8 +47,17 @@ InstanceLobbyScene::onUpdate(rtk::EngineContext &context, const ServerInput &,
 }
 
 void InstanceLobbyScene::onExit(rtk::EngineContext &) {
-  std::cout << "[Room " << _dependency.instance.getRoomId() << "] Leaving lobby"
-            << std::endl;
+    auto &instance = _dependency.instance;
+    auto &roomManager = _dependency.roomManager;
+
+    const std::uint32_t roomId = instance.getRoomId();
+
+    instance.setGameActive(false);
+    instance.endGame(_dependency.server);
+    if (auto *room = roomManager.getRoom(roomId)) {
+        room->setState(RoomState::Waiting);
+        roomManager.resetReadyStates(roomId);
+    }
 }
 
 void InstanceGameScene::onEnter(rtk::EngineContext &) {
@@ -85,11 +94,12 @@ std::optional<ServerSceneType> InstanceGameScene::onUpdate(rtk::EngineContext &,
   return std::nullopt;
 }
 
-void InstanceGameScene::onExit(rtk::EngineContext &) {
-  _dependency.instance.setGameActive(false);
-  std::cout << "[Room " << _dependency.instance.getRoomId() << "] Leaving game"
-            << std::endl;
-  _dependency.instance.endGame(_dependency.server);
+void InstanceGameScene::onExit(rtk::EngineContext &)
+{
+    _dependency.instance.setGameActive(false);
+    std::cout << "[Room " << _dependency.instance.getRoomId()
+              << "] Leaving game scene"
+              << std::endl;
 }
 
 } // namespace rtype::server
