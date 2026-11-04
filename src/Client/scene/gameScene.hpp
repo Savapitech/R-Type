@@ -34,7 +34,7 @@ class GameScene {
 public:
   /**
    * @brief Creates the scene.
-   * @param window Window of the client.
+   * @param dep clientDependancy with all the feature needed.
    */
   explicit GameScene(clientDependancy &dep);
   ~GameScene() = default;

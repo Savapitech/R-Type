@@ -23,7 +23,7 @@ class IntroScene {
 public:
   /**
    * @brief Creates the scene.
-   * @param window Window used to load the intro textures.
+   * * @param dependency clientDependancy with all the feature needed.
    */
   explicit IntroScene(clientDependancy &dependency);
   ~IntroScene() = default;
