@@ -10,6 +10,7 @@
 #include "systems/RenderConcept.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <font/font.hpp>
 #include <optional>
 #include <string>
 #include <vector>
@@ -19,6 +20,7 @@ RoomListScene::RoomListScene(clientDependancy &dep) : _dependency(dep) {}
 void RoomListScene::onEnter(rtk::EngineContext &context) {
   _dependency.networkClient.sendListRoom();
 
+  _font = _dependency.game.getFont();
   _logoTextureId =
       _dependency.window
           .loadTexture("assets/menu_assets/texture/R-Type_logo.png")
@@ -214,28 +216,70 @@ RoomListScene::onUpdate(rtk::EngineContext &context,
     for (uint16_t i = 0U; i < _roomsDynamicEntities.size(); i++) {
       context.registry.kill_entity(_roomsDynamicEntities[i]);
     }
+    for (uint16_t i = 0U; i < _textDynamicEntites.size(); i++) {
+      context.registry.kill_entity(_textDynamicEntites[i]);
+    }
+    _textDynamicEntites.clear();
     _roomsDynamicEntities.clear();
 
     float startY = 200.0f;
     for (uint32_t i = 0U; i < _dependency.game.getAvailableRooms().size();
          i++) {
+      auto room = _dependency.game.getAvailableRooms()[i];
+      std::string roomName = "Room " + std::to_string(room.roomId);
+      rtk::Text text = _dependency.window.createText(
+          roomName, _font, {260.0f, startY + (i * 70.0f) + 5.0f},
+          {255, 255, 255});
       auto entity = context.registry.spawn_entity();
       rtk::ecs::concepts::SpriteData roomIdxSprite{};
       roomIdxSprite.textureId = _roomTextureId;
-      roomIdxSprite.scale = {0.15f, 0.15f};
+      roomIdxSprite.scale = {0.10f, 0.10f};
       roomIdxSprite.size = {1651.0f, 512.0f};
       roomIdxSprite.color = {255, 255, 255, 255};
       roomIdxSprite.textureRect = {0, 0, 1651, 512};
       component::Transform roomIdxTransform{};
-      roomIdxTransform.position.x = (1280.0f - (1651.0f * 0.15f)) / 2.0f;
-      roomIdxTransform.position.y = startY + (i * 96.8f);
-      roomIdxTransform.scale = {0.15f, 0.15f};
+      roomIdxTransform.position.x = 260.0f + 300.0f;
+      roomIdxTransform.position.y = startY + (i * 70.0f);
+      roomIdxTransform.scale = {0.10f, 0.10f};
       context.registry.get_components<component::Transform>().insert_at(
           entity, roomIdxTransform);
       context.registry.get_components<rtk::ecs::concepts::SpriteData>()
           .insert_at(entity, roomIdxSprite);
       _roomsDynamicEntities.push_back(entity);
-      _entities.push_back(entity);
+      for (uint16_t k = 0U; k < text._glyphs.size(); k++) {
+        auto letterEntity = context.registry.spawn_entity();
+
+        rtk::ecs::concepts::SpriteData textSprite{};
+        textSprite.textureId = text.getSprites()[k].textureId;
+        textSprite.textureRect.height = text.getSprites()[k].textureRect.height;
+        textSprite.textureRect.width = text.getSprites()[k].textureRect.width;
+        textSprite.textureRect.x = text.getSprites()[k].textureRect.left;
+        textSprite.textureRect.y = text.getSprites()[k].textureRect.top;
+        textSprite.color.a = text.getSprites()[k].color.a;
+        textSprite.color.b = text.getSprites()[k].color.b;
+        textSprite.color.g = text.getSprites()[k].color.g;
+        textSprite.color.r = text.getSprites()[k].color.r;
+        textSprite.size.x = text.getSprites()[k].size.x;
+        textSprite.size.y = text.getSprites()[k].size.y;
+        textSprite.origin.x = text.getSprites()[k].origin.x;
+        textSprite.origin.y = text.getSprites()[k].origin.y;
+        textSprite.scale.x = text.getSprites()[k].scale.x;
+        textSprite.scale.y = text.getSprites()[k].scale.y;
+
+        float baseY = startY + (i * 110.0f) - 150.0f;
+        component::Transform textTransform{};
+        textTransform.position.x = text.getSprites()[k].position.x;
+        textTransform.position.y = startY + (i * 70.0f) + 20.0f;
+        textTransform.scale.x = text.getSprites()[k].scale.x;
+        textTransform.scale.y = text.getSprites()[k].scale.y;
+        textTransform.rotation = 0.0f;
+
+        context.registry.get_components<component::Transform>().insert_at(
+            letterEntity, textTransform);
+        context.registry.get_components<rtk::ecs::concepts::SpriteData>()
+            .insert_at(letterEntity, textSprite);
+        _textDynamicEntites.push_back(letterEntity);
+      }
     }
   }
   return std::nullopt;
@@ -245,6 +289,14 @@ void RoomListScene::onExit(rtk::EngineContext &context) {
   for (const auto entity : _entities) {
     context.registry.kill_entity(entity);
   }
+  for (const auto entity : _roomsDynamicEntities) {
+    context.registry.kill_entity(entity);
+  }
+  for (const auto entity : _textDynamicEntites) {
+    context.registry.kill_entity(entity);
+  }
+  _roomsDynamicEntities.clear();
+  _textDynamicEntites.clear();
   context.registry.flush();
   _entities.clear();
 }

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <font/font.hpp>
 #include <optional>
 #include <vector>
 
@@ -72,6 +73,8 @@ private:
   int _selectedOption = 0;
   uint32_t _previousActionMask = 0;
   std::vector<std::size_t> _roomsDynamicEntities;
+  std::vector<std::size_t> _textDynamicEntites;
+  rtk::Font _font;
 };
 
 /** @} */
