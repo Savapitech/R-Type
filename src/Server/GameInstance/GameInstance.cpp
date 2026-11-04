@@ -98,7 +98,8 @@ void GameInstance::update(float dt) {
     return;
 
   _sceneManager.update(_context, _sceneInput, dt);
-  _scheduler.run(_registry, dt);
+  if (_isActive)
+    _scheduler.run(_registry, dt);
   _registry.flush();
 }
 
@@ -616,13 +617,6 @@ bool GameInstance::addConnectedPlayer(std::uint32_t connectionId,
   std::cout << "[GameInstance " << _roomId << "] Player " << connectionId
             << " created (NetworkId: " << networkId << ", Slot: " << slot << ")"
             << std::endl;
-
-  if (_players.size() == 4) {
-    std::cout << "[GameInstance " << _roomId
-              << "] Quota atteint (4/4). Démarrage de la partie !" << std::endl;
-    setGameActive(true);
-    createBackground();
-  }
   return true;
 }
 

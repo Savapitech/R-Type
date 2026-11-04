@@ -16,7 +16,7 @@ enum class SceneType {
   Menu,       ///< Title screen.
   Connection, ///< Handshake with the server.
   RoomList,   ///< List of all the rooms available.
-  // Lobby,      ///< Lobby of a room before the game start.
+  RoomLobby,      ///< Lobby of a room before the game start.
   Game ///< In game.
 };
 /** @} */

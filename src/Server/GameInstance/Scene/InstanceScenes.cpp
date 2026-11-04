@@ -43,14 +43,14 @@ InstanceLobbyScene::onUpdate(rtk::EngineContext &context, const ServerInput &,
     return ServerSceneType::InGame;
   }
 
-  if (nbPlayer >= 4)
-    return ServerSceneType::InGame;
   return std::nullopt;
 }
 
-void InstanceLobbyScene::onExit(rtk::EngineContext &) {
-  std::cout << "[Room " << _dependency.instance.getRoomId() << "] Leaving lobby"
-            << std::endl;
+void InstanceLobbyScene::onExit(rtk::EngineContext &)
+{
+    std::cout << "[Room " << _dependency.instance.getRoomId()
+              << "] Leaving lobby, starting game"
+              << std::endl;
 }
 
 void InstanceGameScene::onEnter(rtk::EngineContext &) {
@@ -87,11 +87,12 @@ std::optional<ServerSceneType> InstanceGameScene::onUpdate(rtk::EngineContext &,
   return std::nullopt;
 }
 
-void InstanceGameScene::onExit(rtk::EngineContext &) {
-  _dependency.instance.setGameActive(false);
-  std::cout << "[Room " << _dependency.instance.getRoomId() << "] Leaving game"
-            << std::endl;
-  _dependency.instance.endGame(_dependency.server);
+void InstanceGameScene::onExit(rtk::EngineContext &)
+{
+    _dependency.instance.setGameActive(false);
+    std::cout << "[Room " << _dependency.instance.getRoomId()
+              << "] Leaving game scene"
+              << std::endl;
 }
 
 } // namespace rtype::server
