@@ -5,6 +5,7 @@
 #include "Protocol/MessageType.hpp"
 #include "Protocol/PayloadCodec.hpp"
 #include "Protocol/RoomPayload.hpp"
+#include "Scheduler.hpp"
 #include "components/AABBCollider.hpp"
 #include "components/Animation.hpp"
 #include "components/Animator.hpp"
@@ -12,6 +13,8 @@
 #include "components/Bullet.hpp"
 #include "components/Controllable.hpp"
 #include "components/Dead.hpp"
+#include "components/DeathEffect.hpp"
+#include "components/DestroyAnimEnd.hpp"
 #include "components/DestroyableTile.hpp"
 #include "components/Enemy.hpp"
 #include "components/EnemyEvent.hpp"
@@ -21,15 +24,19 @@
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
 #include "components/WaveMovement.hpp"
+#include "components/dropPowerUp.hpp"
+#include "components/powerUp.hpp"
 
 #include "metrics/Metrics.hpp"
 #include "protocol/PacketReader.hpp"
+#include "systems/AnimationCleanSystem.hpp"
 #include "systems/AnimationSystem.hpp"
 #include "systems/AnimatorSystem.hpp"
 #include "systems/AttachmentSystem.hpp"
 #include "systems/AudioSystem.hpp"
 #include "systems/ColliderSystem.hpp"
 #include "systems/CollisionFlashSystem.hpp"
+#include "systems/DeadSystem.hpp"
 #include "systems/DebugCollisionSystem.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/MovementSystem.hpp"
@@ -50,6 +57,7 @@
 #include <type_traits>
 #include <variant>
 #include <vector>
+#include <vulkan/vulkan_core.h>
 
 namespace rtype::client {
 Game::Game(std::string host, std::string port)
@@ -82,30 +90,46 @@ void Game::loadEntityBluePrint(rtk::EngineContext &context) {
       "player_blue", "assets/descriptionEntity/player_blue.json");
   _playerArchetypes[1] = context._entityFactory.loadBlueprintFromPath(
       "player_green", "assets/descriptionEntity/player_green.json");
+
   _playerArchetypes[2] = context._entityFactory.loadBlueprintFromPath(
       "player_pink", "assets/descriptionEntity/player_pink.json");
+
   _playerArchetypes[3] = context._entityFactory.loadBlueprintFromPath(
       "player_red", "assets/descriptionEntity/player_red.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "player", "assets/descriptionEntity/player.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "gate", "assets/descriptionEntity/gate.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "ramp", "assets/descriptionEntity/ramp.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "reactor", "assets/descriptionEntity/reactor.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "high_ground", "assets/descriptionEntity/high_ground.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "low_ground", "assets/descriptionEntity/low_ground.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "medium_ground", "assets/descriptionEntity/medium_ground.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "bullet", "assets/descriptionEntity/bullet.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "enemyBidos", "assets/descriptionEntity/enemyBidos.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "enemyRedShip", "assets/descriptionEntity/enemyRedShip.json");
+
+  context._entityFactory.loadBlueprintFromPath(
+      "gate", "assets/descriptionEntity/gate.json");
+
+  context._entityFactory.loadBlueprintFromPath(
+      "ramp", "assets/descriptionEntity/ramp.json");
+
+  context._entityFactory.loadBlueprintFromPath(
+      "reactor", "assets/descriptionEntity/reactor.json");
+
+  context._entityFactory.loadBlueprintFromPath(
+      "high_ground", "assets/descriptionEntity/high_ground.json");
+
+  context._entityFactory.loadBlueprintFromPath(
+      "low_ground", "assets/descriptionEntity/low_ground.json");
+
+  context._entityFactory.loadBlueprintFromPath(
+      "medium_ground", "assets/descriptionEntity/medium_ground.json");
+
+  context._entityFactory.loadBlueprintFromPath(
+      "enemy_bullet", "assets/descriptionEntity/enemy_bullet.json");
+
   context._entityFactory.loadBlueprintFromPath(
       "background_stars", "assets/descriptionEntity/background_star.json");
   context._entityFactory.loadBlueprintFromPath(
@@ -114,7 +138,15 @@ void Game::loadEntityBluePrint(rtk::EngineContext &context) {
   context._entityFactory.loadBlueprintFromPath(
       "thruster", "assets/descriptionEntity/thruster.json");
   context._entityFactory.loadBlueprintFromPath(
-      "enemy_bullet", "assets/descriptionEntity/enemy_bullet.json");
+      "explosion", "assets/descriptionEntity/explosion.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "powerup_speed", "assets/powerUp/powerUp_speed.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "enemyMecha", "assets/descriptionEntity/enemyMecha.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "mecha_bullet", "assets/descriptionEntity/mecha_bullet.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bidos_death_effect", "assets/descriptionEntity/bidos_death_effect.json");
 }
 
 void Game::registerBuilders(rtk::EngineContext &context) {
@@ -212,6 +244,22 @@ void Game::registerBuilders(rtk::EngineContext &context) {
                                          component::destroyableTileFromJson);
   context._entityFactory.registerBuilder("health", component::healthFromJson);
   context._entityFactory.registerBuilder("Health", component::healthFromJson);
+  context._entityFactory.registerBuilder("powerUp", component::powerupFromJson);
+  context._entityFactory.registerBuilder("powerup", component::powerupFromJson);
+  context._entityFactory.registerBuilder("PowerUp", component::powerupFromJson);
+  context._entityFactory.registerBuilder("Powerup", component::powerupFromJson);
+  context._entityFactory.registerBuilder("dropPowerup",
+                                         component::dropPowerupFromJson);
+  context._entityFactory.registerBuilder("DropPowerup",
+                                         component::dropPowerupFromJson);
+  context._entityFactory.registerBuilder("DropPowerUp",
+                                         component::dropPowerupFromJson);
+  context._entityFactory.registerBuilder("droppowerup",
+                                         component::dropPowerupFromJson);
+  context._entityFactory.registerBuilder("destroyAnimEnd",
+                                         component::destroyAnimEndFromJson);
+  context._entityFactory.registerBuilder("deathEffect",
+                                         component::deathEffectFromJson);
 }
 
 void Game::registerComponents(rtk::EngineContext &context) {
@@ -233,6 +281,10 @@ void Game::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::Health>();
   context.registry.register_component<component::DestroyableTile>();
   context.registry.register_component<component::WaveMovement>();
+  context.registry.register_component<component::powerUp>();
+  context.registry.register_component<component::DropPowerUp>();
+  context.registry.register_component<component::DestroyAnimEnd>();
+  context.registry.register_component<component::DeathEffect>();
 }
 
 void Game::createBindings() {
@@ -316,6 +368,9 @@ void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<rtk::systems::ParallaxSystem>(rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::AttachmentSystem>(
       rtk::ecs::Order::Update);
+  context.scheduler.add<rtk::systems::AnimationCleanSystem>(
+      rtk::ecs::Order::Update);
+  context.scheduler.add<rtk::systems::DeathSystem>(rtk::ecs::Order::Update);
 }
 
 bool Game::shouldContinue() const {
@@ -524,6 +579,18 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
               auto viewEnemies =
                   context.registry
                       .view<component::Enemy, component::Transform>();
+              float explosionX = bulletTrans->position.x;
+              float explosionY = bulletTrans->position.y;
+              if (explosionX > -50.0f && explosionX < 1330.0f &&
+                  explosionY > -50.0f && explosionY < 770.0f) {
+                auto explosion = context._entityFactory.createFromBlueprint(
+                    context.registry, "explosion");
+                auto *explosionTrans =
+                    context.registry.get_components<component::Transform>().get(
+                        explosion);
+                explosionTrans->position.x = explosionX;
+                explosionTrans->position.y = explosionY;
+              }
               std::size_t closestEnemy = 0;
               float closestDist = 120.0f;
               for (auto enemyEnt : viewEnemies) {
@@ -546,6 +613,19 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
                                                     closestEnemy);
               }
             }
+          }
+          auto *deathEffect =
+              context.registry.get_components<component::DeathEffect>().get(e);
+          auto *transform =
+              context.registry.get_components<component::Transform>().get(e);
+          if (transform && deathEffect) {
+            auto effectDeath = context._entityFactory.createFromBlueprint(
+                context.registry, deathEffect->blueprintName);
+            auto *effectTransform =
+                context.registry.get_components<component::Transform>().get(
+                    effectDeath);
+            effectTransform->position.x = transform->position.x;
+            effectTransform->position.y = transform->position.y;
           }
           context.registry.remove_entity_from_all_pools(e);
           context.registry.kill_entity(e);

@@ -56,6 +56,7 @@ their assets from the `assets/` folder of the repository.
 | ---- | ----- |
 | C++20 compiler | GCC (Linux), Apple Clang (macOS) or MSVC (Windows) |
 | CMake | 3.20 or newer |
+| Ninja | Optional but recommended, used by the `Makefile` when found (much faster builds) |
 | vcpkg | `VCPKG_ROOT` must point to the installation |
 | GNU Make | Optional, drives the `Makefile` (`choco install make` on Windows) |
 | Git, curl, zip, unzip, tar, pkg-config, Python 3 | Used by vcpkg to fetch and build dependencies |
@@ -66,7 +67,7 @@ The low level system libraries are installed per platform.
 **Linux** (Debian or Ubuntu, x86_64 and arm64):
 
 ```sh
-sudo apt install build-essential cmake git curl zip unzip tar pkg-config \
+sudo apt install build-essential cmake ninja-build git curl zip unzip tar pkg-config \
     python3 libx11-dev libx11-xcb-dev libxcb1-dev libxrandr-dev libwayland-dev \
     libvulkan1 mesa-vulkan-drivers
 ```
@@ -118,6 +119,13 @@ make
 `make` configures CMake with the vcpkg toolchain and builds in `Release` mode.
 The two executables are written to `bin/`.
 
+The `Makefile` uses the Ninja generator when `ninja` is in the `PATH`, or
+else the copy vcpkg downloads to `$VCPKG_ROOT/downloads/tools`. On Windows it
+is only used from a Developer shell, the Visual Studio generator is used
+otherwise. Pass `GENERATOR="Unix Makefiles"` (or any other CMake generator) to
+force one. An existing build directory is reconfigured automatically when the
+generator changes.
+
 #### With the Makefile
 
 | Command | Effect |
@@ -135,7 +143,7 @@ The two executables are written to `bin/`.
 #### With CMake directly
 
 ```sh
-cmake -B build -DCMAKE_BUILD_TYPE=Release \
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
 cmake --build build --config Release
 ```

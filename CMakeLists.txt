@@ -1,10 +1,14 @@
-    cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.20)
 
 option(RTYPE_BUILD_CLIENT "Build the client (needs Vulkan and GraphicLib)" ON)
 
 if(RTYPE_BUILD_CLIENT)
     list(APPEND VCPKG_MANIFEST_FEATURES "client")
 endif()
+
+list(APPEND VCPKG_INSTALL_OPTIONS "--no-print-usage")
+
+set(VCPKG_INSTALLED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed" CACHE PATH "")
 
 project(R-Type VERSION 0.1 LANGUAGES CXX)
 #force CMP0135 new force a timestamps on fetch
@@ -86,7 +90,7 @@ if(RTYPE_BUILD_CLIENT)
 
     #check if the lib is already dowload
     if(NOT graphiclib_POPULATED)
-        FetchContent_Populate(GraphicLib)
+        FetchContent_MakeAvailable(GraphicLib)
     endif()
 
     #add dynamic lib
@@ -127,7 +131,7 @@ FetchContent_GetProperties(ECSLib)
 
 #check if the lib is already dowload
 if(NOT ecslib_POPULATED)
-    FetchContent_Populate(ECSLib)
+    FetchContent_MakeAvailable(ECSLib)
 endif()
 
 add_library(ECSLib INTERFACE)
@@ -285,7 +289,7 @@ if(RTYPE_BUILD_CLIENT AND RTYPE_EMBEDDED)
     )
     FetchContent_GetProperties(GraphicLibStatic)
     if(NOT graphiclibstatic_POPULATED)
-        FetchContent_Populate(GraphicLibStatic)
+        FetchContent_MakeAvailable(GraphicLibStatic)
     endif()
 
     add_library(GraphicLibStatic STATIC IMPORTED)

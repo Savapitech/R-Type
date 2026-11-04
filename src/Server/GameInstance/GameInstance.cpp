@@ -9,6 +9,7 @@
 #include "components/Bullet.hpp"
 #include "components/Controllable.hpp"
 #include "components/Dead.hpp"
+#include "components/DeathEffect.hpp"
 #include "components/DestroyableTile.hpp"
 #include "components/Enemy.hpp"
 #include "components/EnemyEvent.hpp"
@@ -17,6 +18,7 @@
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
 #include "components/WaveMovement.hpp"
+#include "components/powerUp.hpp"
 #include "systems/BulletSystem.hpp"
 #include "systems/ColliderSystem.hpp"
 #include "systems/EnemyGarbageCollectorSystem.hpp"
@@ -38,9 +40,8 @@
 #include <utility>
 
 namespace rtype::server {
-GameInstance::GameInstance(std::uint32_t roomId, Server &server,
-                           RoomManager &roomManager)
-    : _roomId(roomId), _dependency{*this, server, roomManager},
+GameInstance::GameInstance(std::uint32_t roomId, Server &server)
+    : _roomId(roomId), _dependency{*this, server},
       _sceneManager(_dependency, std::in_place_type<InstanceLobbyScene>) {}
 
 std::uint32_t GameInstance::getRoomId() const { return _roomId; }
@@ -122,6 +123,9 @@ void GameInstance::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::Health>();
   context.registry.register_component<component::DestroyableTile>();
   context.registry.register_component<component::WaveMovement>();
+  context.registry.register_component<component::powerUp>();
+  context.registry.register_component<component::DropPowerUp>();
+  context.registry.register_component<component::DeathEffect>();
 }
 
 void GameInstance::registerBuilders(rtk::EngineContext &context) {
@@ -198,6 +202,23 @@ void GameInstance::registerBuilders(rtk::EngineContext &context) {
                                          component::waveMovementFromJson);
   context._entityFactory.registerBuilder("WaveMovement",
                                          component::waveMovementFromJson);
+  context._entityFactory.registerBuilder("powerUp", component::powerupFromJson);
+  context._entityFactory.registerBuilder("PowerUp", component::powerupFromJson);
+  context._entityFactory.registerBuilder("powerup", component::powerupFromJson);
+  context._entityFactory.registerBuilder("dropPowerup",
+                                         component::dropPowerupFromJson);
+  context._entityFactory.registerBuilder("dropPowerUp",
+                                         component::dropPowerupFromJson);
+  context._entityFactory.registerBuilder("DropPowerUp",
+                                         component::dropPowerupFromJson);
+  context._entityFactory.registerBuilder("powerup", component::powerupFromJson);
+  context._entityFactory.registerBuilder("Powerup", component::powerupFromJson);
+  context._entityFactory.registerBuilder("dropPowerup",
+                                         component::dropPowerupFromJson);
+  context._entityFactory.registerBuilder("DropPowerup",
+                                         component::dropPowerupFromJson);
+  context._entityFactory.registerBuilder("deathEffect",
+                                         component::deathEffectFromJson);
 }
 
 void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
@@ -244,6 +265,24 @@ void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
 
   context._entityFactory.loadBlueprintFromPath(
       "enemy_bullet", "assets/descriptionEntity/enemy_bullet.json");
+
+  context._entityFactory.loadBlueprintFromPath(
+      "background_stars", "assets/descriptionEntity/background_star.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "background_fast_stars",
+      "assets/descriptionEntity/background_fast_star.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "thruster", "assets/descriptionEntity/thruster.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "explosion", "assets/descriptionEntity/explosion.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "powerup_speed", "assets/powerUp/powerUp_speed.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "enemyMecha", "assets/descriptionEntity/enemyMecha.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "mecha_bullet", "assets/descriptionEntity/mecha_bullet.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bidos_death_effect", "assets/descriptionEntity/bidos_death_effect.json");
 }
 
 const std::array<std::uint16_t, 4> &GameInstance::getPlayerArchetypes() const {
@@ -266,9 +305,9 @@ void GameInstance::addSystems(Server &server) {
 
   auto &context = _context;
 
-  context.scheduler.add<ServerDeathSystem>(rtk::ecs::Order::Update,
-                                           std::ref(server), std::ref(_players),
-                                           std::cref(_serverTick));
+  context.scheduler.add<ServerDeathSystem>(
+      rtk::ecs::Order::Update, std::ref(server), std::ref(_players),
+      std::cref(_serverTick), std::ref(context._entityFactory));
 
   context.scheduler.add<rtk::systems::BulletSystem>(rtk::ecs::Order::Update);
 
@@ -279,9 +318,9 @@ void GameInstance::addSystems(Server &server) {
   context.scheduler.add<rtk::systems::EnemyGCSystem>(
       rtk::ecs::Order::SecondUpdate, context.eventBus);
 
-  context.scheduler.add<ServerDeathSystem>(rtk::ecs::Order::SecondUpdate,
-                                           std::ref(server), std::ref(_players),
-                                           std::cref(_serverTick));
+  context.scheduler.add<ServerDeathSystem>(
+      rtk::ecs::Order::SecondUpdate, std::ref(server), std::ref(_players),
+      std::cref(_serverTick), std::ref(context._entityFactory));
 
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
 
@@ -306,8 +345,8 @@ void GameInstance::subscribeEvents(Server &server) {
       [this, &server](const rtype::events::EnemySpawnedEvent &event) {
         const auto payload = protocol::createEntityPayload(
             _serverTick, event.networkId,
-            _context._entityFactory.getArchetypeID("enemyBidos"), event.x,
-            event.y);
+            _context._entityFactory.getArchetypeID(event.enemyBlueprint),
+            event.x, event.y);
 
         for (const auto &[connectionId, entity] : _players)
           server.sendCreateEntity(connectionId, payload);
@@ -344,6 +383,8 @@ void GameInstance::subscribeEvents(Server &server) {
             Collider::CollisionLayer::Player |
             Collider::CollisionLayer::EnemyProjectile;
 
+        const std::uint32_t playerVsPowerup = Collider::CollisionLayer::Player |
+                                              Collider::CollisionLayer::PowerUp;
         auto &deads = _context.registry.get_components<component::Dead>();
 
         auto &healths = _context.registry.get_components<component::Health>();
@@ -405,6 +446,50 @@ void GameInstance::subscribeEvents(Server &server) {
           deads.insert_at(event.secondEntity, {});
 
           std::cout << "[SERVER] Player hit by enemy bullet!" << std::endl;
+        } else if (collisionPair == playerVsPowerup) {
+          std::size_t playerEnt =
+              (colA->layer == Collider::CollisionLayer::Player)
+                  ? event.firstEntity
+                  : event.secondEntity;
+          std::size_t powerupEnt =
+              (colA->layer == Collider::CollisionLayer::PowerUp)
+                  ? event.firstEntity
+                  : event.secondEntity;
+          deads.insert_at(powerupEnt, {});
+
+          std::cout << "[SERVER] Player take a powerUp" << std::endl;
+
+          auto *powerupComp =
+              _context.registry.get_components<component::powerUp>().get(
+                  powerupEnt);
+          if (powerupComp) {
+            switch (powerupComp->type) {
+            case component::powerUpType::Heal: {
+              auto *healthComp = healths.get(playerEnt);
+              if (healthComp) {
+                healthComp->current = std::min(
+                    healthComp->current + powerupComp->value, healthComp->max);
+              }
+              break;
+            }
+            case component::powerUpType::Shield: {
+              auto *healthComp = healths.get(playerEnt);
+              if (healthComp) {
+                healthComp->current += powerupComp->value;
+              }
+              break;
+            }
+            case component::powerUpType::Speed: {
+              auto *speedComp =
+                  _context.registry.get_components<component::Controllable>()
+                      .get(playerEnt);
+              if (speedComp) {
+                speedComp->speed += powerupComp->value;
+              }
+              break;
+            }
+            }
+          }
         }
       });
   _eventsRegistered = true;

@@ -38,11 +38,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install system dependencies (Linux client)
-        if: runner.os == 'Linux' && matrix.target == 'client'
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libvulkan-dev libx11-dev libxrandr-dev libxcursor-dev libxi-dev libxinerama-dev libwayland-dev libxkbcommon-dev
+          sudo apt-get install -y ninja-build
+          if [ "${{ matrix.target }}" = "client" ]; then
+            sudo apt-get install -y libvulkan-dev libx11-dev libxrandr-dev libxcursor-dev libxi-dev libxinerama-dev libwayland-dev libxkbcommon-dev
+          fi
 
       - name: Install system dependencies (macOS)
         if: runner.os == 'macOS'

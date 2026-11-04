@@ -39,6 +39,7 @@ private:
     float velX;
     float velY;
     float rotation;
+    std::string blueprint;
   };
 
 public:
@@ -72,7 +73,6 @@ public:
     auto &transforms = reg.get_components<component::Transform>();
     auto &enemies = reg.get_components<component::Enemy>();
     auto &deads = reg.get_components<component::Dead>();
-
     std::vector<PendingBullet> bulletsToSpawn;
 
     for (auto entity : view) {
@@ -94,7 +94,6 @@ public:
       if (!isVisible) {
         continue;
       }
-
       enemy->fireTimer -= dt;
       if (enemy->fireTimer <= 0.0f) {
         enemy->fireTimer = enemy->fireRate;
@@ -153,8 +152,9 @@ public:
             rotation = std::atan2(velY, velX);
           }
         }
-
-        bulletsToSpawn.push_back({spawnX, spawnY, velX, velY, rotation});
+        std::string bulletBlueprint = enemy->blueprintName;
+        bulletsToSpawn.push_back(
+            {spawnX, spawnY, velX, velY, rotation, bulletBlueprint});
       }
     }
 
@@ -162,7 +162,7 @@ public:
       std::uint32_t bulletNetId =
           rtype::server::NetworkIdGenerator::getInstance().getNextId();
       auto bulletEntity =
-          _factory.createNetwork(reg, "enemy_bullet", bulletNetId);
+          _factory.createNetwork(reg, bullet.blueprint, bulletNetId);
 
       auto *bulletTransform =
           reg.get_components<component::Transform>().get(bulletEntity);
@@ -182,7 +182,7 @@ public:
         rtype::protocol::CreateEntityPayload payload =
             rtype::protocol::createEntityPayload(
                 _serverTick, bulletNetId,
-                _factory.getArchetypeID("enemy_bullet"),
+                _factory.getArchetypeID(bullet.blueprint),
                 bulletTransform->position.x, bulletTransform->position.y,
                 bulletTransform->rotation);
 
