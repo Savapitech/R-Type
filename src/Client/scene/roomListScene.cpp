@@ -208,7 +208,7 @@ RoomListScene::onUpdate(rtk::EngineContext &context,
     }
   }
   if (_dependency.game.getCurrentRoomId().has_value()) {
-    return SceneType::Game;
+    return SceneType::RoomLobby;
   }
   updateSelectionVisuals(context);
   if (_dependency.game.getAvailableRooms().size() !=

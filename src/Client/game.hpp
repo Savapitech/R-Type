@@ -25,6 +25,7 @@
 #include "scene/gameScene.hpp"
 #include "scene/introScene.hpp"
 #include "scene/menuScene.hpp"
+#include "scene/roomLobbyScene.hpp"
 #include "scene/networkConnectionScene.hpp"
 
 namespace rtk::systems {
@@ -117,6 +118,44 @@ public:
   const std::optional<std::uint32_t> &getCurrentRoomId() const;
 
   /**
+   * @brief Returns the players currently present in the room.
+   * @return List of players with their connection IDs and ready states.
+   */
+  const std::vector<protocol::RoomPlayerState> &
+  getRoomPlayers() const;
+
+  /**
+   * @brief Returns whether the local player is ready.
+   * @return True if the server confirmed the player's ready state.
+   */
+  bool isLocalReady() const;
+
+  /**
+   * @brief Returns whether a ready-state request is pending.
+   * @return True while waiting for a room state update.
+   */
+  bool isReadyRequestPending() const;
+
+  /**
+   * @brief Returns whether the server has started the current room.
+   * @return True after a valid GameStarting message.
+   */
+  bool isGameStarting() const;
+
+  /**
+   * @brief Requests a ready-state change for the local player.
+   * @param ready Desired ready state.
+   * @return True if a request was initiated.
+   */
+  bool requestReady(bool ready);
+
+  /**
+   * @brief Requests to leave the current room.
+   * @return True if a leave request was initiated.
+   */
+  bool requestLeaveRoom();
+
+  /**
    * @brief Returns the font loaded in the window context.
    * @return return the loaded font.
    */
@@ -152,7 +191,7 @@ private:
   rtype::client::NetworkClient _networkClient;
   clientDependancy _dependency;
   rtk::SceneManager<SceneType, clientDependancy, rtk::InputState, IntroScene,
-                    MenuScene, NetworkConnectionScene, RoomListScene, GameScene>
+                    MenuScene, NetworkConnectionScene, RoomListScene, RoomLobbyScene, GameScene>
       _sceneManager;
 
   rtk::Font _fontRtype;
@@ -169,6 +208,7 @@ private:
   std::vector<protocol::RoomPlayerState> _roomPlayers;
   bool _localReady = false;
   bool _readyRequestPending = false;
+  bool _gameStarting = false;
 };
 
 /** @} */

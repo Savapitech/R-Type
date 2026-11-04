@@ -319,6 +319,8 @@ void Game::createBindings() {
 
   _inputMapping.bindKey(6, rtk::ecs::concepts::Key::F3);
   _inputMapping.bindGamepad(6, rtk::ecs::concepts::GamepadButton::Select);
+  _inputMapping.bindKey(7, rtk::ecs::concepts::Key::R);
+  _inputMapping.bindKey(8, rtk::ecs::concepts::Key::Escape);
 }
 
 void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
@@ -412,6 +414,10 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           break;
         }
         _currentRoomId = payload.roomId.get();
+        _roomPlayers.clear();
+        _localReady = false;
+        _readyRequestPending = false;
+        _gameStarting = false;
         break;
       }
 
@@ -428,6 +434,10 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           break;
         }
         _currentRoomId = payload.roomId.get();
+        _roomPlayers.clear();
+        _localReady = false;
+        _readyRequestPending = false;
+        _gameStarting = false;
         break;
       }
       case rtype::protocol::MessageType::RoomLeft: {
@@ -442,42 +452,52 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
         if (payload.result != protocol::RoomResult::Success) {
           break;
         }
-        _currentRoomId = std::nullopt;
+        _currentRoomId.reset();
+        _roomPlayers.clear();
+        _localReady = false;
+        _readyRequestPending = false;
+        _gameStarting = false;
+        _networkClient.sendListRoom();
         break;
       }
       case rtype::protocol::MessageType::RoomStateUpdate: {
         PacketReader reader(netEvent.payload);
         protocol::RoomStateUpdatePayload payload{};
-        if (!protocol::readRoomStateUpdate(reader, payload)) {
-          break;
-        }
-        if (!reader.isEnd()) {
-          break;
-        }
-        if (_currentRoomId != payload.roomId) {
-          break;
-        }
-        _roomPlayers = payload.players;
-        for (uint32_t i = 0U; i < _roomPlayers.size(); i++) {
-          if (_roomPlayers[i].connectionId == netEvent.connectionId) {
-            _localReady = _roomPlayers[i].ready;
+        if (!protocol::readRoomStateUpdate(reader, payload))
+            break;
+        if (!reader.isEnd())
+            break;
+        if (!_currentRoomId.has_value() ||
+            *_currentRoomId != payload.roomId)
+            break;
+        _roomPlayers = std::move(payload.players);
+        const auto localConnectionId = _networkClient.getConnectionId();
+        bool localPlayerFound = false;
+        for (const auto &player : _roomPlayers) {
+            if (player.connectionId != localConnectionId)
+                continue;
+            _localReady = player.ready;
             _readyRequestPending = false;
-          }
+            localPlayerFound = true;
+            break;
+        }
+        if (!localPlayerFound) {
+            _localReady = false;
         }
         break;
       }
       case rtype::protocol::MessageType::GameStarting: {
         PacketReader reader(netEvent.payload);
         protocol::GameStartingPayload payload{};
-        if (!protocol::readPayload(reader, payload)) {
-          break;
-        }
-        if (!reader.isEnd()) {
-          break;
-        }
-        if (_currentRoomId != payload.roomId.get()) {
-          break;
-        }
+        if (!protocol::readPayload(reader, payload))
+            break;
+        if (!reader.isEnd())
+            break;
+        if (!_currentRoomId.has_value() ||
+            *_currentRoomId != payload.roomId.get())
+            break;
+        _gameStarting = true;
+        _readyRequestPending = false;
         break;
       }
       default:
@@ -877,6 +897,49 @@ const std::vector<protocol::RoomInfoPayload> &Game::getAvailableRooms() const {
 
 const std::optional<std::uint32_t> &Game::getCurrentRoomId() const {
   return _currentRoomId;
+}
+
+const std::vector<protocol::RoomPlayerState> &Game::getRoomPlayers() const {
+    return _roomPlayers;
+}
+
+bool Game::isLocalReady() const {
+    return _localReady;
+}
+
+bool Game::isReadyRequestPending() const {
+    return _readyRequestPending;
+}
+
+bool Game::isGameStarting() const {
+    return _gameStarting;
+}
+
+bool Game::requestReady(bool ready) {
+    if (!_currentRoomId.has_value())
+        return false;
+    
+    if (_readyRequestPending)
+        return false;
+    
+    if (_gameStarting)
+        return false;
+
+    if (_localReady == ready)
+        return false;
+
+    _readyRequestPending = true;
+    _networkClient.sendSetReady(ready);
+    return true;
+}
+
+bool Game::requestLeaveRoom() {
+    if (!_currentRoomId.has_value())
+        return false;
+    if (_gameStarting)
+        return false;
+    _networkClient.sendLeaveRoom();
+    return true;
 }
 
 const rtk::Font &Game::getFont() const { return _fontRtype; }

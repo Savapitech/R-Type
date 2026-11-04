@@ -43,8 +43,6 @@ InstanceLobbyScene::onUpdate(rtk::EngineContext &context, const ServerInput &,
     return ServerSceneType::InGame;
   }
 
-  if (nbPlayer >= 4)
-    return ServerSceneType::InGame;
   return std::nullopt;
 }
 
