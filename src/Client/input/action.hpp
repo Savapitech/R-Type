@@ -19,7 +19,9 @@ enum class Action : uint32_t {
   Right = 1 << 3,  ///< Move right.
   Shoot = 1 << 4,  ///< Shoot.
   Confirm = 1 << 5, ///< Validate a menu.
-  ToggleHud = 1 << 7 ///< Toggle HUD display.
+  ToggleHud = 1 << 7, ///< Toggle HUD display.
+  Ready = 1 << 7,
+  LeaveRoom = 1 << 8
 };
 
 /**

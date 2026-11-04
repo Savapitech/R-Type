@@ -5,13 +5,14 @@
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
 
+#include "scene/clientDependency.hpp"
 #include "systems/AnimationSystem.hpp"
 #include "systems/RenderConcept.hpp"
 
 #include "../input/action.hpp"
 
 namespace rtype::client {
-GameScene::GameScene(rtk::RenderWindow &window) : _window(window) {}
+GameScene::GameScene(clientDependancy &dep) : _dependency(dep) {}
 
 void GameScene::onEnter(rtk::EngineContext &context) {
   createParallaxBackground(context, "background_stars");

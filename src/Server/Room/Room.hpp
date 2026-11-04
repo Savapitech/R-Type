@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
-#include <unordered_set>
+#include <unordered_map>
 #include <vector>
 
 
@@ -42,6 +42,28 @@ namespace rtype::server {
        * @return True if the player was removed.
        */
       bool removePlayer(std::uint32_t connectionId);
+      /**
+       * @brief Changes the ready state of a player in the room.
+       * @param connectionId Identifier of the player.
+       * @param ready New ready state.
+       * @return True if the ready state was successfully updated.
+       */
+      bool setPlayerReady(std::uint32_t connectionId, bool ready);
+      /**
+       * @brief Checks whether a player is ready.
+       * @param connectionId Identifier of the player.
+       * @return True if the player belongs to the room and is ready.
+       */
+      bool isPlayerReady(std::uint32_t connectionId) const;
+      /**
+       * @brief Checks whether all players in the room are ready.
+       * @return True if the room is not empty and every player is ready.
+       */
+      bool areAllPlayersReady() const;
+      /**
+       * @brief Resets the ready state of every player to false.
+       */
+      void resetReadyStates();
       /**
        * @brief Checks whether a connection belongs to this room.
        * @param connectionId Connection to look up.
@@ -90,6 +112,7 @@ namespace rtype::server {
       std::size_t _maxPlayers;
       RoomState _state = RoomState::Waiting;
       std::vector<std::uint32_t> _players;
+      std::unordered_map<std::uint32_t, bool> _readyStates;
   };
 
 } //namespace rtype::server

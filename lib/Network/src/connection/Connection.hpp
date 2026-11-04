@@ -12,6 +12,7 @@
 
 #include "../protocol/PacketHeader.hpp"
 #include "../tracking/PacketTracker.hpp"
+#include "../metrics/Metrics.hpp"
 
 /**
  * @brief State the server keeps for one connected client.
@@ -57,6 +58,18 @@ public:
   PacketTracker &getTracker();
 
   /**
+   * @brief Returns the metrics associated with this connection.
+   * @return Mutable network metrics.
+   */
+  NetworkMetrics &getMetrics();
+
+  /**
+   * @brief Returns the metrics associated with this connection.
+   * @return Read-only network metrics.
+   */
+  const NetworkMetrics &getMetrics() const;
+
+  /**
    * @brief Records that a valid packet was just received.
    * @param now Current time.
    */
@@ -73,6 +86,7 @@ private:
   std::uint32_t _id;
   asio::ip::udp::endpoint _endpoint;
   PacketTracker _tracker;
+  NetworkMetrics _metrics = {};
 };
 
 /** @} */

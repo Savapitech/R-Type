@@ -18,6 +18,7 @@
 #include "Protocol/InputPayload.hpp"
 #include "Protocol/MessageType.hpp"
 #include "Protocol/SnapshotPayload.hpp"
+#include "metrics/Metrics.hpp"
 #include "protocol/MessageHeader.hpp"
 #include "tracking/PacketTracker.hpp"
 
@@ -89,6 +90,9 @@ private:
   std::mutex _eventMutex;
   std::queue<NetworkEvent> _events;
   std::queue<ReplicationEvent> _replicationEvents;
+  NetworkMetrics _metrics{};
+  mutable std::mutex _metricsMutex;
+  NetworkMetrics _metricsSnapshot{};
 
   void startReceive();
   void handleDatagram(std::size_t size);
@@ -103,6 +107,8 @@ private:
   void startFlushTimer();
   void sendKeepalive();
   void pushEvent(NetworkEvent event);
+  void sendRoomCommand(protocol::MessageType type,
+                       const std::vector<std::uint8_t> &payload);
 
 public:
   /**
@@ -187,6 +193,40 @@ public:
    * @brief Closes the socket and joins the network thread.
    */
   void stop();
+
+  /**
+   * @brief Returns the client's current network metrics.
+   * @return Thread-safe snapshot of network statistics.
+   */
+  NetworkMetrics getMetrics() const;
+
+  /**
+   * @brief List all the room instancied.
+   */
+  void sendListRoom();
+
+  /**
+   * @brief Create a room.
+   * @param name The name of the future room.
+   */
+  void sendCreateRoom(const std::string &name);
+
+  /**
+   * @brief Join a selected room.
+   * @param roomId the id of the room to join.
+   */
+  void sendJoinRoom(std::uint32_t roomId);
+
+  /**
+   * @brief Leave the room.
+   */
+  void sendLeaveRoom();
+
+  /**
+   * @brief Set the status of the player.
+   * @param ready the status of the player.
+   */
+  void sendSetReady(bool ready);
 };
 
 /** @} */

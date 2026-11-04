@@ -1,8 +1,10 @@
 #include "game.hpp"
 
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -10,6 +12,7 @@
 
 #include "GameInstance/GameInstance.hpp"
 #include "NetworkIdGenerator.hpp"
+#include "Protocol/RoomPayload.hpp"
 #include "Room/Room.hpp"
 #include "Room/RoomManager.hpp"
 
@@ -375,78 +378,15 @@ void Game::addSystems(rtk::EngineContext &context) {
 
 void Game::handleConnections(rtk::EngineContext &) {
 
-  Server::ConnectionEvent connEvent;
-  while (_server.pollConnectionEvent(connEvent)) {
-    const auto connectionId = connEvent.connectionId;
-
-    if (connEvent.type == Server::ConnectionEvent::Type::Connected) {
-      if (_roomManager.getRoomId(connectionId))
-        continue;
-
-      std::uint32_t roomId = 0;
-
-      for (const auto id : _roomManager.listRooms()) {
-        auto *room = _roomManager.getRoom(id);
-        if (!room)
-          continue;
-
-        if (room->getState() != RoomState::Waiting)
-          continue;
-
-        if (room->isFull())
-          continue;
-
-        roomId = id;
-        break;
-      }
-
-      if (roomId == 0) {
-        roomId = _roomManager.createRoom(
-            "Room " + std::to_string(_roomManager.listRooms().size() + 1));
-        std::cout << "[Server] Created room " << roomId << std::endl;
-      }
-
-      if (!_roomManager.joinRoom(connectionId, roomId)) {
-        std::cerr << "[SERVER] Failed to join room " << roomId << std::endl;
-        continue;
-      }
-
-      auto *instance = getGameInstance(roomId);
-
-      if (!instance)
-        instance = createGameInstance(roomId, _server);
-
-      if (!instance) {
-        _roomManager.leaveRoom(connectionId);
-        continue;
-      }
-
-      instance->start(_server);
-
-      if (!instance->addConnectedPlayer(connectionId, _server)) {
-        _roomManager.leaveRoom(connectionId);
-
-        if (!_roomManager.getRoom(roomId))
-          destroyGameInstance(roomId);
-
-        continue;
-      }
-      std::cout << "[Server] Player " << connectionId << " joined room "
-                << roomId << std::endl;
-
-    } else if (connEvent.type == Server::ConnectionEvent::Type::Disconnected) {
-      auto roomId = _roomManager.getRoomId(connectionId);
-      if (!roomId)
-        continue;
-
-      if (auto *instance = getGameInstance(*roomId))
-        instance->removeConnectedPlayer(connectionId, _server);
-
-      _roomManager.leaveRoom(connectionId);
-
-      if (!_roomManager.getRoom(*roomId))
-        destroyGameInstance(*roomId);
-      std::cout << "[Server] Player " << connectionId << " Disconnected"
+  Server::ConnectionEvent event;
+  while (_server.pollConnectionEvent(event)) {
+    const auto connectionId = event.connectionId;
+    if (event.type == Server::ConnectionEvent::Type::Connected) {
+      std::cout << "[Server] Client " << connectionId
+                << " connected. Waiting for room selection." << std::endl;
+    } else if (event.type == Server::ConnectionEvent::Type::Disconnected) {
+      removePlayerFromRoom(connectionId);
+      std::cout << "[Server] Client " << connectionId << " disconnected"
                 << std::endl;
     }
   }
@@ -487,16 +427,13 @@ void Game::handleInputs(rtk::EngineContext &) {
 
 void Game::onUpdate(rtk::EngineContext &context, float dt) {
   handleConnections(context);
+  handleRoomRequests();
   handleInputs(context);
   handleEntityQueries(context);
 
-  for (auto &[roomId, instance] : _gameInstances) {
+  for (auto &[_, instance] : _gameInstances) {
 
     instance->update(dt);
-
-    if (auto *room = _roomManager.getRoom(roomId))
-      room->setState(instance->isActive() ? RoomState::Playing
-                                          : RoomState::Waiting);
 
     if (instance->isActive()) {
       instance->incrementServerTick();
@@ -504,6 +441,7 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
         instance->sendSnapshots(_server);
     }
   }
+  updateNetworkMetrics();
 }
 bool Game::shouldContinue() const { return _running; }
 
@@ -672,7 +610,7 @@ GameInstance *Game::createGameInstance(std::uint32_t roomId, Server &server) {
   if (it != _gameInstances.end())
     return it->second.get();
 
-  auto instance = std::make_unique<GameInstance>(roomId, server);
+  auto instance = std::make_unique<GameInstance>(roomId, server, _roomManager);
   GameInstance *ptr = instance.get();
   _gameInstances.emplace(roomId, std::move(instance));
   return ptr;
@@ -694,6 +632,300 @@ bool Game::destroyGameInstance(std::uint32_t roomId) {
   it->second->stop();
   _gameInstances.erase(it);
   return true;
+}
+
+bool Game::removePlayerFromRoom(std::uint32_t connectionId) {
+  auto roomId = _roomManager.getRoomId(connectionId);
+  if (!roomId)
+    return false;
+  const std::uint32_t id = *roomId;
+  if (auto *instance = getGameInstance(id)) {
+    instance->removeConnectedPlayer(connectionId, _server);
+  }
+  _roomManager.leaveRoom(connectionId);
+  if (!_roomManager.getRoom(id)) {
+    destroyGameInstance(id);
+  } else
+    broadcastRoomState(id);
+  std::cout << "[Server] Player " << connectionId << " left room " << id
+            << std::endl;
+  return true;
+}
+
+void Game::broadcastRoomState(std::uint32_t roomId) {
+  auto *room = _roomManager.getRoom(roomId);
+  if (!room)
+    return;
+  protocol::RoomStateUpdatePayload payload{};
+  payload.roomId = roomId;
+  for (const auto connectionId : room->getPlayers()) {
+    protocol::RoomPlayerState player{};
+    player.connectionId = connectionId;
+    player.ready = _roomManager.isPlayerReady(connectionId);
+    payload.players.push_back(player);
+  }
+  for (const auto connectionId : room->getPlayers()) {
+    _server.sendRoomStateUpdate(connectionId, payload);
+  }
+}
+
+void Game::handleRoomRequests() {
+  Server::RoomRequestEvent event;
+  while (_server.pollRoomRequest(event)) {
+    const auto connectionId = event.connectionId;
+    switch (event.type) {
+    case Server::RoomRequestEvent::Type::ListRooms: {
+      protocol::RoomListPayload payload{};
+      for (const auto roomId : _roomManager.listRooms()) {
+        auto *room = _roomManager.getRoom(roomId);
+        if (!room)
+          continue;
+        protocol::RoomInfoPayload info{};
+        info.roomId = roomId;
+        info.name = room->getName();
+        info.status = static_cast<protocol::RoomStatus>(room->getState());
+        info.playerCount = static_cast<std::uint8_t>(room->getPlayers().size());
+        info.maxPlayers = static_cast<std::uint8_t>(MAX_PLAYER_PER_ROOM);
+        payload.rooms.push_back(info);
+        if (payload.rooms.size() == protocol::MAX_ROOMS_PER_LIST)
+          break;
+      }
+      _server.sendRoomList(connectionId, payload);
+      break;
+    }
+    case Server::RoomRequestEvent::Type::CreateRoom: {
+      protocol::RoomResultPayload res{};
+      if (_roomManager.getRoomId(connectionId)) {
+        res.result = protocol::RoomResult::AlreadyInRoom;
+        _server.sendRoomCreated(connectionId, res);
+        break;
+      }
+      const auto roomId = _roomManager.createRoom(event.roomName);
+      if (!_roomManager.joinRoom(connectionId, roomId)) {
+        _roomManager.deleteRoom(roomId);
+        res.result = protocol::RoomResult::InternalError;
+        _server.sendRoomCreated(connectionId, res);
+        break;
+      }
+      auto *instance = createGameInstance(roomId, _server);
+      if (!instance) {
+        _roomManager.leaveRoom(connectionId);
+        res.result = protocol::RoomResult::InternalError;
+        _server.sendRoomCreated(connectionId, res);
+        break;
+      }
+      instance->start(_server);
+      if (!instance->addConnectedPlayer(connectionId, _server)) {
+        _roomManager.leaveRoom(connectionId);
+        if (!_roomManager.getRoom(roomId))
+          destroyGameInstance(roomId);
+        res.result = protocol::RoomResult::InternalError;
+        _server.sendRoomCreated(connectionId, res);
+        break;
+      }
+      res.result = protocol::RoomResult::Success;
+      res.roomId = roomId;
+      _server.sendRoomCreated(connectionId, res);
+      broadcastRoomState(roomId);
+      std::cout << "[Server] Player " << connectionId << " created room "
+                << roomId << std::endl;
+      break;
+    }
+    case Server::RoomRequestEvent::Type::JoinRoom: {
+      protocol::RoomResultPayload res{};
+      res.roomId = event.roomId;
+      if (_roomManager.getRoomId(connectionId)) {
+        res.result = protocol::RoomResult::AlreadyInRoom;
+        _server.sendRoomJoined(connectionId, res);
+        break;
+      }
+      auto *room = _roomManager.getRoom(event.roomId);
+      if (!room) {
+        res.result = protocol::RoomResult::RoomNotFound;
+        _server.sendRoomJoined(connectionId, res);
+        break;
+      }
+      if (room->getState() != RoomState::Waiting) {
+        res.result = protocol::RoomResult::RoomAlreadyPlaying;
+        _server.sendRoomJoined(connectionId, res);
+        break;
+      }
+      if (room->isFull()) {
+        res.result = protocol::RoomResult::RoomFull;
+        _server.sendRoomJoined(connectionId, res);
+        break;
+      }
+      if (!_roomManager.joinRoom(connectionId, event.roomId)) {
+        res.result = protocol::RoomResult::InternalError;
+
+        _server.sendRoomJoined(connectionId, res);
+        break;
+      }
+      auto *instance = getGameInstance(event.roomId);
+      if (!instance)
+        instance = createGameInstance(event.roomId, _server);
+      if (!instance) {
+        _roomManager.leaveRoom(connectionId);
+        res.result = protocol::RoomResult::InternalError;
+        _server.sendRoomJoined(connectionId, res);
+        break;
+      }
+      instance->start(_server);
+      if (!instance->addConnectedPlayer(connectionId, _server)) {
+        _roomManager.leaveRoom(connectionId);
+        res.result = protocol::RoomResult::InternalError;
+        _server.sendRoomJoined(connectionId, res);
+        break;
+      }
+      res.result = protocol::RoomResult::Success;
+      _server.sendRoomJoined(connectionId, res);
+      broadcastRoomState(event.roomId);
+      std::cout << "[Server] Player " << connectionId << " joined room "
+                << event.roomId << std::endl;
+      break;
+    }
+    case Server::RoomRequestEvent::Type::LeaveRoom: {
+      protocol::RoomResultPayload res{};
+      auto roomId = _roomManager.getRoomId(connectionId);
+      if (!roomId) {
+        res.result = protocol::RoomResult::NotInRoom;
+        _server.sendRoomLeft(connectionId, res);
+        break;
+      }
+      res.roomId = *roomId;
+      if (!removePlayerFromRoom(connectionId)) {
+        res.result = protocol::RoomResult::InternalError;
+        _server.sendRoomLeft(connectionId, res);
+        break;
+      }
+      res.result = protocol::RoomResult::Success;
+      _server.sendRoomLeft(connectionId, res);
+      break;
+    }
+    case Server::RoomRequestEvent::Type::SetReady: {
+      auto roomId = _roomManager.getRoomId(connectionId);
+      if (!roomId)
+        break;
+      if (!_roomManager.setPlayerReady(connectionId, event.ready))
+        break;
+      std::cout << "[Room " << *roomId << "] Player " << connectionId
+                << (event.ready ? " READY" : " NOT READY") << std::endl;
+      broadcastRoomState(*roomId);
+      break;
+    }
+    }
+  }
+}
+
+void Game::updateNetworkMetrics() {
+  using Clock = std::chrono::steady_clock;
+  const auto now = Clock::now();
+  const auto metrics = _server.getMetrics();
+
+  if (!_metricsInitialized) {
+    _previousMetrics = metrics;
+    _lastMetricsTime = now;
+    _metricsInitialized = true;
+    return;
+  }
+  const double elapsed =
+      std::chrono::duration<double>(now - _lastMetricsTime).count();
+
+  if (elapsed < 1.0)
+    return;
+
+  const auto bytesIn = metrics.bytesReceived - _previousMetrics.bytesReceived;
+
+  const auto bytesOut = metrics.bytesSent - _previousMetrics.bytesSent;
+
+  const auto packetsIn =
+      metrics.packetsReceived - _previousMetrics.packetsReceived;
+
+  const auto packetsOut = metrics.packetsSent - _previousMetrics.packetsSent;
+
+  const auto retransmissions =
+      metrics.retransmissions - _previousMetrics.retransmissions;
+
+  const auto duplicates =
+      metrics.packetsDuplicated - _previousMetrics.packetsDuplicated;
+
+  const auto outOfOrder = metrics.packetsOut - _previousMetrics.packetsOut;
+
+  const double bandwidthIn = static_cast<double>(bytesIn) / elapsed / 1024.0;
+  const double bandwidthOut = static_cast<double>(bytesOut) / elapsed / 1024.0;
+  const double packetsInPerSecond = static_cast<double>(packetsIn) / elapsed;
+  const double packetsOutPerSecond = static_cast<double>(packetsOut) / elapsed;
+  std::cout << std::fixed << std::setprecision(2);
+  std::cout
+
+      << "Bandwidth IN: " << bandwidthIn << " KiB/s\n"
+      << "Bandwidth OUT: " << bandwidthOut << " KiB/s\n"
+      << "Packets IN: " << packetsInPerSecond << " pkt/s\n"
+      << "Packets OUT: " << packetsOutPerSecond << " pkt/s\n"
+      << "RTT: " << metrics.rtt << " ms\n"
+      << "Smooth RTT: " << metrics.smoothRtt << " ms\n"
+      << "Jitter: " << metrics.jitter << " ms\n"
+      << "Retransmissions: " << retransmissions << "\n"
+
+      << "Duplicates: " << duplicates << "\n"
+
+      << "Out of order: " << outOfOrder << "\n\n";
+
+  const auto clients = _server.getAllClientMetrics();
+
+  for (const auto &[connectionId, metrics] : clients) {
+
+    const auto previousIt = _previousClientMetrics.find(connectionId);
+    if (previousIt == _previousClientMetrics.end()) {
+      continue;
+    }
+
+    const auto &previous = previousIt->second;
+
+    if (metrics.bytesSent < previous.bytesSent ||
+        metrics.bytesReceived < previous.bytesReceived ||
+        metrics.packetsSent < previous.packetsSent ||
+        metrics.packetsReceived < previous.packetsReceived)
+      continue;
+
+    const double bandwidthIn =
+        static_cast<double>(metrics.bytesReceived - previous.bytesReceived) /
+        elapsed / 1024.0;
+
+    const double bandwidthOut =
+        static_cast<double>(metrics.bytesSent - previous.bytesSent) / elapsed /
+        1024.0;
+
+    const double packetsIn = static_cast<double>(metrics.packetsReceived -
+                                                 previous.packetsReceived) /
+                             elapsed;
+
+    const double packetsOut =
+        static_cast<double>(metrics.packetsSent - previous.packetsSent) /
+        elapsed;
+
+    const auto retransmissions =
+        static_cast<std::uint64_t>(metrics.retransmissions) -
+        previous.retransmissions;
+
+    std::cout << std::fixed << std::setprecision(2);
+
+    std::cout << "\n CLIENT " << connectionId << ":\n"
+              << "Bandwidth IN  : " << bandwidthIn << " KiB/s\n"
+              << "Bandwidth OUT : " << bandwidthOut << " KiB/s\n"
+              << "Packets IN    : " << packetsIn << " pkt/s\n"
+              << "Packets OUT   : " << packetsOut << " pkt/s\n"
+              << "RTT           : " << metrics.rtt << " ms\n"
+              << "Smooth RTT    : " << metrics.smoothRtt << " ms\n"
+              << "Jitter        : " << metrics.jitter << " ms\n"
+              << "Retransmits   : " << retransmissions << "\n"
+              << "Duplicates    : " << metrics.packetsDuplicated << "\n"
+              << "Out of order  : " << metrics.packetsOut << "\n\n\n";
+  }
+  _previousClientMetrics = clients;
+
+  _previousMetrics = metrics;
+  _lastMetricsTime = now;
 }
 
 } // namespace rtype::server

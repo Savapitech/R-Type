@@ -16,6 +16,7 @@ namespace rtype::server {
     if (_state != RoomState::Waiting || isFull() || isInside(connectionId))
       return false;
     _players.push_back(connectionId);
+    _readyStates[connectionId] = false;
     return true;
   }
 
@@ -26,6 +27,7 @@ namespace rtype::server {
       return false;
 
     _players.erase(it);
+    _readyStates.erase(connectionId);
     return true;
   }
   
@@ -60,5 +62,40 @@ namespace rtype::server {
  void Room::setState(RoomState state) {
    _state = state;
  }
+
+ bool Room::setPlayerReady(std::uint32_t connectionId, bool ready) {
+   if (_state != RoomState::Waiting)
+      return false;
+   auto it = _readyStates.find(connectionId);
+   if (it == _readyStates.end())
+     return false;
+   it->second = ready;
+   return true;
+ }
+
+ bool Room::isPlayerReady(std::uint32_t connectionId) const {
+   auto it = _readyStates.find(connectionId);
+   if (it == _readyStates.end())
+     return false;
+   return it->second;
+ }
+
+ bool Room::areAllPlayersReady() const {
+   if (_players.empty())
+     return false;
+
+   for (const auto connectionId : _players) {
+     if (!isPlayerReady(connectionId))
+       return false;
+   }
+   return true;
+ }
+
+ void Room::resetReadyStates() {
+   for (auto &[_, ready] : _readyStates)
+     ready = false;
+ }
+
+
 
 } //namespace rtype::server

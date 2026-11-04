@@ -7,8 +7,10 @@
  */
 
 #include "gameScene.hpp"
+#include "inputAction/InputAction.hpp"
 #include "menuScene.hpp"
 #include "networkConnectionScene.hpp"
+#include "roomListScene.hpp"
 #include "sceneManager/sceneConcept.hpp"
 #include "sceneType.hpp"
 
@@ -16,6 +18,7 @@ namespace rtype::client {
 static_assert(rtk::SceneIdentifier<SceneType>);
 static_assert(rtk::Scene<MenuScene, SceneType, rtk::InputState>);
 static_assert(rtk::Scene<GameScene, SceneType, rtk::InputState>);
+static_assert(rtk::Scene<RoomListScene, SceneType, rtk::InputState>);
 static_assert(rtk::Scene<NetworkConnectionScene, SceneType, rtk::InputState>);
 
 } // namespace rtype::client

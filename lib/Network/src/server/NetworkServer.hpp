@@ -14,6 +14,7 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
+#include <mutex>
 
 #include "../connection/Connection.hpp"
 #include "../metrics/Metrics.hpp"
@@ -68,6 +69,16 @@ public:
   void send(std::uint32_t connectionId,
             const std::vector<std::uint8_t> &payload,
             PacketPriority priority = PacketPriority::Unreliable);
+  
+  /**
+   * @brief Returns a thread-safe snapshot of network metrics.
+   *
+   * The returned metrics represent the latest snapshot
+   * published by the network thread.
+   *
+   * @return Copy of the latest network metrics.
+   */
+  NetworkMetrics getMetrics() const;
 
   /**
    * @brief Sets the function called after a successful handshake.
@@ -86,6 +97,11 @@ public:
    * @param callback Receives the connection id, message type and payload.
    */
   void setOnMessage(MessageCallback callback);
+  /**
+   * @brief Returns a thread-safe snapshot of metrics for all active clients.
+   * @return Metrics indexed by connection ID.
+   */
+  std::unordered_map<std::uint32_t, NetworkMetrics> getAllClientMetrics() const;
 
 private:
   void handleHandshake(const asio::ip::udp::endpoint &endpoint,
@@ -117,6 +133,10 @@ private:
   ConnectionCallback _onClientConnected;
   ConnectionCallback _onClientDisconnected;
   MessageCallback _onMessage;
+  mutable std::mutex _metricsMutex;
+  NetworkMetrics _metricsSnapshot{};
+  mutable std::mutex _clientMetricsMutex;
+  std::unordered_map<std::uint32_t, NetworkMetrics> _clientMetricsSnapshot;
 };
 
 /** @} */
