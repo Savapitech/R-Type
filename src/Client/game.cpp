@@ -1,6 +1,7 @@
 #include "game.hpp"
 #include "ClientMetrics.hpp"
 #include "EngineContext.hpp"
+#include "Logger/Logger.hpp"
 #include "NetworkClient.hpp"
 #include "Protocol/MessageType.hpp"
 #include "Protocol/PayloadCodec.hpp"
@@ -377,16 +378,6 @@ void Game::addSystems(rtk::EngineContext &context) {
 
 bool Game::shouldContinue() const
 {
-    if (_inputState.closeRequested) {
-        std::cerr << "[CLIENT DEBUG] Window close requested"
-                  << std::endl;
-    }
-
-    if (_shouldQuit) {
-        std::cerr << "[CLIENT DEBUG] _shouldQuit is TRUE"
-                  << std::endl;
-    }
-
     return !_inputState.closeRequested && !_shouldQuit;
 }
 
@@ -588,11 +579,7 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
       _destroyedEntities.insert(destroyPayload.networkId.get());
 
 if (destroyPayload.reason == protocol::DestroyReason::GameEnded) {
-    std::cerr
-        << "[CLIENT] GameEnded received"
-        << " | Entity: " << destroyPayload.networkId.get()
-        << " | Tick: " << destroyPayload.serverTick.get()
-        << std::endl;
+  LOG_INFO("Game ended");
 }
 
       auto view = context.registry.view<component::NetworkEntity>();

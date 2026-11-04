@@ -46,18 +46,11 @@ InstanceLobbyScene::onUpdate(rtk::EngineContext &context, const ServerInput &,
   return std::nullopt;
 }
 
-void InstanceLobbyScene::onExit(rtk::EngineContext &) {
-    auto &instance = _dependency.instance;
-    auto &roomManager = _dependency.roomManager;
-
-    const std::uint32_t roomId = instance.getRoomId();
-
-    instance.setGameActive(false);
-    instance.endGame(_dependency.server);
-    if (auto *room = roomManager.getRoom(roomId)) {
-        room->setState(RoomState::Waiting);
-        roomManager.resetReadyStates(roomId);
-    }
+void InstanceLobbyScene::onExit(rtk::EngineContext &)
+{
+    std::cout << "[Room " << _dependency.instance.getRoomId()
+              << "] Leaving lobby, starting game"
+              << std::endl;
 }
 
 void InstanceGameScene::onEnter(rtk::EngineContext &) {

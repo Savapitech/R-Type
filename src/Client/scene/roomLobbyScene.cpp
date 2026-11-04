@@ -135,8 +135,6 @@ void RoomLobbyScene::createPreviewBackground(
 
 void RoomLobbyScene::onEnter(rtk::EngineContext &context)
 {
-std::cerr << "[CLIENT DEBUG] Entering GameScene"
-          << std::endl;
     _font = _dependency.game.getFont();
     _previousActionMask = 0;
     _leaveRequested = false;
@@ -343,8 +341,6 @@ void RoomLobbyScene::updatePlayerDisplay(
 
 void RoomLobbyScene::onExit(rtk::EngineContext &context)
 {
-std::cerr << "[CLIENT DEBUG] Leaving RoomLobbyScene"
-          << std::endl;
     for (const auto entity : _entities) {
         context.registry.kill_entity(entity);
     }
