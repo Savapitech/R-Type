@@ -147,6 +147,9 @@ void Game::loadEntityBluePrint(rtk::EngineContext &context) {
       "mecha_bullet", "assets/descriptionEntity/mecha_bullet.json");
   context._entityFactory.loadBlueprintFromPath(
       "bidos_death_effect", "assets/descriptionEntity/bidos_death_effect.json");
+
+  context._entityFactory.loadBlueprintFromPath(
+      "boss_room", "assets/descriptionEntity/boss_room.json");
 }
 
 void Game::registerBuilders(rtk::EngineContext &context) {

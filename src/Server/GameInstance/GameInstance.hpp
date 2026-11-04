@@ -243,7 +243,7 @@ private:
   std::size_t _stageObstaclesSpawned = 0;
   bool _stageActive = false;
   bool _allStagesCompleted = false;
-
+  bool _bossSpawned = false;
   /**
    * @brief Registers components in the instance registry.
    * @param context Instance engine context.
