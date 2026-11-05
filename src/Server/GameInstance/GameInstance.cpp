@@ -287,6 +287,7 @@ void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
       "bidos_death_effect", "assets/descriptionEntity/bidos_death_effect.json");
   context._entityFactory.loadBlueprintFromPath(
       "boss_room", "assets/descriptionEntity/boss_room.json");
+  context._entityFactory.loadBlueprintFromPath(
       "enemySpinner", "assets/descriptionEntity/enemySpinner.json");
   context._entityFactory.loadBlueprintFromPath(
       "enemyPod", "assets/descriptionEntity/enemyPod.json");
