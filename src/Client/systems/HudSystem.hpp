@@ -11,6 +11,8 @@
 #include "Logger/Logger.hpp"
 #include "components/Controllable.hpp"
 #include "components/Transform.hpp"
+#include "events/GameEvents.hpp"
+#include "events/busEvents.hpp"
 #include "graphical/renderWindow.hpp"
 #include "input/action.hpp"
 #include "inputAction/InputAction.hpp"
@@ -28,6 +30,25 @@ namespace rtk::systems {
 class HudSystem final : public rtk::ecs::ISystem {
 public:
   /**
+   * @brief Creates the HUD system with event bus subscription.
+   * @param window Target render window used to load textures and fonts.
+   * @param inputState Input state holding player action masks.
+   * @param eventBus Shared bus used to listen to beam charge and gameplay events.
+   * @param font Font used to render text strings.
+   */
+  HudSystem(rtk::RenderWindow &window, const rtk::InputState &inputState,
+            busEvent &eventBus, rtk::Font font = {})
+      : _window(window), _inputState(inputState), _eventBus(&eventBus),
+        _font(font) {
+    _eventBus->subscribe<rtype::events::BeamChargeEvent>(
+        [this](const rtype::events::BeamChargeEvent &event) {
+          _beamChargeRatio = event.chargeRatio;
+          _beamChargeLevel = event.chargeLevel;
+          _isBeamCharging = event.isCharging;
+        });
+  }
+
+  /**
    * @brief Creates the HUD system.
    * @param window Target render window used to load textures and fonts.
    * @param inputState Input state holding player action masks.
@@ -35,7 +56,8 @@ public:
    */
   HudSystem(rtk::RenderWindow &window, const rtk::InputState &inputState,
             rtk::Font font = {})
-      : _window(window), _inputState(inputState), _font(font) {}
+      : _window(window), _inputState(inputState), _eventBus(nullptr),
+        _font(font) {}
 
   ~HudSystem() override = default;
 
@@ -47,6 +69,10 @@ public:
     LOG_INFO("Load HUD System");
     if (!_font.isValid()) {
       _font = _window.loadFont("./assets/font/r-type.otf", 40.0f);
+    }
+    ensureWhiteTexture();
+    if (!_speedTexture.isValid()) {
+      _speedTexture = _window.loadTexture("assets/entityTexture/speedBoost.png");
     }
     createOrUpdateHudBar(reg);
   }
@@ -64,6 +90,14 @@ public:
     }
     _wasTogglePressed = togglePressed;
 
+    if (_weaponTimer > 0.0f) {
+      _weaponTimer -= dt;
+      if (_weaponTimer <= 0.0f) {
+        _weaponTimer = 0.0f;
+        _currentWeapon = 0;
+      }
+    }
+
     createOrUpdateHudBar(reg);
 
     _elapsedTime += dt;
@@ -72,10 +106,15 @@ public:
     const bool displayStateChanged = (shouldDisplay() != _lastDisplayed);
     _lastDisplayed = shouldDisplay();
 
+    const float updateInterval =
+        (_isBeamCharging || (_currentWeapon != 0 && _weaponTimer > 0.0f))
+            ? 0.033f
+            : 0.2f;
+
     if (displayStateChanged) {
       updateTextEntities(reg);
       _textUpdateTimer = 0.0f;
-    } else if (shouldDisplay() && _textUpdateTimer >= 0.2f) {
+    } else if (shouldDisplay() && _textUpdateTimer >= updateInterval) {
       updateTextEntities(reg);
       _textUpdateTimer = 0.0f;
     }
@@ -122,15 +161,55 @@ public:
   }
 
   /**
+   * @brief Updates the beam charge gauge status.
+   * @param ratio Fill ratio from 0.0 to 1.0.
+   * @param level Charge stage (0: charging, 1: stage 1, 2: stage 2, 3: max).
+   * @param isCharging True while the beam button is held.
+   */
+  void setBeamCharge(float ratio, int level, bool isCharging) noexcept {
+    _beamChargeRatio = ratio;
+    _beamChargeLevel = level;
+    _isBeamCharging = isCharging;
+  }
+
+  [[nodiscard]] float getBeamChargeRatio() const noexcept {
+    return _beamChargeRatio;
+  }
+
+  [[nodiscard]] int getBeamChargeLevel() const noexcept {
+    return _beamChargeLevel;
+  }
+
+  [[nodiscard]] bool isBeamCharging() const noexcept {
+    return _isBeamCharging;
+  }
+
+  static constexpr int MAX_SPEED_LEVEL = 4;
+  static constexpr float BASE_SPEED = 300.0f;
+  static constexpr float SPEED_STEP = 35.0f;
+  static constexpr float MAX_SPEED = BASE_SPEED + MAX_SPEED_LEVEL * SPEED_STEP;
+
+  /**
    * @brief Increments the collected speed bonus count.
    */
-  void addSpeedBonus() noexcept { ++_speedBonusCount; }
+  void addSpeedBonus() noexcept {
+    if (_speedBonusCount < MAX_SPEED_LEVEL) {
+      ++_speedBonusCount;
+    }
+  }
 
   /**
    * @brief Sets the collected speed bonus count.
    * @param count Speed bonus count.
    */
-  void setSpeedBonusCount(int count) noexcept { _speedBonusCount = count; }
+  void setSpeedBonusCount(int count) noexcept {
+    _speedBonusCount = std::clamp(count, 0, MAX_SPEED_LEVEL);
+  }
+
+  /**
+   * @brief Resets the collected speed bonus count.
+   */
+  void resetSpeedBonus() noexcept { _speedBonusCount = 0; }
 
   /**
    * @brief Returns the collected speed bonus count.
@@ -138,6 +217,43 @@ public:
    */
   [[nodiscard]] int getSpeedBonusCount() const noexcept {
     return _speedBonusCount;
+  }
+
+  /**
+   * @brief Sets the active weapon and starts the power-up duration timer.
+   * @param weapon 0: Cannon, 1: Spread, 2: Plasma.
+   * @param duration Power-up duration in seconds.
+   */
+  void setWeaponWithTimer(std::uint8_t weapon, float duration) noexcept {
+    _currentWeapon = static_cast<std::uint8_t>(weapon % 3);
+    _weaponTimer = duration;
+    _weaponMaxDuration = (duration > 0.0f) ? duration : 5.0f;
+    _textUpdateTimer = 999.0f;
+  }
+
+  /**
+   * @brief Sets the active weapon index.
+   * @param weapon 0: Cannon, 1: Spread, 2: Plasma.
+   */
+  void setWeapon(std::uint8_t weapon) noexcept {
+    _currentWeapon = static_cast<std::uint8_t>(weapon % 3);
+    _textUpdateTimer = 999.0f;
+  }
+
+  /**
+   * @brief Returns the active weapon index.
+   * @return Active weapon index.
+   */
+  [[nodiscard]] std::uint8_t getWeapon() const noexcept {
+    return _currentWeapon;
+  }
+
+  /**
+   * @brief Returns the remaining weapon power-up timer in seconds.
+   * @return Weapon timer in seconds.
+   */
+  [[nodiscard]] float getWeaponTimer() const noexcept {
+    return _weaponTimer;
   }
 
   [[nodiscard]] bool isVisible() const noexcept { return _visible; }
@@ -284,6 +400,49 @@ private:
     }
   }
 
+  void ensureWhiteTexture() {
+    if (!_whiteTexture.isValid()) {
+      static const std::uint8_t whitePixel[4] = {255, 255, 255, 255};
+      _whiteTexture = _window.loadTextureFromMemory(
+          std::span<const std::uint8_t>(whitePixel, 4), 1, 1);
+      if (!_whiteTexture.isValid()) {
+        _whiteTexture =
+            _window.loadTexture("assets/entityTexture/Background/withe.jpg");
+      }
+    }
+  }
+
+  void addSolidRect(rtk::ecs::Registry &reg, float x, float y, float width,
+                    float height, const rtk::ecs::concepts::ColorRGBA8 &color) {
+    if (width <= 0.0f || height <= 0.0f)
+      return;
+    ensureWhiteTexture();
+    if (!_whiteTexture.isValid())
+      return;
+
+    const auto entity = reg.spawn_entity();
+
+    component::Transform transform{};
+    transform.position = {x, y};
+    transform.scale = {1.0f, 1.0f};
+    transform.rotation = 0.0f;
+
+    rtk::ecs::concepts::SpriteData sprite{};
+    sprite.textureId = _whiteTexture.getHandle();
+    sprite.size = {width, height};
+    sprite.origin = {0.0f, 0.0f};
+    sprite.textureRect = {0, 0, 1, 1};
+    sprite.color = color;
+    sprite.scale = {1.0f, 1.0f};
+    sprite.layer = 101;
+    sprite.flags = 0;
+
+    reg.get_components<component::Transform>().insert_at(entity, transform);
+    reg.get_components<rtk::ecs::concepts::SpriteData>().insert_at(entity,
+                                                                   sprite);
+    _textEntities.push_back(entity);
+  }
+
   void addSprite(rtk::ecs::Registry &reg, uint32_t textureId, float x, float y,
                  float width, float height,
                  const rtk::ecs::concepts::ColorRGBA8 &color,
@@ -338,6 +497,13 @@ private:
         if (ctrl->isChargingShoot) {
           isCharging = true;
         }
+        if (ctrl->weaponTimer > 0.0f &&
+            (ctrl->weaponType != _currentWeapon ||
+             ctrl->weaponTimer > _weaponTimer)) {
+          _currentWeapon = ctrl->weaponType;
+          _weaponTimer = ctrl->weaponTimer;
+          _weaponMaxDuration = ctrl->weaponMaxDuration;
+        }
       }
     }
     const std::string playersStr =
@@ -346,21 +512,93 @@ private:
     addText(reg, "PLAYERS", 18.0f, 155.0f, {170, 170, 195, 255}, 0.36f);
     addText(reg, playersStr, 18.0f, 178.0f, {80, 255, 120, 255}, 0.44f);
 
-    addText(reg, "SYSTEM", 18.0f, 235.0f, {170, 170, 195, 255}, 0.36f);
-    addText(reg, "ACTIVE", 18.0f, 258.0f, {50, 220, 255, 255}, 0.46f);
+    addText(reg, "WEAPON", 18.0f, 235.0f, {170, 170, 195, 255}, 0.36f);
 
-    addText(reg, "STAGE", 18.0f, 315.0f, {170, 170, 195, 255}, 0.36f);
-    addText(reg, "01", 18.0f, 338.0f, {255, 255, 255, 255}, 0.52f);
-
-    addText(reg, "BEAM", 18.0f, 395.0f, {170, 170, 195, 255}, 0.36f);
-    if (isCharging) {
-      addText(reg, "CHARGING", 18.0f, 418.0f, {255, 220, 0, 255}, 0.44f);
+    if (_currentWeapon == 1 && _weaponTimer > 0.0f) {
+      addText(reg, "SPREAD", 18.0f, 258.0f, {255, 200, 40, 255}, 0.46f);
+    } else if (_currentWeapon == 2 && _weaponTimer > 0.0f) {
+      addText(reg, "PLASMA", 18.0f, 258.0f, {255, 45, 55, 255}, 0.46f);
     } else {
-      addText(reg, "READY", 18.0f, 418.0f, {255, 160, 40, 255}, 0.46f);
+      addText(reg, "CANNON", 18.0f, 258.0f, {50, 220, 255, 255}, 0.46f);
+      addText(reg, "STANDARD", 18.0f, 280.0f, {120, 120, 150, 180}, 0.30f);
     }
 
-    addText(reg, "SHOTS", 18.0f, 465.0f, {170, 170, 195, 255}, 0.36f);
-    addText(reg, std::to_string(_shotsFired), 18.0f, 488.0f,
+    if (_currentWeapon != 0 && _weaponTimer > 0.0f) {
+      const float maxDur =
+          (_weaponMaxDuration > 0.0f) ? _weaponMaxDuration : 5.0f;
+      const float ratio = std::clamp(_weaponTimer / maxDur, 0.0f, 1.0f);
+      constexpr float trackX = 18.0f;
+      constexpr float trackY = 282.0f;
+      constexpr float trackWidth = 154.0f;
+      constexpr float trackHeight = 8.0f;
+
+      addSolidRect(reg, trackX, trackY, trackWidth, trackHeight,
+                   {25, 30, 45, 240});
+
+      const float fillWidth = trackWidth * ratio;
+      if (fillWidth > 0.5f) {
+        const rtk::ecs::concepts::ColorRGBA8 barColor =
+            (_currentWeapon == 1)
+                ? rtk::ecs::concepts::ColorRGBA8{255, 200, 40, 255}
+                : rtk::ecs::concepts::ColorRGBA8{255, 45, 55, 255};
+        addSolidRect(reg, trackX, trackY, fillWidth, trackHeight, barColor);
+      }
+
+      char secBuf[16];
+      std::snprintf(secBuf, sizeof(secBuf), "%.1fs", _weaponTimer);
+      addText(reg, secBuf, 18.0f, 296.0f, {230, 235, 250, 240}, 0.32f);
+    }
+
+    addText(reg, "STAGE", 18.0f, 326.0f, {170, 170, 195, 255}, 0.36f);
+    addText(reg, "01", 18.0f, 349.0f, {255, 255, 255, 255}, 0.52f);
+
+    addText(reg, "BEAM", 18.0f, 400.0f, {170, 170, 195, 255}, 0.36f);
+    if (_isBeamCharging || isCharging) {
+      if (_beamChargeLevel == 3) {
+        addText(reg, "MAX BEAM!", 18.0f, 423.0f, {255, 60, 60, 255}, 0.46f);
+      } else if (_beamChargeLevel == 2) {
+        addText(reg, "STAGE 2", 18.0f, 423.0f, {200, 120, 255, 255}, 0.44f);
+      } else if (_beamChargeLevel == 1) {
+        addText(reg, "STAGE 1", 18.0f, 423.0f, {80, 220, 255, 255}, 0.44f);
+      } else {
+        addText(reg, "CHARGING", 18.0f, 423.0f, {255, 220, 0, 255}, 0.44f);
+      }
+
+      constexpr float trackX = 18.0f;
+      constexpr float trackY = 447.0f;
+      constexpr float trackWidth = 154.0f;
+      constexpr float trackHeight = 8.0f;
+
+      addSolidRect(reg, trackX, trackY, trackWidth, trackHeight,
+                   {25, 30, 45, 240});
+
+      const float fillWidth =
+          trackWidth * std::clamp(_beamChargeRatio, 0.0f, 1.0f);
+      if (fillWidth > 0.5f) {
+        rtk::ecs::concepts::ColorRGBA8 beamColor = {255, 220, 0, 255};
+        if (_beamChargeLevel == 1) {
+          beamColor = {80, 220, 255, 255};
+        } else if (_beamChargeLevel == 2) {
+          beamColor = {200, 120, 255, 255};
+        } else if (_beamChargeLevel == 3) {
+          beamColor = {255, 60, 60, 255};
+        }
+        addSolidRect(reg, trackX, trackY, fillWidth, trackHeight, beamColor);
+      }
+    } else {
+      addText(reg, "READY", 18.0f, 423.0f, {255, 160, 40, 255}, 0.46f);
+
+      constexpr float trackX = 18.0f;
+      constexpr float trackY = 447.0f;
+      constexpr float trackWidth = 154.0f;
+      constexpr float trackHeight = 8.0f;
+
+      addSolidRect(reg, trackX, trackY, trackWidth, trackHeight,
+                   {25, 30, 45, 140});
+    }
+
+    addText(reg, "SHOTS", 18.0f, 468.0f, {170, 170, 195, 255}, 0.36f);
+    addText(reg, std::to_string(_shotsFired), 18.0f, 491.0f,
             {255, 120, 120, 255}, 0.50f);
 
     addText(reg, "BONUS", 18.0f, 535.0f, {170, 170, 195, 255}, 0.36f);
@@ -369,13 +607,14 @@ private:
     for (auto ent : reg.view<component::Controllable>()) {
       if (const auto *ctrl =
               reg.get_components<component::Controllable>().get(ent)) {
-        if (ctrl->speed > 300.0f) {
+        if (ctrl->speed > BASE_SPEED) {
           const int countFromSpeed =
-              static_cast<int>((ctrl->speed - 300.0f) / 100.0f + 0.5f);
+              static_cast<int>((ctrl->speed - BASE_SPEED) / SPEED_STEP + 0.5f);
           speedBonus = std::max(speedBonus, countFromSpeed);
         }
       }
     }
+    speedBonus = std::clamp(speedBonus, 0, MAX_SPEED_LEVEL);
 
     if (!_speedTexture.isValid()) {
       _speedTexture = _window.loadTexture("assets/entityTexture/speedBoost.png");
@@ -383,16 +622,42 @@ private:
 
     if (_speedTexture.isValid()) {
       if (speedBonus > 0) {
-        addSprite(reg, _speedTexture.getHandle(), 18.0f, 560.0f, 32.0f, 32.0f,
-                  {255, 255, 255, 255}, 0.85f);
-        addText(reg, "SPEED", 50.0f, 558.0f, {0, 240, 255, 255}, 0.34f);
-        addText(reg, "LVL " + std::to_string(speedBonus), 50.0f, 574.0f,
-                {255, 220, 0, 255}, 0.34f);
+        addSprite(reg, _speedTexture.getHandle(), 18.0f, 558.0f, 32.0f, 32.0f,
+                  {0, 240, 255, 255}, 0.85f);
+        addText(reg, "SPEED", 50.0f, 556.0f, {0, 240, 255, 255}, 0.34f);
+        if (speedBonus >= MAX_SPEED_LEVEL) {
+          addText(reg, "LVL " + std::to_string(speedBonus) + " (MAX)", 50.0f,
+                  572.0f, {255, 180, 0, 255}, 0.30f);
+        } else {
+          addText(reg, "LVL " + std::to_string(speedBonus), 50.0f, 572.0f,
+                  {255, 220, 0, 255}, 0.34f);
+        }
       } else {
-        addSprite(reg, _speedTexture.getHandle(), 18.0f, 560.0f, 32.0f, 32.0f,
+        addSprite(reg, _speedTexture.getHandle(), 18.0f, 558.0f, 32.0f, 32.0f,
                   {70, 70, 90, 100}, 0.85f);
-        addText(reg, "SPEED", 50.0f, 558.0f, {100, 100, 120, 130}, 0.34f);
-        addText(reg, "NONE", 50.0f, 574.0f, {100, 100, 120, 130}, 0.32f);
+        addText(reg, "SPEED", 50.0f, 556.0f, {100, 100, 120, 130}, 0.34f);
+        addText(reg, "NONE", 50.0f, 572.0f, {100, 100, 120, 130}, 0.32f);
+      }
+
+      if (_currentWeapon == 2 && _weaponTimer > 0.0f) {
+        addSprite(reg, _speedTexture.getHandle(), 18.0f, 604.0f, 32.0f, 32.0f,
+                  {255, 45, 55, 255}, 0.85f);
+        addText(reg, "PLASMA", 50.0f, 602.0f, {255, 45, 55, 255}, 0.34f);
+        char bTimerBuf[16];
+        std::snprintf(bTimerBuf, sizeof(bTimerBuf), "%.1fs", _weaponTimer);
+        addText(reg, bTimerBuf, 50.0f, 618.0f, {255, 200, 200, 255}, 0.32f);
+      } else if (_currentWeapon == 1 && _weaponTimer > 0.0f) {
+        addSprite(reg, _speedTexture.getHandle(), 18.0f, 604.0f, 32.0f, 32.0f,
+                  {255, 200, 40, 255}, 0.85f);
+        addText(reg, "SPREAD", 50.0f, 602.0f, {255, 200, 40, 255}, 0.34f);
+        char bTimerBuf[16];
+        std::snprintf(bTimerBuf, sizeof(bTimerBuf), "%.1fs", _weaponTimer);
+        addText(reg, bTimerBuf, 50.0f, 618.0f, {255, 240, 180, 255}, 0.32f);
+      } else {
+        addSprite(reg, _speedTexture.getHandle(), 18.0f, 604.0f, 32.0f, 32.0f,
+                  {70, 70, 90, 100}, 0.85f);
+        addText(reg, "WEAPON", 50.0f, 602.0f, {100, 100, 120, 130}, 0.34f);
+        addText(reg, "STANDARD", 50.0f, 618.0f, {100, 100, 120, 130}, 0.30f);
       }
     }
 
@@ -430,6 +695,7 @@ private:
   bool _visible = false;
   bool _inGameScene = false;
   bool _wasTogglePressed = false;
+  bool _wasSwitchPressed = false;
   bool _lastDisplayed = false;
 
   float _elapsedTime = 0.0f;
@@ -437,6 +703,14 @@ private:
   std::size_t _shotsFired = 0;
   rtk::Texture _speedTexture{};
   int _speedBonusCount = 0;
+  std::uint8_t _currentWeapon = 0;
+  float _weaponTimer = 0.0f;
+  float _weaponMaxDuration = 5.0f;
+  busEvent *_eventBus = nullptr;
+  float _beamChargeRatio = 0.0f;
+  int _beamChargeLevel = 0;
+  bool _isBeamCharging = false;
+  rtk::Texture _whiteTexture{};
 };
 
 /** @} */

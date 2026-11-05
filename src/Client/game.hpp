@@ -28,29 +28,12 @@
 #include "scene/networkConnectionScene.hpp"
 #include "scene/roomLobbyScene.hpp"
 
+#include "events/GameEvents.hpp"
+
 namespace rtk::systems {
 class CollisionFlashSystem;
 class HudSystem;
 } // namespace rtk::systems
-
-namespace rtype::events {
-/**
- * @addtogroup api_client
- * @{
- */
-
-/**
- * @brief Published when the local player releases the shoot button.
- */
-struct PlayerShotEvent {};
-
-/**
- * @brief Published when a quit request is triggered from the menu or game.
- */
-struct QuitGameEvent {};
-
-/** @} */
-} // namespace rtype::events
 
 namespace rtype::client {
 /**

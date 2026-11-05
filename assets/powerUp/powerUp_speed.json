@@ -45,7 +45,7 @@
         },
         "powerup": {
             "type": "speed",
-            "value": 100.0
+            "value": 35.0
         },
         "velocity": {
             "x": -100.0,

@@ -12,7 +12,7 @@ namespace component {
 /**
  * @brief Represents the different types of power up.
  */
-enum class powerUpType { Heal, Speed, Shield };
+enum class powerUpType { Heal, Speed, Shield, WeaponSpread, WeaponPlasma };
 
 /**
  * @brief Represents the power up.
@@ -38,6 +38,10 @@ inline void powerupFromJson(rtk::ecs::Registry &reg, std::size_t entity,
     pu.type = powerUpType::Speed;
   else if (typeStr == "shield")
     pu.type = powerUpType::Shield;
+  else if (typeStr == "spread" || typeStr == "weapon_spread")
+    pu.type = powerUpType::WeaponSpread;
+  else if (typeStr == "plasma" || typeStr == "weapon_plasma")
+    pu.type = powerUpType::WeaponPlasma;
   else
     pu.type = powerUpType::Heal;
 
