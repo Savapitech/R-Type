@@ -30,6 +30,7 @@
 
 namespace rtk::systems {
 class CollisionFlashSystem;
+class HudSystem;
 }
 
 namespace rtype::events {
@@ -196,6 +197,7 @@ private:
 
   rtk::Font _fontRtype;
   rtk::systems::CollisionFlashSystem *_collisionFlashSystem = nullptr;
+  rtk::systems::HudSystem *_hudSystem = nullptr;
   bool _shouldQuit = false;
   std::string _host = "127.0.0.1";
   std::string _port = "4242";

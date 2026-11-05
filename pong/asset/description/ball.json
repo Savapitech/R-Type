@@ -1,0 +1,28 @@
+{
+  "components": {
+    "transform": {
+      "position": { "x": 635.0, "y": 355.0 },
+      "scale": { "x": 1.0, "y": 1.0 },
+      "rotation": 0.0
+    },
+    "velocity": {
+      "x": 0.0,
+      "y": 0.0
+    },
+    "ball": {
+      "baseSpeed": 480.0,
+      "currentSpeed": 480.0,
+      "serveTimer": 0.5,
+      "serveDirX": 1.0,
+      "inPlay": false
+    },
+    "sprite": {
+      "texture": "pong/asset/texture/PongAssetSheet.png",
+      "size": { "w": 10.0, "h": 10.0 },
+      "origin": { "x": 0.0, "y": 0.0 },
+      "textureRect": { "x": 73, "y": 104, "w": 4, "h": 4 },
+      "color": { "r": 255, "g": 255, "b": 255, "a": 255 },
+      "layer": 15
+    }
+  }
+}

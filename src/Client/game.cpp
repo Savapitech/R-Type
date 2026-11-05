@@ -39,6 +39,7 @@
 #include "systems/CollisionFlashSystem.hpp"
 #include "systems/DeadSystem.hpp"
 #include "systems/DebugCollisionSystem.hpp"
+#include "systems/HudSystem.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/ParallaxSystem.hpp"
@@ -320,6 +321,8 @@ void Game::createBindings() {
 
   _inputMapping.bindKey(6, rtk::ecs::concepts::Key::F3);
   _inputMapping.bindGamepad(6, rtk::ecs::concepts::GamepadButton::Select);
+
+  _inputMapping.bindKey(7, rtk::ecs::concepts::Key::H);
   _inputMapping.bindKey(7, rtk::ecs::concepts::Key::R);
   _inputMapping.bindKey(8, rtk::ecs::concepts::Key::Escape);
 }
@@ -333,6 +336,9 @@ void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
   context.eventBus.subscribe<rtype::events::PlayerShotEvent>(
       [this, shootSoundId](const rtype::events::PlayerShotEvent &) {
         _adapterAudioManager.playSound(shootSoundId);
+        if (_hudSystem) {
+          _hudSystem->incrementShotCount();
+        }
       });
 
   context.eventBus.subscribe<rtype::events::EnemyEscapedEvent>(
@@ -374,6 +380,9 @@ void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<rtk::systems::AnimationCleanSystem>(
       rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::DeathSystem>(rtk::ecs::Order::Update);
+  _hudSystem = &context.scheduler.add<rtk::systems::HudSystem>(
+      rtk::ecs::Order::Update, std::ref(_window), std::ref(_inputState),
+      _fontRtype);
 }
 
 bool Game::shouldContinue() const
@@ -709,6 +718,10 @@ if (destroyPayload.reason == protocol::DestroyReason::GameEnded) {
         }
       }
     }
+  }
+
+  if (_hudSystem) {
+    _hudSystem->setInGameScene(_sceneManager.get<GameScene>() != nullptr);
   }
 
   _sceneManager.update(context, _inputState, dt);
