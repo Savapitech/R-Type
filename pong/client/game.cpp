@@ -8,6 +8,7 @@
 #include "components/PongComponents.hpp"
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
+#include "events/BallBounceEvent.hpp"
 #include "events/ScoreEvent.hpp"
 #include "systems/ColliderSystem.hpp"
 #include "systems/InputSystem.hpp"
@@ -61,6 +62,23 @@ void Game::onLoad(rtk::EngineContext &context) {
     std::cout << "[Pong Client] Running in standalone local mode (" << e.what()
               << ")" << std::endl;
   }
+
+  context.eventBus.subscribe<pong::events::BallBounceEvent>(
+      [this](const pong::events::BallBounceEvent &) {
+        if (_audioEngine && _bounceSoundId != static_cast<std::size_t>(-1)) {
+          _audioEngine->playSound(_bounceSoundId);
+        }
+      });
+
+  context.eventBus.subscribe<pong::events::ScoreChangedEvent>(
+      [this](const pong::events::ScoreChangedEvent &) {
+        if (_audioEngine && _scoreSoundId != static_cast<std::size_t>(-1)) {
+          _audioEngine->playSound(_scoreSoundId);
+        }
+      });
+
+  loadAudioPlugin("bin/plugins/libpong_audio_rtk" +
+                  std::string(rtk::audio::DynamicLibrary::getExtension()));
 
   _sceneManager.start(context);
 }
@@ -172,6 +190,9 @@ void Game::createBindings() {
 
   _inputMapping.bindKey(pong::Input::actionIndex(pong::Action::Back),
                         rtk::ecs::concepts::Key::Escape);
+
+  _inputMapping.bindKey(pong::Input::actionIndex(pong::Action::ToggleAudio),
+                        rtk::ecs::concepts::Key::Space);
 }
 
 void Game::addSystems(rtk::EngineContext &context) {
@@ -215,6 +236,22 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
     gameScene->setBallSystem(_ballSystem);
   }
   _sceneManager.update(context, _inputState, dt);
+
+  const bool toggleAudioPressed =
+      pong::Input::hasAction(_inputState.actionMask,
+                             pong::Action::ToggleAudio) &&
+      !pong::Input::hasAction(_previousActionMask, pong::Action::ToggleAudio);
+  _previousActionMask = _inputState.actionMask;
+
+  if (toggleAudioPressed) {
+    if (_sceneManager.get<PongGameScene>() != nullptr) {
+      switchAudioPlugin();
+    }
+  }
+
+  if (_audioEngine) {
+    _audioEngine->update();
+  }
 
   // Local mode match check: if a score hits 10, close window
   if (!_connectedToServer && _ballSystem &&
@@ -421,6 +458,69 @@ void Game::onUnload(rtk::EngineContext &context) {
     asio::error_code ec;
     _socket->close(ec);
   }
+  if (_audioEngine && _destroyAudioFn) {
+    _destroyAudioFn(_audioEngine);
+    _audioEngine = nullptr;
+    _destroyAudioFn = nullptr;
+  }
+  _audioLib.unload();
+}
+
+void Game::loadAudioPlugin(const std::string &libPath) {
+  if (_audioEngine && _destroyAudioFn) {
+    _destroyAudioFn(_audioEngine);
+    _audioEngine = nullptr;
+    _destroyAudioFn = nullptr;
+  }
+  _audioLib.unload();
+
+  std::string fullPath = libPath;
+  if (!_audioLib.load(fullPath)) {
+    if (_audioLib.load("./" + fullPath)) {
+      fullPath = "./" + fullPath;
+    } else if (_audioLib.load("../" + fullPath)) {
+      fullPath = "../" + fullPath;
+    } else {
+      std::cerr << "[Pong Client] Could not load audio plugin: " << libPath
+                << " (" << _audioLib.getLastError() << ")" << std::endl;
+      return;
+    }
+  }
+
+  auto createFn = _audioLib.getSymbol<CreateAudioEngineFn>("createAudioEngine");
+  _destroyAudioFn =
+      _audioLib.getSymbol<DestroyAudioEngineFn>("destroyAudioEngine");
+
+  if (!createFn || !_destroyAudioFn) {
+    std::cerr << "[Pong Client] Audio plugin missing symbols: " << libPath
+              << std::endl;
+    _audioLib.unload();
+    return;
+  }
+
+  _audioEngine = createFn();
+  if (_audioEngine) {
+    std::cout << "\033[1;32m[Pong Client] Loaded audio plugin: "
+              << _audioEngine->getName() << "\033[0m" << std::endl;
+    _bounceSoundId = _audioEngine->loadSound("assets/shoot.wav");
+    _scoreSoundId = _audioEngine->loadSound("assets/shoot.wav");
+  }
+}
+
+void Game::switchAudioPlugin() {
+  _activePluginIndex = (_activePluginIndex + 1) % 2;
+  const std::string ext = rtk::audio::DynamicLibrary::getExtension();
+  std::string pluginPath;
+  if (_activePluginIndex == 0) {
+    pluginPath = "bin/plugins/libpong_audio_rtk" + ext;
+  } else {
+    pluginPath = "bin/plugins/libpong_audio_dummy" + ext;
+  }
+
+  std::cout << "\033[1;36m[Pong Client] Switching audio plugin to index "
+            << _activePluginIndex << ": " << pluginPath << "\033[0m"
+            << std::endl;
+  loadAudioPlugin(pluginPath);
 }
 
 } // namespace pong::client

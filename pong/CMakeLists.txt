@@ -44,11 +44,47 @@ target_link_libraries(pong PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/../External/GraphicLib/lib/librtk_graphical.so"
     vulkan
     Threads::Threads
+    ${CMAKE_DL_LIBS}
 )
 
 set_target_properties(pong PROPERTIES
     BUILD_RPATH "${CMAKE_CURRENT_SOURCE_DIR}/../External/GraphicLib/lib:${CMAKE_CURRENT_SOURCE_DIR}/../vcpkg_installed/x64-linux/lib"
     INSTALL_RPATH "${CMAKE_CURRENT_SOURCE_DIR}/../External/GraphicLib/lib:${CMAKE_CURRENT_SOURCE_DIR}/../vcpkg_installed/x64-linux/lib"
+)
+
+# Audio Plugins
+add_library(pong_audio_rtk SHARED
+    "${CMAKE_CURRENT_SOURCE_DIR}/plugins/audio_rtk/AudioRtk.cpp"
+)
+set_target_properties(pong_audio_rtk PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../bin/plugins"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../bin/plugins"
+)
+target_include_directories(pong_audio_rtk PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/../lib/GameEngine/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../External/GraphicLib/include"
+)
+target_link_directories(pong_audio_rtk PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/../External/GraphicLib/lib"
+)
+target_link_libraries(pong_audio_rtk PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/../External/GraphicLib/lib/librtk_graphical.so"
+    Threads::Threads
+)
+set_target_properties(pong_audio_rtk PROPERTIES
+    BUILD_RPATH "${CMAKE_CURRENT_SOURCE_DIR}/../External/GraphicLib/lib"
+    INSTALL_RPATH "${CMAKE_CURRENT_SOURCE_DIR}/../External/GraphicLib/lib"
+)
+
+add_library(pong_audio_dummy SHARED
+    "${CMAKE_CURRENT_SOURCE_DIR}/plugins/audio_dummy/AudioDummy.cpp"
+)
+set_target_properties(pong_audio_dummy PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../bin/plugins"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../bin/plugins"
+)
+target_include_directories(pong_audio_dummy PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/../lib/GameEngine/include"
 )
 
 # Pong Server

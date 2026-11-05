@@ -5,6 +5,7 @@
 #include <cmath>
 
 #include "../components/PongComponents.hpp"
+#include "../events/BallBounceEvent.hpp"
 #include "../events/ScoreEvent.hpp"
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
@@ -80,9 +81,11 @@ public:
       if (bTrans->position.y <= TOP_BOUND) {
         bTrans->position.y = TOP_BOUND;
         bVel->y = std::abs(bVel->y);
+        _eventBus.publish(pong::events::BallBounceEvent{});
       } else if (bTrans->position.y >= BOTTOM_BOUND) {
         bTrans->position.y = BOTTOM_BOUND;
         bVel->y = -std::abs(bVel->y);
+        _eventBus.publish(pong::events::BallBounceEvent{});
       }
 
       for (auto padEnt : paddleView) {
@@ -115,6 +118,7 @@ public:
                 ball->currentSpeed * ball->currentSpeed - bVel->y * bVel->y;
             bVel->x = std::sqrt(std::max(10000.0f, remSq));
             bTrans->position.x = padRight + 1.0f;
+            _eventBus.publish(pong::events::BallBounceEvent{});
           }
         } else if (paddle->side == pong::component::Paddle::Side::Right &&
                    bVel->x > 0.0f) {
@@ -128,6 +132,7 @@ public:
                 ball->currentSpeed * ball->currentSpeed - bVel->y * bVel->y;
             bVel->x = -std::sqrt(std::max(10000.0f, remSq));
             bTrans->position.x = padLeft - BALL_SIZE - 1.0f;
+            _eventBus.publish(pong::events::BallBounceEvent{});
           }
         }
       }
