@@ -1,0 +1,79 @@
+{
+    "components": {
+        "transform": {
+            "position": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "scale": {
+                "x": 2.0,
+                "y": 2.0
+            },
+            "rotation": 0.0
+        },
+        "sprite": {
+            "texture": "assets/entityTexture/green_mecha.png",
+            "size": {
+                "w": 56.0,
+                "h": 56.0
+            },
+            "origin": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "textureRect": {
+                "x": 0,
+                "y": 0,
+                "w": 56,
+                "h": 56
+            },
+            "color": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 255
+            },
+            "layer": 0,
+            "flags": 0
+        },
+        "collider": {
+            "width": 40.0,
+            "height": 50.0,
+            "offsetX": 8.0,
+            "offsetY": 4.0,
+            "layer": "Enemy",
+            "mask": [
+                "PlayerProjectile",
+                "Player",
+                "Environment"
+            ]
+        },
+        "velocity": {
+            "x": -160.0,
+            "y": 0.0
+        },
+        "animation": {
+            "frameDuration": 0.25,
+            "currentFrame": 0,
+            "totalFrames": 3,
+            "frameWidth": 56,
+            "frameHeight": 56,
+            "startX": 0,
+            "startY": 0,
+            "loop": true,
+            "playing": true,
+            "columns": 3,
+            "paddingX": 0,
+            "paddingY": 0
+        },
+        "enemy": {
+            "health": 6.0,
+            "fireRate": 2.0,
+            "blueprintName": "green_mecha_bullet"
+        },
+        "networkEntity": {},
+        "deathEffect": {
+            "blueprintName": "explosion"
+        }
+    }
+}
