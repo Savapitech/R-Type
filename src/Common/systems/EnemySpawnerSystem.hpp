@@ -10,6 +10,8 @@
 #include <cstdint>
 #include <functional>
 #include <random>
+#include <string>
+#include <vector>
 
 namespace rtype::events {
 /**
@@ -37,7 +39,11 @@ namespace rtk::systems {
  */
 
 /**
- * @brief Spawns Bydos enemies and coordinated red ship squadron waves.
+ * @brief Spawns random enemies and coordinated squadron waves.
+ *
+ * Every enemy is data-driven: its behaviour comes from its JSON blueprint.
+ * Enemies whose blueprint has a `waveMovement` component can also be spawned
+ * as a squadron following the same sine path.
  */
 class EnemySpawnerSystem final : public rtk::ecs::ISystem {
 private:
@@ -45,25 +51,32 @@ private:
   busEvent &_eventBus;
   std::function<bool()> _canSpawn;
 
-  float _bidosTimer{0.0f};
-  float _bidosInterval{2.5f};
-  float _mechaTimer{0.0f};
-  float _mechaInterval{7.0f};
+  const std::vector<std::string> _enemies{
+      "enemyBidos",      "enemyMecha", "enemyRedShip",
+      "enemySpinner",    "enemyPod",   "enemyDart",
+      "enemyArmoredPod", "enemyCargo", "enemyGreenMecha"};
 
+  const std::vector<std::string> _waveEnemies{"enemyRedShip", "enemySpinner",
+                                              "enemyDart"};
+
+  float _spawnTimer{0.0f};
+  float _spawnInterval{2.0f};
   float _waveTimer{0.0f};
   float _waveInterval{10.0f};
   bool _waveActive{false};
+  int _waveSize{5};
   int _waveRemaining{0};
   float _waveStepTimer{0.0f};
   float _waveStepDelay{0.35f};
   float _waveBaseY{300.0f};
-  float _waveAmplitude{120.0f};
-  float _waveFrequency{2.5f};
+  std::string _waveBlueprint;
 
   std::mt19937 _rng;
   std::uniform_real_distribution<float> _distX;
   std::uniform_real_distribution<float> _distY;
   std::uniform_real_distribution<float> _distWaveY;
+  std::uniform_int_distribution<std::size_t> _distEnemy;
+  std::uniform_int_distribution<std::size_t> _distWaveEnemy;
 
 public:
   /**
@@ -76,7 +89,9 @@ public:
                      std::function<bool()> canSpawn = nullptr)
       : _factory(factory), _eventBus(eventBus), _canSpawn(std::move(canSpawn)),
         _rng(std::random_device{}()), _distX(1920.0f, 2400.0f),
-        _distY(200.0f, 500.0f), _distWaveY(280.0f, 420.0f) {}
+        _distY(200.0f, 500.0f), _distWaveY(280.0f, 420.0f),
+        _distEnemy(0, _enemies.size() - 1),
+        _distWaveEnemy(0, _waveEnemies.size() - 1) {}
 
   /**
    * @brief Logs that the system is loaded.
@@ -94,35 +109,27 @@ public:
     if (_canSpawn && !_canSpawn())
       return;
 
-    _bidosTimer += dt;
-    _mechaTimer += dt;
-
-    if (_bidosTimer >= _bidosInterval) {
-      _bidosTimer = 0.0f;
-      spawnBidos(reg);
-    }
-
-    if (_mechaTimer >= _mechaInterval) {
-      _mechaTimer = 0.0f;
-      spawnMechas(reg);
+    _spawnTimer += dt;
+    if (_spawnTimer >= _spawnInterval) {
+      _spawnTimer = 0.0f;
+      spawnEnemy(reg, _enemies[_distEnemy(_rng)], _distX(_rng), _distY(_rng));
     }
 
     _waveTimer += dt;
     if (!_waveActive && _waveTimer >= _waveInterval) {
       _waveTimer = 0.0f;
       _waveActive = true;
-      _waveRemaining = 5;
+      _waveRemaining = _waveSize;
       _waveStepTimer = _waveStepDelay;
       _waveBaseY = _distWaveY(_rng);
-      _waveAmplitude = 80.0f;
-      _waveFrequency = 2.0f;
+      _waveBlueprint = _waveEnemies[_distWaveEnemy(_rng)];
     }
 
     if (_waveActive) {
       _waveStepTimer += dt;
       if (_waveStepTimer >= _waveStepDelay) {
         _waveStepTimer = 0.0f;
-        spawnRedShip(reg, _waveBaseY, _waveAmplitude, _waveFrequency);
+        spawnEnemy(reg, _waveBlueprint, 1950.0f, _waveBaseY);
         _waveRemaining--;
         if (_waveRemaining <= 0) {
           _waveActive = false;
@@ -137,61 +144,33 @@ public:
   void onStop(rtk::ecs::Registry &) override {}
 
 private:
-  void spawnMechas(rtk::ecs::Registry &reg) {
+  /**
+   * @brief Creates an enemy from its blueprint and notifies the network.
+   *
+   * If the blueprint has a WaveMovement, its wave restarts from the spawn
+   * position; amplitude and frequency stay the ones of the JSON.
+   */
+  void spawnEnemy(rtk::ecs::Registry &reg, const std::string &blueprint,
+                  float x, float y) {
     std::uint32_t netId =
         rtype::server::NetworkIdGenerator::getInstance().getNextId();
-    auto enemyEntity = _factory.createNetwork(reg, "enemyMecha", netId);
-    auto *transform =
-        reg.get_components<component::Transform>().get(enemyEntity);
-    if (transform) {
-      transform->position.x = _distX(_rng);
-      transform->position.y = _distY(_rng);
-
-      _eventBus.publish(rtype::events::EnemySpawnedEvent{
-          netId, transform->position.x, transform->position.y, "enemyMecha"});
-    }
-  }
-  void spawnBidos(rtk::ecs::Registry &reg) {
-    std::uint32_t netId =
-        rtype::server::NetworkIdGenerator::getInstance().getNextId();
-
-    auto enemyEntity = _factory.createNetwork(reg, "enemyBidos", netId);
-    auto *transform =
-        reg.get_components<component::Transform>().get(enemyEntity);
-
-    if (transform) {
-      transform->position.x = _distX(_rng);
-      transform->position.y = _distY(_rng);
-
-      _eventBus.publish(rtype::events::EnemySpawnedEvent{
-          netId, transform->position.x, transform->position.y, "enemyBidos"});
-    }
-  }
-
-  void spawnRedShip(rtk::ecs::Registry &reg, float baseY, float amplitude,
-                    float frequency) {
-    std::uint32_t netId =
-        rtype::server::NetworkIdGenerator::getInstance().getNextId();
-
-    auto enemyEntity = _factory.createNetwork(reg, "enemyRedShip", netId);
+    auto enemyEntity = _factory.createNetwork(reg, blueprint, netId);
     auto *transform =
         reg.get_components<component::Transform>().get(enemyEntity);
     auto *wave = reg.get_components<component::WaveMovement>().get(enemyEntity);
 
-    if (transform) {
-      transform->position.x = 1950.0f;
-      transform->position.y = baseY;
+    if (!transform)
+      return;
+    transform->position.x = x;
+    transform->position.y = y;
 
-      if (wave) {
-        wave->baseY = baseY;
-        wave->amplitude = amplitude;
-        wave->frequency = frequency;
-        wave->time = 0.0f;
-      }
-
-      _eventBus.publish(rtype::events::EnemySpawnedEvent{
-          netId, transform->position.x, transform->position.y, "enemyRedShip"});
+    if (wave) {
+      wave->baseY = y;
+      wave->time = 0.0f;
     }
+
+    _eventBus.publish(rtype::events::EnemySpawnedEvent{
+        netId, transform->position.x, transform->position.y, blueprint});
   }
 };
 

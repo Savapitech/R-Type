@@ -1,0 +1,82 @@
+{
+    "components": {
+        "transform": {
+            "position": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "scale": {
+                "x": 2.0,
+                "y": 2.0
+            },
+            "rotation": 0.0
+        },
+        "sprite": {
+            "texture": "assets/entityTexture/cargo.png",
+            "size": {
+                "w": 63.0,
+                "h": 48.0
+            },
+            "origin": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "textureRect": {
+                "x": 0,
+                "y": 0,
+                "w": 63,
+                "h": 48
+            },
+            "color": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 255
+            },
+            "layer": 0,
+            "flags": 0
+        },
+        "collider": {
+            "width": 57.0,
+            "height": 42.0,
+            "offsetX": 3.0,
+            "offsetY": 3.0,
+            "layer": "Enemy",
+            "mask": [
+                "PlayerProjectile",
+                "Player",
+                "Environment"
+            ]
+        },
+        "velocity": {
+            "x": -100.0,
+            "y": 0.0
+        },
+        "animation": {
+            "frameDuration": 0.15,
+            "currentFrame": 0,
+            "totalFrames": 3,
+            "frameWidth": 63,
+            "frameHeight": 48,
+            "startX": 0,
+            "startY": 0,
+            "loop": true,
+            "playing": true,
+            "columns": 3,
+            "paddingX": 0,
+            "paddingY": 0
+        },
+        "enemy": {
+            "health": 20.0,
+            "fireRate": 3.0,
+            "blueprintName": "enemy_bullet"
+        },
+        "networkEntity": {},
+        "deathEffect": {
+            "blueprintName": "explosion"
+        },
+        "dropPowerUp": {
+            "blueprintName": "powerup_speed"
+        }
+    }
+}

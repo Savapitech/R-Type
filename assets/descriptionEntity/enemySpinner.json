@@ -1,0 +1,85 @@
+{
+    "components": {
+        "transform": {
+            "position": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "scale": {
+                "x": 2.0,
+                "y": 2.0
+            },
+            "rotation": 0.0
+        },
+        "sprite": {
+            "texture": "assets/entityTexture/spinner.png",
+            "size": {
+                "w": 28.0,
+                "h": 23.0
+            },
+            "origin": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "textureRect": {
+                "x": 0,
+                "y": 0,
+                "w": 28,
+                "h": 23
+            },
+            "color": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 255
+            },
+            "layer": 0,
+            "flags": 0
+        },
+        "collider": {
+            "width": 22.0,
+            "height": 19.0,
+            "offsetX": 3.0,
+            "offsetY": 2.0,
+            "layer": "Enemy",
+            "mask": [
+                "PlayerProjectile",
+                "Player",
+                "Environment"
+            ]
+        },
+        "velocity": {
+            "x": -220.0,
+            "y": 0.0
+        },
+        "animation": {
+            "frameDuration": 0.08,
+            "currentFrame": 0,
+            "totalFrames": 8,
+            "frameWidth": 28,
+            "frameHeight": 23,
+            "startX": 0,
+            "startY": 0,
+            "loop": true,
+            "playing": true,
+            "columns": 8,
+            "paddingX": 0,
+            "paddingY": 0
+        },
+        "enemy": {
+            "health": 2.0,
+            "fireRate": 3.0,
+            "blueprintName": "enemy_bullet"
+        },
+        "waveMovement": {
+            "baseY": 300.0,
+            "amplitude": 60.0,
+            "frequency": 3.0,
+            "time": 0.0
+        },
+        "networkEntity": {},
+        "deathEffect": {
+            "blueprintName": "bidos_death_effect"
+        }
+    }
+}
