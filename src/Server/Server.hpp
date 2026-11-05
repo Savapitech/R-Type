@@ -4,17 +4,17 @@
 #include <functional>
 #include <mutex>
 #include <queue>
+#include <string>
 #include <unordered_map>
 #include <vector>
-#include <string>
 
 #include "Protocol/EntityPayload.hpp"
 #include "Protocol/InputPayload.hpp"
 #include "Protocol/MessageType.hpp"
+#include "Protocol/RoomPayload.hpp"
 #include "Protocol/SnapshotPayload.hpp"
 #include "protocol/MessageHeader.hpp"
 #include "server/NetworkServer.hpp"
-#include "Protocol/RoomPayload.hpp"
 
 namespace rtype::server {
 /**
@@ -81,19 +81,13 @@ public:
     /**
      * @brief Supported room management operations.
      */
-    enum class Type {
-      ListRooms,
-      CreateRoom,
-      JoinRoom,
-      LeaveRoom,
-      SetReady
-    };
+    enum class Type { ListRooms, CreateRoom, JoinRoom, LeaveRoom, SetReady };
 
-    Type type; ///< Requested operation.
+    Type type;                  ///< Requested operation.
     std::uint32_t connectionId; ///< Sender connection.
-    std::string roomName; ///< Requested name for CreateRoom.
-    std::uint32_t roomId = 0; ///< Target room for JoinRoom.
-    bool ready = false; ///< Requested ready state for SetReady.
+    std::string roomName;       ///< Requested name for CreateRoom.
+    std::uint32_t roomId = 0;   ///< Target room for JoinRoom.
+    bool ready = false;         ///< Requested ready state for SetReady.
   };
 
   /**
@@ -187,10 +181,8 @@ public:
    * @param payload List of rooms.
    * @return True if the message was encoded and queued.
    */
-  bool sendRoomList(
-      std::uint32_t connectionId,
-      const protocol::RoomListPayload &payload
-  );
+  bool sendRoomList(std::uint32_t connectionId,
+                    const protocol::RoomListPayload &payload);
 
   /**
    * @brief Sends the result of a room creation request.
@@ -198,10 +190,8 @@ public:
    * @param payload Creation result.
    * @return True if the message was encoded and queued.
    */
-  bool sendRoomCreated(
-      std::uint32_t connectionId,
-      const protocol::RoomResultPayload &payload
-  );
+  bool sendRoomCreated(std::uint32_t connectionId,
+                       const protocol::RoomResultPayload &payload);
 
   /**
    * @brief Sends the result of a room join request.
@@ -209,10 +199,8 @@ public:
    * @param payload Join result.
    * @return True if the message was encoded and queued.
    */
-  bool sendRoomJoined(
-      std::uint32_t connectionId,
-      const protocol::RoomResultPayload &payload
-  );
+  bool sendRoomJoined(std::uint32_t connectionId,
+                      const protocol::RoomResultPayload &payload);
 
   /**
    * @brief Sends the result of a room leave request.
@@ -220,10 +208,8 @@ public:
    * @param payload Leave result.
    * @return True if the message was encoded and queued.
    */
-  bool sendRoomLeft(
-      std::uint32_t connectionId,
-      const protocol::RoomResultPayload &payload
-  );
+  bool sendRoomLeft(std::uint32_t connectionId,
+                    const protocol::RoomResultPayload &payload);
 
   /**
    * @brief Sends updated ready states to a client.
@@ -231,10 +217,8 @@ public:
    * @param payload Current player states in the room.
    * @return True if the message was encoded and queued.
    */
-  bool sendRoomStateUpdate(
-      std::uint32_t connectionId,
-      const protocol::RoomStateUpdatePayload &payload
-  );
+  bool sendRoomStateUpdate(std::uint32_t connectionId,
+                           const protocol::RoomStateUpdatePayload &payload);
 
   /**
    * @brief Notifies a client that its room is starting a game.
@@ -242,10 +226,8 @@ public:
    * @param payload Identifier of the starting room.
    * @return True if the message was encoded and queued.
    */
-  bool sendGameStarting(
-      std::uint32_t connectionId,
-      const protocol::GameStartingPayload &payload
-  );
+  bool sendGameStarting(std::uint32_t connectionId,
+                        const protocol::GameStartingPayload &payload);
 
 private:
   void handleMessage(std::uint32_t connectionId, MessageId type,

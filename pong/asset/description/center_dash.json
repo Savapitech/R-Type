@@ -1,0 +1,17 @@
+{
+  "components": {
+    "transform": {
+      "position": { "x": 638.0, "y": 0.0 },
+      "scale": { "x": 1.0, "y": 1.0 },
+      "rotation": 0.0
+    },
+    "sprite": {
+      "texture": "pong/asset/texture/PongAssetSheet.png",
+      "size": { "w": 4.0, "h": 12.0 },
+      "origin": { "x": 0.0, "y": 0.0 },
+      "textureRect": { "x": 73, "y": 104, "w": 4, "h": 4 },
+      "color": { "r": 255, "g": 255, "b": 255, "a": 200 },
+      "layer": 2
+    }
+  }
+}

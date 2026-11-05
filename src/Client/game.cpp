@@ -1,6 +1,7 @@
 #include "game.hpp"
 #include "ClientMetrics.hpp"
 #include "EngineContext.hpp"
+#include "Logger/Logger.hpp"
 #include "NetworkClient.hpp"
 #include "Protocol/MessageType.hpp"
 #include "Protocol/PayloadCodec.hpp"
@@ -38,6 +39,7 @@
 #include "systems/CollisionFlashSystem.hpp"
 #include "systems/DeadSystem.hpp"
 #include "systems/DebugCollisionSystem.hpp"
+#include "systems/HudSystem.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/ParallaxSystem.hpp"
@@ -150,6 +152,20 @@ void Game::loadEntityBluePrint(rtk::EngineContext &context) {
 
   context._entityFactory.loadBlueprintFromPath(
       "boss_room", "assets/descriptionEntity/boss_room.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "enemySpinner", "assets/descriptionEntity/enemySpinner.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "enemyPod", "assets/descriptionEntity/enemyPod.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "enemyDart", "assets/descriptionEntity/enemyDart.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "enemyArmoredPod", "assets/descriptionEntity/enemyArmoredPod.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "enemyCargo", "assets/descriptionEntity/enemyCargo.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "enemyGreenMecha", "assets/descriptionEntity/enemyGreenMecha.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "green_mecha_bullet", "assets/descriptionEntity/green_mecha_bullet.json");
 }
 
 void Game::registerBuilders(rtk::EngineContext &context) {
@@ -322,6 +338,10 @@ void Game::createBindings() {
 
   _inputMapping.bindKey(6, rtk::ecs::concepts::Key::F3);
   _inputMapping.bindGamepad(6, rtk::ecs::concepts::GamepadButton::Select);
+
+  _inputMapping.bindKey(7, rtk::ecs::concepts::Key::H);
+  _inputMapping.bindKey(8, rtk::ecs::concepts::Key::R);
+  _inputMapping.bindKey(9, rtk::ecs::concepts::Key::Escape);
 }
 
 void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
@@ -333,6 +353,9 @@ void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
   context.eventBus.subscribe<rtype::events::PlayerShotEvent>(
       [this, shootSoundId](const rtype::events::PlayerShotEvent &) {
         _adapterAudioManager.playSound(shootSoundId);
+        if (_hudSystem) {
+          _hudSystem->incrementShotCount();
+        }
       });
 
   context.eventBus.subscribe<rtype::events::EnemyEscapedEvent>(
@@ -354,7 +377,8 @@ void Game::addSystems(rtk::EngineContext &context) {
       std::ref(context.eventBus), std::ref(context._entityFactory),
       std::ref(_networkClient));
   context.scheduler.add<rtk::systems::InputSystem<RtkWindowAdapter>>(
-      rtk::ecs::Order::Input, std::ref(_adapter), _inputState, _inputMapping);
+      rtk::ecs::Order::Input, std::ref(_adapter), _inputState, _inputMapping,
+      false);
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
   _collisionFlashSystem =
       &context.scheduler.add<rtk::systems::CollisionFlashSystem>(
@@ -374,6 +398,9 @@ void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<rtk::systems::AnimationCleanSystem>(
       rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::DeathSystem>(rtk::ecs::Order::Update);
+  _hudSystem = &context.scheduler.add<rtk::systems::HudSystem>(
+      rtk::ecs::Order::Update, std::ref(_window), std::ref(_inputState),
+      _fontRtype);
 }
 
 bool Game::shouldContinue() const {
@@ -388,6 +415,9 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
       context.eventBus.publish(rtype::events::ConnectedToServerEvent{});
     } else if (netEvent.type == NetworkEventType::Rejected) {
       context.eventBus.publish(rtype::events::ConnectionRejectedEvent{});
+    } else if (netEvent.type == NetworkEventType::Disconnected) {
+      LOG_ERROR("Disconnected from the server");
+      _shouldQuit = true;
     } else if (netEvent.type == NetworkEventType::Message) {
       switch (netEvent.messageType) {
       case rtype::protocol::MessageType::RoomList: {
@@ -415,6 +445,10 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           break;
         }
         _currentRoomId = payload.roomId.get();
+        _roomPlayers.clear();
+        _localReady = false;
+        _readyRequestPending = false;
+        _gameStarting = false;
         break;
       }
 
@@ -431,6 +465,10 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           break;
         }
         _currentRoomId = payload.roomId.get();
+        _roomPlayers.clear();
+        _localReady = false;
+        _readyRequestPending = false;
+        _gameStarting = false;
         break;
       }
       case rtype::protocol::MessageType::RoomLeft: {
@@ -445,42 +483,52 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
         if (payload.result != protocol::RoomResult::Success) {
           break;
         }
-        _currentRoomId = std::nullopt;
+        _currentRoomId.reset();
+        _roomPlayers.clear();
+        _localReady = false;
+        _readyRequestPending = false;
+        _gameStarting = false;
+        clearNetworkEntities(context);
+        _networkClient.sendListRoom();
         break;
       }
       case rtype::protocol::MessageType::RoomStateUpdate: {
         PacketReader reader(netEvent.payload);
         protocol::RoomStateUpdatePayload payload{};
-        if (!protocol::readRoomStateUpdate(reader, payload)) {
+        if (!protocol::readRoomStateUpdate(reader, payload))
+          break;
+        if (!reader.isEnd())
+          break;
+        if (!_currentRoomId.has_value() || *_currentRoomId != payload.roomId)
+          break;
+        _roomPlayers = std::move(payload.players);
+        const auto localConnectionId = _networkClient.getConnectionId();
+        bool localPlayerFound = false;
+        for (const auto &player : _roomPlayers) {
+          if (player.connectionId != localConnectionId)
+            continue;
+          _localReady = player.ready;
+          _readyRequestPending = false;
+          localPlayerFound = true;
           break;
         }
-        if (!reader.isEnd()) {
-          break;
-        }
-        if (_currentRoomId != payload.roomId) {
-          break;
-        }
-        _roomPlayers = payload.players;
-        for (uint32_t i = 0U; i < _roomPlayers.size(); i++) {
-          if (_roomPlayers[i].connectionId == netEvent.connectionId) {
-            _localReady = _roomPlayers[i].ready;
-            _readyRequestPending = false;
-          }
+        if (!localPlayerFound) {
+          _localReady = false;
         }
         break;
       }
       case rtype::protocol::MessageType::GameStarting: {
         PacketReader reader(netEvent.payload);
         protocol::GameStartingPayload payload{};
-        if (!protocol::readPayload(reader, payload)) {
+        if (!protocol::readPayload(reader, payload))
           break;
-        }
-        if (!reader.isEnd()) {
+        if (!reader.isEnd())
           break;
-        }
-        if (_currentRoomId != payload.roomId.get()) {
+        if (!_currentRoomId.has_value() ||
+            *_currentRoomId != payload.roomId.get())
           break;
-        }
+        _gameStarting = true;
+        _readyRequestPending = false;
         break;
       }
       default:
@@ -560,9 +608,9 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
       _destroyedEntities.insert(destroyPayload.networkId.get());
 
       if (destroyPayload.reason == protocol::DestroyReason::GameEnded &&
-          !_shouldQuit) {
-        LOG_INFO("GAME OVER");
-        _shouldQuit = true;
+          _gameStarting) {
+        LOG_INFO("Game ended");
+        _gameStarting = false;
       }
 
       auto view = context.registry.view<component::NetworkEntity>();
@@ -694,7 +742,32 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
     }
   }
 
+  if (_hudSystem) {
+    _hudSystem->setInGameScene(_sceneManager.get<GameScene>() != nullptr);
+  }
+
+  const bool escapePressed =
+      rtype::Input::hasAction(_inputState.actionMask,
+                              rtype::Action::LeaveRoom) &&
+      !rtype::Input::hasAction(_previousActionMask, rtype::Action::LeaveRoom);
+  _previousActionMask = _inputState.actionMask;
+  if (escapePressed && _sceneManager.get<RoomLobbyScene>() == nullptr)
+    _shouldQuit = true;
+
   _sceneManager.update(context, _inputState, dt);
+}
+
+void Game::clearNetworkEntities(rtk::EngineContext &context) {
+  std::vector<std::size_t> entities;
+  for (auto entity : context.registry.view<component::NetworkEntity>())
+    entities.push_back(entity);
+
+  for (auto entity : entities) {
+    context.registry.remove_entity_from_all_pools(entity);
+    context.registry.kill_entity(entity);
+  }
+  _networkEntities.clear();
+  _pendingEntityQueries.clear();
 }
 
 void Game::onUnload(rtk::EngineContext &context) {
@@ -880,6 +953,43 @@ const std::vector<protocol::RoomInfoPayload> &Game::getAvailableRooms() const {
 
 const std::optional<std::uint32_t> &Game::getCurrentRoomId() const {
   return _currentRoomId;
+}
+
+const std::vector<protocol::RoomPlayerState> &Game::getRoomPlayers() const {
+  return _roomPlayers;
+}
+
+bool Game::isLocalReady() const { return _localReady; }
+
+bool Game::isReadyRequestPending() const { return _readyRequestPending; }
+
+bool Game::isGameStarting() const { return _gameStarting; }
+
+bool Game::requestReady(bool ready) {
+  if (!_currentRoomId.has_value())
+    return false;
+
+  if (_readyRequestPending)
+    return false;
+
+  if (_gameStarting)
+    return false;
+
+  if (_localReady == ready)
+    return false;
+
+  _readyRequestPending = true;
+  _networkClient.sendSetReady(ready);
+  return true;
+}
+
+bool Game::requestLeaveRoom() {
+  if (!_currentRoomId.has_value())
+    return false;
+  if (_gameStarting)
+    return false;
+  _networkClient.sendLeaveRoom();
+  return true;
 }
 
 const rtk::Font &Game::getFont() const { return _fontRtype; }

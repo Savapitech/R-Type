@@ -11,10 +11,10 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <thread>
 #include <unordered_map>
 #include <vector>
-#include <mutex>
 
 #include "../connection/Connection.hpp"
 #include "../metrics/Metrics.hpp"
@@ -69,7 +69,7 @@ public:
   void send(std::uint32_t connectionId,
             const std::vector<std::uint8_t> &payload,
             PacketPriority priority = PacketPriority::Unreliable);
-  
+
   /**
    * @brief Returns a thread-safe snapshot of network metrics.
    *

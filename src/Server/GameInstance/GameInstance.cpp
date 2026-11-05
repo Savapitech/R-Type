@@ -98,7 +98,8 @@ void GameInstance::update(float dt) {
     return;
 
   _sceneManager.update(_context, _sceneInput, dt);
-  _scheduler.run(_registry, dt);
+  if (_isActive)
+    _scheduler.run(_registry, dt);
   _registry.flush();
 }
 
@@ -286,6 +287,19 @@ void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
       "bidos_death_effect", "assets/descriptionEntity/bidos_death_effect.json");
   context._entityFactory.loadBlueprintFromPath(
       "boss_room", "assets/descriptionEntity/boss_room.json");
+      "enemySpinner", "assets/descriptionEntity/enemySpinner.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "enemyPod", "assets/descriptionEntity/enemyPod.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "enemyDart", "assets/descriptionEntity/enemyDart.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "enemyArmoredPod", "assets/descriptionEntity/enemyArmoredPod.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "enemyCargo", "assets/descriptionEntity/enemyCargo.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "enemyGreenMecha", "assets/descriptionEntity/enemyGreenMecha.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "green_mecha_bullet", "assets/descriptionEntity/green_mecha_bullet.json");
 }
 
 const std::array<std::uint16_t, 4> &GameInstance::getPlayerArchetypes() const {
@@ -618,13 +632,6 @@ bool GameInstance::addConnectedPlayer(std::uint32_t connectionId,
   std::cout << "[GameInstance " << _roomId << "] Player " << connectionId
             << " created (NetworkId: " << networkId << ", Slot: " << slot << ")"
             << std::endl;
-
-  if (_players.size() == 4) {
-    std::cout << "[GameInstance " << _roomId
-              << "] Quota atteint (4/4). Démarrage de la partie !" << std::endl;
-    setGameActive(true);
-    createBackground();
-  }
   return true;
 }
 
@@ -997,6 +1004,8 @@ void GameInstance::respawnPlayers() {
     if (!transform) {
       registry.remove_entity_from_all_pools(entity);
       registry.kill_entity(entity);
+      ++slot;
+      continue;
     }
 
     transform->position = {150.0f, 150.0f + static_cast<float>(slot) * 100.0f};

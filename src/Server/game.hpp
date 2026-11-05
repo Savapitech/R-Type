@@ -1,6 +1,8 @@
 #pragma once
 
 #include "EngineContext.hpp"
+#include "GameInstance/GameInstance.hpp"
+#include "Room/RoomManager.hpp"
 #include "Scene/serverGameScene.hpp"
 #include "Scene/serverLobbyScene.hpp"
 #include "Server.hpp"
@@ -8,16 +10,14 @@
 #include "factoryDataDriven/factoryDataDriven.hpp"
 #include "sceneManager/sceneManager.hpp"
 #include "serverScene.hpp"
-#include "Room/RoomManager.hpp"
-#include "GameInstance/GameInstance.hpp"
 
-#include <memory>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <memory>
 #include <unordered_map>
-#include <chrono>
 
 namespace rtype::server {
 /**
@@ -139,6 +139,10 @@ private:
   void handleRoomRequests();
   void broadcastRoomState(std::uint32_t roomId);
   bool removePlayerFromRoom(std::uint32_t connectionId);
+  /**
+   * @brief Deletes the oldest empty rooms until a new room fits in the list.
+   */
+  void freeRoomListSlot();
   void cleanupOffscreenEnvironment(rtk::EngineContext &context);
   void sendSnapshots(rtk::EngineContext &context);
 
@@ -149,23 +153,23 @@ private:
   void broadcastPlayerDestroyed(std::uint32_t connectionId,
                                 std::uint32_t networkId);
   /**
-  * @brief Displays network statistics at one-second intervals.
-  */
+   * @brief Displays network statistics at one-second intervals.
+   */
   void updateNetworkMetrics();
-  
+
   /**
    * @brief Creates an instance for an existing room.
    * @param roomId Room identifier.
    * @param server Shared network server.
    * @return Pointer to the instance, or nullptr on failure.
    */
-  GameInstance* createGameInstance(std::uint32_t roomId, Server &server);
+  GameInstance *createGameInstance(std::uint32_t roomId, Server &server);
   /**
    * @brief Looks up an instance by room identifier.
    * @param roomId Room identifier.
    * @return Pointer to the instance, or nullptr if missing.
    */
-  GameInstance* getGameInstance(std::uint32_t roomId);
+  GameInstance *getGameInstance(std::uint32_t roomId);
   /**
    * @brief Stops and removes an instance.
    * @param roomId Room identifier.
@@ -173,7 +177,8 @@ private:
    */
   bool destroyGameInstance(std::uint32_t roomId);
 
-  std::unordered_map<std::uint32_t, std::unique_ptr<GameInstance>> _gameInstances;
+  std::unordered_map<std::uint32_t, std::unique_ptr<GameInstance>>
+      _gameInstances;
 
   Server _server;
   std::unordered_map<std::uint32_t, std::size_t> _players;
@@ -185,13 +190,11 @@ private:
   RoomManager _roomManager;
   std::uint32_t _defaultRoomId = 0;
   std::chrono::steady_clock::time_point _lastMetricsTime{
-      std::chrono::steady_clock::now()
-  };
+      std::chrono::steady_clock::now()};
   NetworkMetrics _previousMetrics{};
   bool _metricsInitialized = false;
   std::unordered_map<std::uint32_t, NetworkMetrics> _previousClientMetrics;
-  };
+};
 
 /** @} */
 } // namespace rtype::server
-

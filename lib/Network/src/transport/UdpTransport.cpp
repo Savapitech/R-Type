@@ -46,32 +46,32 @@ void UdpTransport::startReceive() {
 }
 
 void UdpTransport::send(const asio::ip::udp::endpoint &endpoint,
-                        const std::vector<std::uint8_t> &data, 
+                        const std::vector<std::uint8_t> &data,
                         std::function<void(std::size_t)> onSuccess) {
   if (data.size() > MAX_PAYLOAD_SIZE)
     return;
   auto buffer = std::make_shared<std::vector<std::uint8_t>>(data);
   auto destination = std::make_shared<asio::ip::udp::endpoint>(endpoint);
-  asio::post(_socket.get_executor(), [this, destination, buffer,
-    onSuccess = std::move(onSuccess)]() mutable {
-    
-    if (!_socket.is_open())
-      return;
-    _socket.async_send_to(
-        asio::buffer(*buffer), *destination,
-        [this, buffer, destination, onSuccess= std::move(onSuccess)] 
-        (const asio::error_code &error, std::size_t bytesSent) {
-          if (error) {
-            if (error != asio::error::operation_aborted)
-              std::cerr << error.message() << std::endl;
+  asio::post(
+      _socket.get_executor(),
+      [this, destination, buffer, onSuccess = std::move(onSuccess)]() mutable {
+        if (!_socket.is_open())
+          return;
+        _socket.async_send_to(
+            asio::buffer(*buffer), *destination,
+            [this, buffer, destination, onSuccess = std::move(onSuccess)](
+                const asio::error_code &error, std::size_t bytesSent) {
+              if (error) {
+                if (error != asio::error::operation_aborted)
+                  std::cerr << error.message() << std::endl;
 
-            return;
-          }
-          onPacketSend(_metrics, bytesSent);
-          if (onSuccess)
-          onSuccess(bytesSent);
-        });
-  });
+                return;
+              }
+              onPacketSend(_metrics, bytesSent);
+              if (onSuccess)
+                onSuccess(bytesSent);
+            });
+      });
 }
 
 void UdpTransport::setReceiveCallback(

@@ -49,7 +49,7 @@ public:
   void onEnter(rtk::EngineContext &context);
 
   /**
-   * @brief Does nothing, the game stays in this scene.
+   * @brief Goes back to the room lobby once the server ended the game.
    * @param context Engine services.
    * @param inputState Input state of the frame.
    * @param dt Elapsed time since the last frame, in seconds.

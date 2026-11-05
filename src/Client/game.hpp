@@ -26,10 +26,12 @@
 #include "scene/introScene.hpp"
 #include "scene/menuScene.hpp"
 #include "scene/networkConnectionScene.hpp"
+#include "scene/roomLobbyScene.hpp"
 
 namespace rtk::systems {
 class CollisionFlashSystem;
-}
+class HudSystem;
+} // namespace rtk::systems
 
 namespace rtype::events {
 /**
@@ -117,6 +119,43 @@ public:
   const std::optional<std::uint32_t> &getCurrentRoomId() const;
 
   /**
+   * @brief Returns the players currently present in the room.
+   * @return List of players with their connection IDs and ready states.
+   */
+  const std::vector<protocol::RoomPlayerState> &getRoomPlayers() const;
+
+  /**
+   * @brief Returns whether the local player is ready.
+   * @return True if the server confirmed the player's ready state.
+   */
+  bool isLocalReady() const;
+
+  /**
+   * @brief Returns whether a ready-state request is pending.
+   * @return True while waiting for a room state update.
+   */
+  bool isReadyRequestPending() const;
+
+  /**
+   * @brief Returns whether the server has started the current room.
+   * @return True after a valid GameStarting message.
+   */
+  bool isGameStarting() const;
+
+  /**
+   * @brief Requests a ready-state change for the local player.
+   * @param ready Desired ready state.
+   * @return True if a request was initiated.
+   */
+  bool requestReady(bool ready);
+
+  /**
+   * @brief Requests to leave the current room.
+   * @return True if a leave request was initiated.
+   */
+  bool requestLeaveRoom();
+
+  /**
    * @brief Returns the font loaded in the window context.
    * @return return the loaded font.
    */
@@ -137,6 +176,12 @@ private:
   void applySnapshot(rtk::EngineContext &context,
                      const protocol::SnapshotPayload &payload);
   void updateNetworkStats();
+  /**
+   * @brief Destroys every replicated entity, the server does not send
+   * DestroyEntity to a player who leaves the room.
+   * @param context Engine services.
+   */
+  void clearNetworkEntities(rtk::EngineContext &context);
 
   std::unordered_map<protocol::NetworkEntityId, std::size_t> _networkEntities;
   std::unordered_set<std::uint32_t> _pendingEntityQueries;
@@ -147,16 +192,19 @@ private:
   RtkWindowAdapter _adapter;
   RtkAudioAdapter _adapterAudioManager;
   rtk::InputState _inputState{};
+  std::uint32_t _previousActionMask = 0;
   rtk::collision::CollisionBuffer _collisionBuffer;
   rtk::Input::InputMapping _inputMapping;
   rtype::client::NetworkClient _networkClient;
   clientDependancy _dependency;
   rtk::SceneManager<SceneType, clientDependancy, rtk::InputState, IntroScene,
-                    MenuScene, NetworkConnectionScene, RoomListScene, GameScene>
+                    MenuScene, NetworkConnectionScene, RoomListScene,
+                    RoomLobbyScene, GameScene>
       _sceneManager;
 
   rtk::Font _fontRtype;
   rtk::systems::CollisionFlashSystem *_collisionFlashSystem = nullptr;
+  rtk::systems::HudSystem *_hudSystem = nullptr;
   bool _shouldQuit = false;
   std::string _host = "127.0.0.1";
   std::string _port = "4242";
@@ -169,6 +217,7 @@ private:
   std::vector<protocol::RoomPlayerState> _roomPlayers;
   bool _localReady = false;
   bool _readyRequestPending = false;
+  bool _gameStarting = false;
 };
 
 /** @} */

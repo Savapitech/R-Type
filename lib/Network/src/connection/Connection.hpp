@@ -10,9 +10,9 @@
 #include <chrono>
 #include <cstdint>
 
+#include "../metrics/Metrics.hpp"
 #include "../protocol/PacketHeader.hpp"
 #include "../tracking/PacketTracker.hpp"
-#include "../metrics/Metrics.hpp"
 
 /**
  * @brief State the server keeps for one connected client.
