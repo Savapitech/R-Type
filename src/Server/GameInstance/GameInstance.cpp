@@ -109,6 +109,9 @@ void GameInstance::update(float dt) {
             ctrl->weaponType = 0;
           }
         }
+        if (ctrl->isChargingShoot) {
+          ctrl->chargeTimer = std::min(ctrl->chargeTimer + dt, 3.0f);
+        }
       }
     }
     _scheduler.run(_registry, dt);
@@ -255,6 +258,14 @@ void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
       "bullet", "assets/descriptionEntity/bullet.json");
   context._entityFactory.loadBlueprintFromPath(
       "bullet_plasma", "assets/descriptionEntity/bullet_plasma.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_beam_lvl1", "assets/descriptionEntity/bullet_beam_lvl1.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_beam_lvl2", "assets/descriptionEntity/bullet_beam_lvl2.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_beam_lvl3", "assets/descriptionEntity/bullet_beam_lvl3.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "beam_charge_effect", "assets/descriptionEntity/beam_charge_effect.json");
 
   context._entityFactory.loadBlueprintFromPath(
       "enemyBidos", "assets/descriptionEntity/enemyBidos.json");
@@ -637,11 +648,47 @@ void GameInstance::processInput(const Server::InputEvent &inputEvent,
   const bool isShoot =
       rtype::protocol::hasAction(actions, rtype::protocol::InputAction::Shoot);
   if (isShoot) {
-    controllable->isChargingShoot = true;
+    if (!controllable->isChargingShoot) {
+      controllable->isChargingShoot = true;
+      controllable->chargeTimer = 0.0f;
+    }
   } else if (controllable->isChargingShoot) {
+    const float charge = controllable->chargeTimer;
     controllable->isChargingShoot = false;
+    controllable->chargeTimer = 0.0f;
 
-    if (controllable->weaponType == 1) {
+    auto spawnSingleProjectile = [&](const std::string &archetypeName,
+                                     float xOffset, float yOffset) {
+      std::uint32_t bulletNetId =
+          rtype::server::NetworkIdGenerator::getInstance().getNextId();
+
+      auto bulletEntity = _context._entityFactory.createNetwork(
+          _context.registry, archetypeName, bulletNetId);
+      auto *bulletTransform =
+          _context.registry.get_components<component::Transform>().get(
+              bulletEntity);
+
+      if (bulletTransform) {
+        bulletTransform->position = {transform->position.x + xOffset,
+                                     transform->position.y + yOffset};
+        const auto payload = protocol::createEntityPayload(
+            _serverTick, bulletNetId,
+            _context._entityFactory.getArchetypeID(archetypeName),
+            bulletTransform->position.x, bulletTransform->position.y);
+
+        for (const auto &[connectedClientId, entity] : _players) {
+          server.sendCreateEntity(connectedClientId, payload);
+        }
+      }
+    };
+
+    if (charge >= 2.2f) {
+      spawnSingleProjectile("bullet_beam_lvl3", 60.0f, -18.0f);
+    } else if (charge >= 1.4f) {
+      spawnSingleProjectile("bullet_beam_lvl2", 55.0f, -9.0f);
+    } else if (charge >= 0.6f) {
+      spawnSingleProjectile("bullet_beam_lvl1", 50.0f, -2.0f);
+    } else if (controllable->weaponType == 1) {
       const float angles[3] = {0.0f, -0.22f, 0.22f};
       const float yOffsets[3] = {0.0f, -10.0f, 10.0f};
       const std::uint16_t archId =
@@ -682,49 +729,9 @@ void GameInstance::processInput(const Server::InputEvent &inputEvent,
         }
       }
     } else if (controllable->weaponType == 2) {
-      std::uint32_t bulletNetId =
-          rtype::server::NetworkIdGenerator::getInstance().getNextId();
-
-      auto bulletEntity = _context._entityFactory.createNetwork(
-          _context.registry, "bullet_plasma", bulletNetId);
-      auto *bulletTransform =
-          _context.registry.get_components<component::Transform>().get(
-              bulletEntity);
-
-      if (bulletTransform) {
-        bulletTransform->position = {transform->position.x + 55.0f,
-                                     transform->position.y};
-        const auto payload = protocol::createEntityPayload(
-            _serverTick, bulletNetId,
-            _context._entityFactory.getArchetypeID("bullet_plasma"),
-            bulletTransform->position.x, bulletTransform->position.y);
-
-        for (const auto &[connectedClientId, entity] : _players) {
-          server.sendCreateEntity(connectedClientId, payload);
-        }
-      }
+      spawnSingleProjectile("bullet_plasma", 55.0f, 0.0f);
     } else {
-      std::uint32_t bulletNetId =
-          rtype::server::NetworkIdGenerator::getInstance().getNextId();
-
-      auto bulletEntity = _context._entityFactory.createNetwork(
-          _context.registry, "bullet", bulletNetId);
-      auto *bulletTransform =
-          _context.registry.get_components<component::Transform>().get(
-              bulletEntity);
-
-      if (bulletTransform) {
-        bulletTransform->position = {transform->position.x + 50.0f,
-                                     transform->position.y};
-        const auto payload = protocol::createEntityPayload(
-            _serverTick, bulletNetId,
-            _context._entityFactory.getArchetypeID("bullet"),
-            bulletTransform->position.x, bulletTransform->position.y);
-
-        for (const auto &[connectedClientId, entity] : _players) {
-          server.sendCreateEntity(connectedClientId, payload);
-        }
-      }
+      spawnSingleProjectile("bullet", 50.0f, 0.0f);
     }
   }
 }

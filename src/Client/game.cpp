@@ -106,6 +106,14 @@ void Game::loadEntityBluePrint(rtk::EngineContext &context) {
       "bullet", "assets/descriptionEntity/bullet.json");
   context._entityFactory.loadBlueprintFromPath(
       "bullet_plasma", "assets/descriptionEntity/bullet_plasma.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_beam_lvl1", "assets/descriptionEntity/bullet_beam_lvl1.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_beam_lvl2", "assets/descriptionEntity/bullet_beam_lvl2.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_beam_lvl3", "assets/descriptionEntity/bullet_beam_lvl3.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "beam_charge_effect", "assets/descriptionEntity/beam_charge_effect.json");
 
   context._entityFactory.loadBlueprintFromPath(
       "enemyBidos", "assets/descriptionEntity/enemyBidos.json");
@@ -367,6 +375,14 @@ void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
         }
       });
 
+  context.eventBus.subscribe<rtype::events::BeamChargeEvent>(
+      [this](const rtype::events::BeamChargeEvent &event) {
+        if (_hudSystem) {
+          _hudSystem->setBeamCharge(event.chargeRatio, event.chargeLevel,
+                                    event.isCharging);
+        }
+      });
+
   context.eventBus.subscribe<rtype::events::EnemyEscapedEvent>(
       [this, shootSoundId](const rtype::events::EnemyEscapedEvent &) {
         _adapterAudioManager.playSound(shootSoundId);
@@ -490,7 +506,7 @@ void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<rtk::systems::DeathSystem>(rtk::ecs::Order::Update);
   _hudSystem = &context.scheduler.add<rtk::systems::HudSystem>(
       rtk::ecs::Order::Update, std::ref(_window), std::ref(_inputState),
-      _fontRtype);
+      std::ref(context.eventBus), _fontRtype);
 }
 
 bool Game::shouldContinue() const {

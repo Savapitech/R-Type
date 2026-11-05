@@ -11,6 +11,8 @@
 #include "Logger/Logger.hpp"
 #include "components/Controllable.hpp"
 #include "components/Transform.hpp"
+#include "events/GameEvents.hpp"
+#include "events/busEvents.hpp"
 #include "graphical/renderWindow.hpp"
 #include "input/action.hpp"
 #include "inputAction/InputAction.hpp"
@@ -28,6 +30,25 @@ namespace rtk::systems {
 class HudSystem final : public rtk::ecs::ISystem {
 public:
   /**
+   * @brief Creates the HUD system with event bus subscription.
+   * @param window Target render window used to load textures and fonts.
+   * @param inputState Input state holding player action masks.
+   * @param eventBus Shared bus used to listen to beam charge and gameplay events.
+   * @param font Font used to render text strings.
+   */
+  HudSystem(rtk::RenderWindow &window, const rtk::InputState &inputState,
+            busEvent &eventBus, rtk::Font font = {})
+      : _window(window), _inputState(inputState), _eventBus(&eventBus),
+        _font(font) {
+    _eventBus->subscribe<rtype::events::BeamChargeEvent>(
+        [this](const rtype::events::BeamChargeEvent &event) {
+          _beamChargeRatio = event.chargeRatio;
+          _beamChargeLevel = event.chargeLevel;
+          _isBeamCharging = event.isCharging;
+        });
+  }
+
+  /**
    * @brief Creates the HUD system.
    * @param window Target render window used to load textures and fonts.
    * @param inputState Input state holding player action masks.
@@ -35,7 +56,8 @@ public:
    */
   HudSystem(rtk::RenderWindow &window, const rtk::InputState &inputState,
             rtk::Font font = {})
-      : _window(window), _inputState(inputState), _font(font) {}
+      : _window(window), _inputState(inputState), _eventBus(nullptr),
+        _font(font) {}
 
   ~HudSystem() override = default;
 
@@ -85,7 +107,9 @@ public:
     _lastDisplayed = shouldDisplay();
 
     const float updateInterval =
-        (_currentWeapon != 0 && _weaponTimer > 0.0f) ? 0.033f : 0.2f;
+        (_isBeamCharging || (_currentWeapon != 0 && _weaponTimer > 0.0f))
+            ? 0.033f
+            : 0.2f;
 
     if (displayStateChanged) {
       updateTextEntities(reg);
@@ -134,6 +158,30 @@ public:
    */
   [[nodiscard]] std::size_t getShotCount() const noexcept {
     return _shotsFired;
+  }
+
+  /**
+   * @brief Updates the beam charge gauge status.
+   * @param ratio Fill ratio from 0.0 to 1.0.
+   * @param level Charge stage (0: charging, 1: stage 1, 2: stage 2, 3: max).
+   * @param isCharging True while the beam button is held.
+   */
+  void setBeamCharge(float ratio, int level, bool isCharging) noexcept {
+    _beamChargeRatio = ratio;
+    _beamChargeLevel = level;
+    _isBeamCharging = isCharging;
+  }
+
+  [[nodiscard]] float getBeamChargeRatio() const noexcept {
+    return _beamChargeRatio;
+  }
+
+  [[nodiscard]] int getBeamChargeLevel() const noexcept {
+    return _beamChargeLevel;
+  }
+
+  [[nodiscard]] bool isBeamCharging() const noexcept {
+    return _isBeamCharging;
   }
 
   static constexpr int MAX_SPEED_LEVEL = 4;
@@ -505,10 +553,48 @@ private:
     addText(reg, "01", 18.0f, 349.0f, {255, 255, 255, 255}, 0.52f);
 
     addText(reg, "BEAM", 18.0f, 400.0f, {170, 170, 195, 255}, 0.36f);
-    if (isCharging) {
-      addText(reg, "CHARGING", 18.0f, 423.0f, {255, 220, 0, 255}, 0.44f);
+    if (_isBeamCharging || isCharging) {
+      if (_beamChargeLevel == 3) {
+        addText(reg, "MAX BEAM!", 18.0f, 423.0f, {255, 60, 60, 255}, 0.46f);
+      } else if (_beamChargeLevel == 2) {
+        addText(reg, "STAGE 2", 18.0f, 423.0f, {200, 120, 255, 255}, 0.44f);
+      } else if (_beamChargeLevel == 1) {
+        addText(reg, "STAGE 1", 18.0f, 423.0f, {80, 220, 255, 255}, 0.44f);
+      } else {
+        addText(reg, "CHARGING", 18.0f, 423.0f, {255, 220, 0, 255}, 0.44f);
+      }
+
+      constexpr float trackX = 18.0f;
+      constexpr float trackY = 447.0f;
+      constexpr float trackWidth = 154.0f;
+      constexpr float trackHeight = 8.0f;
+
+      addSolidRect(reg, trackX, trackY, trackWidth, trackHeight,
+                   {25, 30, 45, 240});
+
+      const float fillWidth =
+          trackWidth * std::clamp(_beamChargeRatio, 0.0f, 1.0f);
+      if (fillWidth > 0.5f) {
+        rtk::ecs::concepts::ColorRGBA8 beamColor = {255, 220, 0, 255};
+        if (_beamChargeLevel == 1) {
+          beamColor = {80, 220, 255, 255};
+        } else if (_beamChargeLevel == 2) {
+          beamColor = {200, 120, 255, 255};
+        } else if (_beamChargeLevel == 3) {
+          beamColor = {255, 60, 60, 255};
+        }
+        addSolidRect(reg, trackX, trackY, fillWidth, trackHeight, beamColor);
+      }
     } else {
       addText(reg, "READY", 18.0f, 423.0f, {255, 160, 40, 255}, 0.46f);
+
+      constexpr float trackX = 18.0f;
+      constexpr float trackY = 447.0f;
+      constexpr float trackWidth = 154.0f;
+      constexpr float trackHeight = 8.0f;
+
+      addSolidRect(reg, trackX, trackY, trackWidth, trackHeight,
+                   {25, 30, 45, 140});
     }
 
     addText(reg, "SHOTS", 18.0f, 468.0f, {170, 170, 195, 255}, 0.36f);
@@ -620,6 +706,10 @@ private:
   std::uint8_t _currentWeapon = 0;
   float _weaponTimer = 0.0f;
   float _weaponMaxDuration = 5.0f;
+  busEvent *_eventBus = nullptr;
+  float _beamChargeRatio = 0.0f;
+  int _beamChargeLevel = 0;
+  bool _isBeamCharging = false;
   rtk::Texture _whiteTexture{};
 };
 

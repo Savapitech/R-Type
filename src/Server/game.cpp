@@ -157,6 +157,16 @@ void Game::loadEntityBlueprints(rtk::EngineContext &context) {
 
   context._entityFactory.loadBlueprintFromPath(
       "bullet", "assets/descriptionEntity/bullet.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_plasma", "assets/descriptionEntity/bullet_plasma.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_beam_lvl1", "assets/descriptionEntity/bullet_beam_lvl1.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_beam_lvl2", "assets/descriptionEntity/bullet_beam_lvl2.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_beam_lvl3", "assets/descriptionEntity/bullet_beam_lvl3.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "beam_charge_effect", "assets/descriptionEntity/beam_charge_effect.json");
 
   context._entityFactory.loadBlueprintFromPath(
       "enemyBidos", "assets/descriptionEntity/enemyBidos.json");
@@ -260,13 +270,22 @@ void Game::subscribeEvents(rtk::EngineContext &context) {
                   ? event.firstEntity
                   : event.secondEntity;
 
-          deads.insert_at(bulletEnt, {});
-
           auto &enemies = context.registry.get_components<component::Enemy>();
           auto &healths = context.registry.get_components<component::Health>();
           auto &bullets = context.registry.get_components<component::Bullet>();
 
           auto *bulletComp = bullets.get(bulletEnt);
+          if (bulletComp && bulletComp->piercing) {
+            if (std::find(bulletComp->hitEntities.begin(),
+                          bulletComp->hitEntities.end(),
+                          enemyEnt) != bulletComp->hitEntities.end()) {
+              return;
+            }
+            bulletComp->hitEntities.push_back(enemyEnt);
+          } else {
+            deads.insert_at(bulletEnt, {});
+          }
+
           const float damage = bulletComp ? bulletComp->damage : 10.0f;
 
           auto *enemyComp = enemies.get(enemyEnt);

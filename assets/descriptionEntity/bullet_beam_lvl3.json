@@ -1,0 +1,71 @@
+{
+  "components": {
+    "transform": {
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "scale": {
+        "x": 2.2,
+        "y": 2.2
+      },
+      "rotation": 0.0
+    },
+    "sprite": {
+      "texture": "assets/entityTexture/bullet.png",
+      "size": {
+        "w": 32.0,
+        "h": 32.0
+      },
+      "origin": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "textureRect": {
+        "x": 96,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "color": {
+        "r": 255,
+        "g": 255,
+        "b": 255,
+        "a": 255
+      },
+      "layer": 0
+    },
+    "animation": {
+      "frameDuration": 0.3,
+      "totalFrames": 1,
+      "frameWidth": 32,
+      "frameHeight": 32,
+      "startX": 96,
+      "startY": 0,
+      "columns": 1,
+      "loop": false,
+      "playing": false
+    },
+    "collider": {
+      "width": 31.0,
+      "height": 16.0,
+      "offsetX": 0.0,
+      "offsetY": 8.0,
+      "layer": "PlayerProjectile",
+      "mask": [
+        "EnemyProjectile",
+        "Enemy",
+        "Environment"
+      ]
+    },
+    "velocity": {
+      "x": 1100.0,
+      "y": 0.0
+    },
+    "bullet": {
+      "damage": 120.0,
+      "piercing": true
+    },
+    "networkEntity": {}
+  }
+}
