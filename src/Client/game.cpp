@@ -368,6 +368,49 @@ void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
         _shouldQuit = true;
         _inputState.closeRequested = true;
       });
+
+  context.eventBus.subscribe<rtk::collision::Collision>(
+      [this, &context](const rtk::collision::Collision &event) {
+        auto *colA =
+            context.registry.get_components<component::AABBCollider>().get(
+                event.firstEntity);
+        auto *colB =
+            context.registry.get_components<component::AABBCollider>().get(
+                event.secondEntity);
+        if (!colA || !colB)
+          return;
+
+        const std::uint32_t collisionPair = colA->layer | colB->layer;
+        const std::uint32_t playerVsPowerup =
+            Collider::CollisionLayer::Player | Collider::CollisionLayer::PowerUp;
+
+        if (collisionPair == playerVsPowerup) {
+          const std::size_t playerEnt =
+              (colA->layer == Collider::CollisionLayer::Player)
+                  ? event.firstEntity
+                  : event.secondEntity;
+          const std::size_t powerupEnt =
+              (colA->layer == Collider::CollisionLayer::PowerUp)
+                  ? event.firstEntity
+                  : event.secondEntity;
+
+          auto *powerupComp =
+              context.registry.get_components<component::powerUp>().get(
+                  powerupEnt);
+          if (powerupComp &&
+              powerupComp->type == component::powerUpType::Speed) {
+            auto *speedComp =
+                context.registry.get_components<component::Controllable>().get(
+                    playerEnt);
+            if (speedComp) {
+              speedComp->speed += powerupComp->value;
+            }
+            if (_hudSystem) {
+              _hudSystem->addSpeedBonus();
+            }
+          }
+        }
+      });
 }
 
 void Game::addSystems(rtk::EngineContext &context) {

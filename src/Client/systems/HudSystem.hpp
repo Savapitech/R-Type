@@ -121,6 +121,25 @@ public:
     return _shotsFired;
   }
 
+  /**
+   * @brief Increments the collected speed bonus count.
+   */
+  void addSpeedBonus() noexcept { ++_speedBonusCount; }
+
+  /**
+   * @brief Sets the collected speed bonus count.
+   * @param count Speed bonus count.
+   */
+  void setSpeedBonusCount(int count) noexcept { _speedBonusCount = count; }
+
+  /**
+   * @brief Returns the collected speed bonus count.
+   * @return Active speed bonuses count.
+   */
+  [[nodiscard]] int getSpeedBonusCount() const noexcept {
+    return _speedBonusCount;
+  }
+
   [[nodiscard]] bool isVisible() const noexcept { return _visible; }
 
   [[nodiscard]] bool shouldDisplay() const noexcept {
@@ -265,6 +284,34 @@ private:
     }
   }
 
+  void addSprite(rtk::ecs::Registry &reg, uint32_t textureId, float x, float y,
+                 float width, float height,
+                 const rtk::ecs::concepts::ColorRGBA8 &color,
+                 float scale = 1.0f) {
+    const auto entity = reg.spawn_entity();
+
+    component::Transform transform{};
+    transform.position = {x, y};
+    transform.scale = {scale, scale};
+    transform.rotation = 0.0f;
+
+    rtk::ecs::concepts::SpriteData sprite{};
+    sprite.textureId = textureId;
+    sprite.size = {width * scale, height * scale};
+    sprite.origin = {0.0f, 0.0f};
+    sprite.textureRect = {0, 0, static_cast<uint16_t>(width),
+                          static_cast<uint16_t>(height)};
+    sprite.color = color;
+    sprite.scale = {scale, scale};
+    sprite.layer = 101;
+    sprite.flags = 0;
+
+    reg.get_components<component::Transform>().insert_at(entity, transform);
+    reg.get_components<rtk::ecs::concepts::SpriteData>().insert_at(entity,
+                                                                   sprite);
+    _textEntities.push_back(entity);
+  }
+
   void updateTextEntities(rtk::ecs::Registry &reg) {
     clearTextEntities(reg);
 
@@ -312,9 +359,42 @@ private:
       addText(reg, "READY", 18.0f, 418.0f, {255, 160, 40, 255}, 0.46f);
     }
 
-    addText(reg, "SHOTS", 18.0f, 475.0f, {170, 170, 195, 255}, 0.36f);
-    addText(reg, std::to_string(_shotsFired), 18.0f, 498.0f,
-            {255, 120, 120, 255}, 0.52f);
+    addText(reg, "SHOTS", 18.0f, 465.0f, {170, 170, 195, 255}, 0.36f);
+    addText(reg, std::to_string(_shotsFired), 18.0f, 488.0f,
+            {255, 120, 120, 255}, 0.50f);
+
+    addText(reg, "BONUS", 18.0f, 535.0f, {170, 170, 195, 255}, 0.36f);
+
+    int speedBonus = _speedBonusCount;
+    for (auto ent : reg.view<component::Controllable>()) {
+      if (const auto *ctrl =
+              reg.get_components<component::Controllable>().get(ent)) {
+        if (ctrl->speed > 300.0f) {
+          const int countFromSpeed =
+              static_cast<int>((ctrl->speed - 300.0f) / 100.0f + 0.5f);
+          speedBonus = std::max(speedBonus, countFromSpeed);
+        }
+      }
+    }
+
+    if (!_speedTexture.isValid()) {
+      _speedTexture = _window.loadTexture("assets/entityTexture/speedBoost.png");
+    }
+
+    if (_speedTexture.isValid()) {
+      if (speedBonus > 0) {
+        addSprite(reg, _speedTexture.getHandle(), 18.0f, 560.0f, 32.0f, 32.0f,
+                  {255, 255, 255, 255}, 0.85f);
+        addText(reg, "SPEED", 50.0f, 558.0f, {0, 240, 255, 255}, 0.34f);
+        addText(reg, "LVL " + std::to_string(speedBonus), 50.0f, 574.0f,
+                {255, 220, 0, 255}, 0.34f);
+      } else {
+        addSprite(reg, _speedTexture.getHandle(), 18.0f, 560.0f, 32.0f, 32.0f,
+                  {70, 70, 90, 100}, 0.85f);
+        addText(reg, "SPEED", 50.0f, 558.0f, {100, 100, 120, 130}, 0.34f);
+        addText(reg, "NONE", 50.0f, 574.0f, {100, 100, 120, 130}, 0.32f);
+      }
+    }
 
     addText(reg, "H  TOGGLE", 18.0f, 680.0f, {120, 120, 150, 200}, 0.34f);
   }
@@ -355,6 +435,8 @@ private:
   float _elapsedTime = 0.0f;
   float _textUpdateTimer = 0.0f;
   std::size_t _shotsFired = 0;
+  rtk::Texture _speedTexture{};
+  int _speedBonusCount = 0;
 };
 
 /** @} */
