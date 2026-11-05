@@ -224,67 +224,13 @@ void GameInstance::registerBuilders(rtk::EngineContext &context) {
 }
 
 void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
-  _playerArchetypes[0] = context._entityFactory.loadBlueprintFromPath(
-      "player_blue", "assets/descriptionEntity/player_blue.json");
-  _playerArchetypes[1] = context._entityFactory.loadBlueprintFromPath(
-      "player_green", "assets/descriptionEntity/player_green.json");
+  context._entityFactory.loadBlueprintManifest("assets/blueprints.json");
 
-  _playerArchetypes[2] = context._entityFactory.loadBlueprintFromPath(
-      "player_pink", "assets/descriptionEntity/player_pink.json");
-
-  _playerArchetypes[3] = context._entityFactory.loadBlueprintFromPath(
-      "player_red", "assets/descriptionEntity/player_red.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "player", "assets/descriptionEntity/player.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "bullet", "assets/descriptionEntity/bullet.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyBidos", "assets/descriptionEntity/enemyBidos.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyRedShip", "assets/descriptionEntity/enemyRedShip.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "gate", "assets/descriptionEntity/gate.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "ramp", "assets/descriptionEntity/ramp.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "reactor", "assets/descriptionEntity/reactor.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "high_ground", "assets/descriptionEntity/high_ground.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "low_ground", "assets/descriptionEntity/low_ground.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "medium_ground", "assets/descriptionEntity/medium_ground.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "enemy_bullet", "assets/descriptionEntity/enemy_bullet.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "background_stars", "assets/descriptionEntity/background_star.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "background_fast_stars",
-      "assets/descriptionEntity/background_fast_star.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "thruster", "assets/descriptionEntity/thruster.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "explosion", "assets/descriptionEntity/explosion.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "powerup_speed", "assets/powerUp/powerUp_speed.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyMecha", "assets/descriptionEntity/enemyMecha.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "mecha_bullet", "assets/descriptionEntity/mecha_bullet.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "bidos_death_effect", "assets/descriptionEntity/bidos_death_effect.json");
+  const auto &factory = context._entityFactory;
+  _playerArchetypes[0] = factory.getArchetypeID("player_blue");
+  _playerArchetypes[1] = factory.getArchetypeID("player_green");
+  _playerArchetypes[2] = factory.getArchetypeID("player_pink");
+  _playerArchetypes[3] = factory.getArchetypeID("player_red");
 }
 
 const std::array<std::uint16_t, 4> &GameInstance::getPlayerArchetypes() const {
@@ -315,7 +261,8 @@ void GameInstance::addSystems(Server &server) {
 
   context.scheduler.add<rtk::systems::EnemySpawnerSystem>(
       rtk::ecs::Order::Update, std::ref(context._entityFactory),
-      std::ref(context.eventBus), [this]() { return _isActive; });
+      std::ref(context.eventBus),
+      [this]() { return _isActive && _stageRandomSpawns; });
 
   context.scheduler.add<rtk::systems::EnemyGCSystem>(
       rtk::ecs::Order::SecondUpdate, context.eventBus);
@@ -1062,6 +1009,35 @@ void GameInstance::loadStage(rtk::EngineContext &context,
   _stageObstaclesSpawned = 0;
   _stageActive = true;
 
+  _stageRandomSpawns = stageJson.value("randomSpawns", true);
+  _stageSpawns.clear();
+  _nextStageSpawn = 0;
+  if (stageJson.contains("spawns") && stageJson["spawns"].is_array()) {
+    for (const auto &spawn : stageJson["spawns"]) {
+      StageSpawn entry;
+      entry.blueprint = spawn.value("blueprint", "");
+      if (entry.blueprint.empty() ||
+          !context._entityFactory.hasBlueprint(entry.blueprint)) {
+        std::cerr << "[Server] Ignoring spawn with unknown blueprint '"
+                  << entry.blueprint << "' in " << stagePath << std::endl;
+        continue;
+      }
+      entry.time = spawn.value("time", 0.0f);
+      entry.x = spawn.value("x", 1300.0f);
+      entry.y = spawn.value("y", 0.0f);
+      if (spawn.contains("wave") && spawn["wave"].is_object()) {
+        entry.hasWave = true;
+        entry.wave.amplitude = spawn["wave"].value("amplitude", 120.0f);
+        entry.wave.frequency = spawn["wave"].value("frequency", 2.5f);
+      }
+      _stageSpawns.push_back(std::move(entry));
+    }
+    std::stable_sort(_stageSpawns.begin(), _stageSpawns.end(),
+                     [](const StageSpawn &a, const StageSpawn &b) {
+                       return a.time < b.time;
+                     });
+  }
+
   float currentX = stageJson.value("startX", 0.0f);
   if (!stageJson.contains("segments") || !stageJson["segments"].is_array()) {
     std::cerr << "[Server] Stage file missing 'segments' array: " << stagePath
@@ -1203,8 +1179,19 @@ bool GameInstance::isStageFinished(rtk::EngineContext &context) const {
   if (_stageDuration > 0.0f && _stageTimer >= _stageDuration)
     return true;
 
+  if (_nextStageSpawn < _stageSpawns.size())
+    return false;
+
   if (_stageObstaclesSpawned > 0 && !hasActiveEnvironmentEntities(context))
     return true;
+
+  // Terrain-less stage driven only by scripted spawns: done once they have all
+  // been played and the last enemy is gone.
+  if (_stageObstaclesSpawned == 0 && !_stageSpawns.empty() &&
+      !_stageRandomSpawns) {
+    auto enemies = context.registry.view<component::Enemy>();
+    return !(enemies.begin() != enemies.end());
+  }
   return false;
 }
 
@@ -1230,11 +1217,43 @@ bool GameInstance::advanceToNextStage(rtk::EngineContext &context) {
   return true;
 }
 
+void GameInstance::spawnDueStageEntities(rtk::EngineContext &context) {
+  while (_nextStageSpawn < _stageSpawns.size() &&
+         _stageSpawns[_nextStageSpawn].time <= _stageTimer) {
+    const StageSpawn &spawn = _stageSpawns[_nextStageSpawn++];
+    const std::uint32_t netId = NetworkIdGenerator::getInstance().getNextId();
+    const auto entity = context._entityFactory.createNetwork(
+        context.registry, spawn.blueprint, netId);
+
+    auto *transform =
+        context.registry.get_components<component::Transform>().get(entity);
+    if (!transform)
+      continue;
+    transform->position.x = spawn.x;
+    transform->position.y = spawn.y;
+
+    auto *wave =
+        context.registry.get_components<component::WaveMovement>().get(entity);
+    if (wave) {
+      wave->baseY = spawn.y;
+      wave->time = 0.0f;
+      if (spawn.hasWave) {
+        wave->amplitude = spawn.wave.amplitude;
+        wave->frequency = spawn.wave.frequency;
+      }
+    }
+
+    context.eventBus.publish(rtype::events::EnemySpawnedEvent{
+        netId, spawn.x, spawn.y, spawn.blueprint});
+  }
+}
+
 void GameInstance::updateStage(float dt) {
   auto &context = _context;
   if (!_isActive || !_stageActive)
     return;
   _stageTimer += dt;
+  spawnDueStageEntities(context);
   if (isStageFinished(context)) {
     if (!advanceToNextStage(context)) {
       _allStagesCompleted = true;

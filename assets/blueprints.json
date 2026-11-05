@@ -1,0 +1,100 @@
+{
+  "blueprints": [
+    {
+      "name": "player_blue",
+      "file": "assets/descriptionEntity/player_blue.json"
+    },
+    {
+      "name": "player_green",
+      "file": "assets/descriptionEntity/player_green.json"
+    },
+    {
+      "name": "player_pink",
+      "file": "assets/descriptionEntity/player_pink.json"
+    },
+    {
+      "name": "player_red",
+      "file": "assets/descriptionEntity/player_red.json"
+    },
+    {
+      "name": "player",
+      "file": "assets/descriptionEntity/player.json"
+    },
+    {
+      "name": "bullet",
+      "file": "assets/descriptionEntity/bullet.json"
+    },
+    {
+      "name": "enemyBidos",
+      "file": "assets/descriptionEntity/enemyBidos.json"
+    },
+    {
+      "name": "enemyRedShip",
+      "file": "assets/descriptionEntity/enemyRedShip.json"
+    },
+    {
+      "name": "gate",
+      "file": "assets/descriptionEntity/gate.json"
+    },
+    {
+      "name": "ramp",
+      "file": "assets/descriptionEntity/ramp.json"
+    },
+    {
+      "name": "reactor",
+      "file": "assets/descriptionEntity/reactor.json"
+    },
+    {
+      "name": "high_ground",
+      "file": "assets/descriptionEntity/high_ground.json"
+    },
+    {
+      "name": "low_ground",
+      "file": "assets/descriptionEntity/low_ground.json"
+    },
+    {
+      "name": "medium_ground",
+      "file": "assets/descriptionEntity/medium_ground.json"
+    },
+    {
+      "name": "enemy_bullet",
+      "file": "assets/descriptionEntity/enemy_bullet.json"
+    },
+    {
+      "name": "background_stars",
+      "file": "assets/descriptionEntity/background_star.json"
+    },
+    {
+      "name": "background_fast_stars",
+      "file": "assets/descriptionEntity/background_fast_star.json"
+    },
+    {
+      "name": "thruster",
+      "file": "assets/descriptionEntity/thruster.json"
+    },
+    {
+      "name": "explosion",
+      "file": "assets/descriptionEntity/explosion.json"
+    },
+    {
+      "name": "powerup_speed",
+      "file": "assets/powerUp/powerUp_speed.json"
+    },
+    {
+      "name": "enemyMecha",
+      "file": "assets/descriptionEntity/enemyMecha.json"
+    },
+    {
+      "name": "mecha_bullet",
+      "file": "assets/descriptionEntity/mecha_bullet.json"
+    },
+    {
+      "name": "bidos_death_effect",
+      "file": "assets/descriptionEntity/bidos_death_effect.json"
+    },
+    {
+      "name": "new_entity",
+      "file": "assets/descriptionEntity/new_entity.json"
+    }
+  ]
+}

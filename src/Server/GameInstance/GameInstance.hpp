@@ -10,7 +10,9 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace rtype::server {
 
@@ -243,6 +245,32 @@ private:
   std::size_t _stageObstaclesSpawned = 0;
   bool _stageActive = false;
   bool _allStagesCompleted = false;
+  bool _stageRandomSpawns = true;
+
+  /// Optional sinusoidal flight parameters of a scripted spawn.
+  struct StageSpawnWave {
+    float amplitude = 120.0f;
+    float frequency = 2.5f;
+  };
+
+  /// Entity placed by the level editor, spawned once `time` is reached.
+  struct StageSpawn {
+    std::string blueprint;
+    float time = 0.0f;
+    float x = 1300.0f;
+    float y = 0.0f;
+    bool hasWave = false;
+    StageSpawnWave wave;
+  };
+
+  std::vector<StageSpawn> _stageSpawns;
+  std::size_t _nextStageSpawn = 0;
+
+  /**
+   * @brief Spawns every scripted entity whose time has been reached.
+   * @param context Instance engine context.
+   */
+  void spawnDueStageEntities(rtk::EngineContext &context);
 
   /**
    * @brief Registers components in the instance registry.
