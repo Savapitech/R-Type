@@ -5,6 +5,8 @@
 #include <string>
 
 #include "GameEngine.hpp"
+#include "audio/DynamicLibrary.hpp"
+#include "audio/IAudioEngine.hpp"
 #include "collision/collisionBuffer.hpp"
 #include "factoryDataDriven/factoryDataDriven.hpp"
 #include "inputAction/inputMapping.hpp"
@@ -73,6 +75,9 @@ private:
   void applySnapshot(rtk::EngineContext &context,
                      const pong::protocol::ServerSnapshotMsg &snap);
 
+  void loadAudioPlugin(const std::string &libPath);
+  void switchAudioPlugin();
+
   std::string _host;
   std::string _port;
   asio::io_context _ioContext;
@@ -98,6 +103,14 @@ private:
   pong::systems::PongPaddleSystem *_paddleSystem = nullptr;
   bool _matchStarted = false;
   bool _shouldQuit = false;
+
+  rtk::audio::DynamicLibrary _audioLib{};
+  rtk::audio::IAudioEngine *_audioEngine = nullptr;
+  DestroyAudioEngineFn _destroyAudioFn = nullptr;
+  std::size_t _activePluginIndex = 0;
+  std::size_t _bounceSoundId = static_cast<std::size_t>(-1);
+  std::size_t _scoreSoundId = static_cast<std::size_t>(-1);
+  std::uint32_t _previousActionMask = 0;
 };
 
 } // namespace pong::client

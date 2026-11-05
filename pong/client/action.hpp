@@ -15,7 +15,8 @@ enum class Action : std::uint32_t {
   P2Up = 1 << 2,    ///< Player 2 move up (Up arrow).
   P2Down = 1 << 3,  ///< Player 2 move down (Down arrow).
   Confirm = 1 << 4, ///< Start game / validate (Space / Enter).
-  Back = 1 << 5     ///< Return to menu / quit scene (Escape).
+  Back = 1 << 5,    ///< Return to menu / quit scene (Escape).
+  ToggleAudio = 1 << 6 ///< Switch audio engine plugin (S / A).
 };
 
 namespace Input {
@@ -50,6 +51,8 @@ namespace Input {
     return 4;
   case Action::Back:
     return 5;
+  case Action::ToggleAudio:
+    return 6;
   default:
     return 0;
   }
