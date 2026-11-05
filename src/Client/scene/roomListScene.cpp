@@ -8,6 +8,7 @@
 #include "scene/menuScene.hpp"
 #include "scene/sceneType.hpp"
 #include "systems/RenderConcept.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <font/font.hpp>
@@ -217,8 +218,16 @@ RoomListScene::onUpdate(rtk::EngineContext &context,
     return SceneType::RoomLobby;
   }
   updateSelectionVisuals(context);
-  if (_dependency.game.getAvailableRooms().size() !=
-      _roomsDynamicEntities.size()) {
+  const auto &availableRooms = _dependency.game.getAvailableRooms();
+  const bool sameRooms = std::equal(
+      availableRooms.begin(), availableRooms.end(), _displayedRoomIds.begin(),
+      _displayedRoomIds.end(),
+      [](const auto &room, std::uint32_t id) { return room.roomId == id; });
+  if (!sameRooms) {
+    _displayedRoomIds.clear();
+    for (const auto &room : availableRooms) {
+      _displayedRoomIds.push_back(room.roomId);
+    }
     for (uint16_t i = 0U; i < _roomsDynamicEntities.size(); i++) {
       context.registry.kill_entity(_roomsDynamicEntities[i]);
     }

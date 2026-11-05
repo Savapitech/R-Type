@@ -17,7 +17,7 @@ public:
   /**
    * @brief Creates and registers a new room.
    * @param name Display name for the room.
-   * @param persistent True to keep the room once its last player leaves.
+   * @param persistent True if the room can never be deleted.
    * @return Identifier of the created room.
    */
   std::uint32_t createRoom(const std::string &name, bool persistent = false);
@@ -29,8 +29,7 @@ public:
    */
   bool joinRoom(std::uint32_t connectionId, std::uint32_t roomId);
   /**
-   * @brief Removes a connection and deletes its room if empty, unless the
-   * room is persistent.
+   * @brief Removes a connection from its room, an emptied room stays listed.
    * @param connectionId Connection to remove.
    * @return True if a membership was removed.
    */
@@ -84,6 +83,11 @@ public:
    * @return True if the room was deleted.
    */
   bool deleteRoom(std::uint32_t roomId);
+  /**
+   * @brief Deletes the oldest room that is empty and not persistent.
+   * @return Identifier of the deleted room, or std::nullopt if none qualifies.
+   */
+  std::optional<std::uint32_t> deleteOldestEmptyRoom();
 
 private:
   std::uint32_t _nextRoomId = 1;

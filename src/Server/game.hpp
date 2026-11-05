@@ -139,6 +139,10 @@ private:
   void handleRoomRequests();
   void broadcastRoomState(std::uint32_t roomId);
   bool removePlayerFromRoom(std::uint32_t connectionId);
+  /**
+   * @brief Deletes the oldest empty rooms until a new room fits in the list.
+   */
+  void freeRoomListSlot();
   void cleanupOffscreenEnvironment(rtk::EngineContext &context);
   void sendSnapshots(rtk::EngineContext &context);
 

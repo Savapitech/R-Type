@@ -61,10 +61,6 @@ bool RoomManager::leaveRoom(std::uint32_t connectionId) {
     return false;
 
   _playersRooms.erase(itP);
-
-  if (room.isEmpty() && !room.isPersistent())
-    _rooms.erase(itR);
-
   return true;
 }
 
@@ -136,6 +132,14 @@ bool RoomManager::deleteRoom(std::uint32_t roomId) {
     return false;
   _rooms.erase(it);
   return true;
+}
+
+std::optional<std::uint32_t> RoomManager::deleteOldestEmptyRoom() {
+  for (const auto roomId : listRooms()) {
+    if (deleteRoom(roomId))
+      return roomId;
+  }
+  return std::nullopt;
 }
 
 } // namespace rtype::server

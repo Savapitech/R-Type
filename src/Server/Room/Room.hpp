@@ -102,13 +102,13 @@ public:
    */
   void setState(RoomState state);
   /**
-   * @brief Chooses whether the room stays registered once empty.
-   * @param persistent True to keep the room when its last player leaves.
+   * @brief Chooses whether the room can be deleted once empty.
+   * @param persistent True if the room can never be deleted.
    */
   void setPersistent(bool persistent);
   /**
-   * @brief Checks whether the room stays registered once empty.
-   * @return True if the room is kept when its last player leaves.
+   * @brief Checks whether the room can be deleted once empty.
+   * @return True if the room can never be deleted.
    */
   bool isPersistent() const;
 

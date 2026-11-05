@@ -643,13 +643,20 @@ bool Game::removePlayerFromRoom(std::uint32_t connectionId) {
     instance->removeConnectedPlayer(connectionId, _server);
   }
   _roomManager.leaveRoom(connectionId);
-  if (!_roomManager.getRoom(id)) {
-    destroyGameInstance(id);
-  } else
-    broadcastRoomState(id);
+  broadcastRoomState(id);
   std::cout << "[Server] Player " << connectionId << " left room " << id
             << std::endl;
   return true;
+}
+
+void Game::freeRoomListSlot() {
+  while (_roomManager.listRooms().size() >= protocol::MAX_ROOMS_PER_LIST) {
+    const auto roomId = _roomManager.deleteOldestEmptyRoom();
+    if (!roomId)
+      return;
+    destroyGameInstance(*roomId);
+    std::cout << "[Server] Removed empty room " << *roomId << std::endl;
+  }
 }
 
 void Game::broadcastRoomState(std::uint32_t roomId) {
@@ -700,6 +707,7 @@ void Game::handleRoomRequests() {
         _server.sendRoomCreated(connectionId, res);
         break;
       }
+      freeRoomListSlot();
       const auto roomId = _roomManager.createRoom(event.roomName);
       if (!_roomManager.joinRoom(connectionId, roomId)) {
         _roomManager.deleteRoom(roomId);
@@ -710,6 +718,7 @@ void Game::handleRoomRequests() {
       auto *instance = createGameInstance(roomId, _server);
       if (!instance) {
         _roomManager.leaveRoom(connectionId);
+        _roomManager.deleteRoom(roomId);
         res.result = protocol::RoomResult::InternalError;
         _server.sendRoomCreated(connectionId, res);
         break;
@@ -717,8 +726,8 @@ void Game::handleRoomRequests() {
       instance->start(_server);
       if (!instance->addConnectedPlayer(connectionId, _server)) {
         _roomManager.leaveRoom(connectionId);
-        if (!_roomManager.getRoom(roomId))
-          destroyGameInstance(roomId);
+        _roomManager.deleteRoom(roomId);
+        destroyGameInstance(roomId);
         res.result = protocol::RoomResult::InternalError;
         _server.sendRoomCreated(connectionId, res);
         break;
