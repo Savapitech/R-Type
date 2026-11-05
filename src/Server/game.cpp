@@ -55,7 +55,7 @@ Game::~Game() = default;
 void Game::onLoad(rtk::EngineContext &) {
 
   _server.start();
-  _defaultRoomId = _roomManager.createRoom("Default Room");
+  _defaultRoomId = _roomManager.createRoom("Default Room", true);
   GameInstance *instance = createGameInstance(_defaultRoomId, _server);
 
   if (!instance)

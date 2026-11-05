@@ -49,6 +49,10 @@ const std::vector<std::uint32_t> &Room::getPlayers() const { return _players; }
 
 void Room::setState(RoomState state) { _state = state; }
 
+void Room::setPersistent(bool persistent) { _persistent = persistent; }
+
+bool Room::isPersistent() const { return _persistent; }
+
 bool Room::setPlayerReady(std::uint32_t connectionId, bool ready) {
   if (_state != RoomState::Waiting)
     return false;

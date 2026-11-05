@@ -4,16 +4,20 @@
 #include <cstdint>
 #include <optional>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 namespace rtype::server {
 
-std::uint32_t RoomManager::createRoom(const std::string &name) {
+std::uint32_t RoomManager::createRoom(const std::string &name,
+                                      bool persistent) {
   if (_nextRoomId == 0)
     throw std::overflow_error("No Id for the Room available.");
 
   const std::uint32_t id = _nextRoomId++;
-  _rooms.emplace(id, std::make_unique<Room>(id, name));
+  auto room = std::make_unique<Room>(id, name);
+  room->setPersistent(persistent);
+  _rooms.emplace(id, std::move(room));
   return id;
 }
 
@@ -58,7 +62,7 @@ bool RoomManager::leaveRoom(std::uint32_t connectionId) {
 
   _playersRooms.erase(itP);
 
-  if (room.isEmpty())
+  if (room.isEmpty() && !room.isPersistent())
     _rooms.erase(itR);
 
   return true;
@@ -127,7 +131,8 @@ std::vector<std::uint32_t> RoomManager::listRooms() const {
 
 bool RoomManager::deleteRoom(std::uint32_t roomId) {
   auto it = _rooms.find(roomId);
-  if (it == _rooms.end() || !it->second->isEmpty())
+  if (it == _rooms.end() || !it->second->isEmpty() ||
+      it->second->isPersistent())
     return false;
   _rooms.erase(it);
   return true;

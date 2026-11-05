@@ -186,6 +186,12 @@ RoomListScene::onUpdate(rtk::EngineContext &context,
 
   _previousActionMask = inputState.actionMask;
 
+  const int optionCount =
+      static_cast<int>(_dependency.game.getAvailableRooms().size()) + 2;
+  if (_selectedOption >= optionCount) {
+    _selectedOption = optionCount - 1;
+  }
+
   if (upPressed) {
     _selectedOption = (_selectedOption - 1 +
                        (_dependency.game.getAvailableRooms().size() + 2)) %

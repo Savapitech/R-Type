@@ -101,11 +101,22 @@ public:
    * @param state New room state.
    */
   void setState(RoomState state);
+  /**
+   * @brief Chooses whether the room stays registered once empty.
+   * @param persistent True to keep the room when its last player leaves.
+   */
+  void setPersistent(bool persistent);
+  /**
+   * @brief Checks whether the room stays registered once empty.
+   * @return True if the room is kept when its last player leaves.
+   */
+  bool isPersistent() const;
 
 private:
   std::uint32_t _roomId;
   std::string _name;
   std::size_t _maxPlayers;
+  bool _persistent = false;
   RoomState _state = RoomState::Waiting;
   std::vector<std::uint32_t> _players;
   std::unordered_map<std::uint32_t, bool> _readyStates;
