@@ -196,6 +196,12 @@ void Game::loadEntityBlueprints(rtk::EngineContext &context) {
       "explosion", "assets/descriptionEntity/explosion.json");
   context._entityFactory.loadBlueprintFromPath(
       "powerup_speed", "assets/powerUp/powerUp_speed.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "powerup_spread", "assets/powerUp/powerUp_spread.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "powerup_plasma", "assets/powerUp/powerUp_plasma.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_plasma", "assets/descriptionEntity/bullet_plasma.json");
 }
 
 void Game::subscribeEvents(rtk::EngineContext &context) {

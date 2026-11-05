@@ -63,7 +63,20 @@ public:
   /**
    * @brief Sends an Input message and publishes a shot on button release.
    */
-  void update(rtk::ecs::Registry &, float) override {
+  void update(rtk::ecs::Registry &reg, float dt) override {
+    for (auto ent : reg.view<component::Controllable>()) {
+      if (auto *ctrl =
+              reg.get_components<component::Controllable>().get(ent)) {
+        if (ctrl->weaponTimer > 0.0f) {
+          ctrl->weaponTimer -= dt;
+          if (ctrl->weaponTimer <= 0.0f) {
+            ctrl->weaponTimer = 0.0f;
+            ctrl->weaponType = 0;
+          }
+        }
+      }
+    }
+
     sendInputsToServer();
     handleShootingAudio();
     _clientTick++;

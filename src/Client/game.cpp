@@ -104,6 +104,8 @@ void Game::loadEntityBluePrint(rtk::EngineContext &context) {
 
   context._entityFactory.loadBlueprintFromPath(
       "bullet", "assets/descriptionEntity/bullet.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_plasma", "assets/descriptionEntity/bullet_plasma.json");
 
   context._entityFactory.loadBlueprintFromPath(
       "enemyBidos", "assets/descriptionEntity/enemyBidos.json");
@@ -143,6 +145,10 @@ void Game::loadEntityBluePrint(rtk::EngineContext &context) {
       "explosion", "assets/descriptionEntity/explosion.json");
   context._entityFactory.loadBlueprintFromPath(
       "powerup_speed", "assets/powerUp/powerUp_speed.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "powerup_spread", "assets/powerUp/powerUp_spread.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "powerup_plasma", "assets/powerUp/powerUp_plasma.json");
   context._entityFactory.loadBlueprintFromPath(
       "enemyMecha", "assets/descriptionEntity/enemyMecha.json");
   context._entityFactory.loadBlueprintFromPath(
@@ -342,6 +348,9 @@ void Game::createBindings() {
   _inputMapping.bindKey(7, rtk::ecs::concepts::Key::H);
   _inputMapping.bindKey(8, rtk::ecs::concepts::Key::R);
   _inputMapping.bindKey(9, rtk::ecs::concepts::Key::Escape);
+  _inputMapping.bindKey(10, rtk::ecs::concepts::Key::E);
+  _inputMapping.bindKey(10, rtk::ecs::concepts::Key::Tab);
+  _inputMapping.bindGamepad(10, rtk::ecs::concepts::GamepadButton::Y);
 }
 
 void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
@@ -394,19 +403,57 @@ void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
                   ? event.firstEntity
                   : event.secondEntity;
 
+          auto &deads = context.registry.get_components<component::Dead>();
+          if (deads.get(powerupEnt) != nullptr)
+            return;
+          deads.insert_at(powerupEnt, {});
+
           auto *powerupComp =
               context.registry.get_components<component::powerUp>().get(
                   powerupEnt);
-          if (powerupComp &&
-              powerupComp->type == component::powerUpType::Speed) {
-            auto *speedComp =
-                context.registry.get_components<component::Controllable>().get(
-                    playerEnt);
-            if (speedComp) {
-              speedComp->speed += powerupComp->value;
-            }
-            if (_hudSystem) {
-              _hudSystem->addSpeedBonus();
+          if (powerupComp) {
+            if (powerupComp->type == component::powerUpType::Speed) {
+              auto *speedComp =
+                  context.registry.get_components<component::Controllable>().get(
+                      playerEnt);
+              constexpr float MAX_SPEED = 440.0f;
+              if (speedComp) {
+                speedComp->speed =
+                    std::min(speedComp->speed + powerupComp->value, MAX_SPEED);
+              }
+              if (_hudSystem) {
+                _hudSystem->addSpeedBonus();
+              }
+            } else if (powerupComp->type ==
+                       component::powerUpType::WeaponSpread) {
+              const float duration =
+                  (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
+              auto *ctrl =
+                  context.registry.get_components<component::Controllable>().get(
+                      playerEnt);
+              if (ctrl) {
+                ctrl->weaponType = 1;
+                ctrl->weaponTimer = duration;
+                ctrl->weaponMaxDuration = duration;
+              }
+              if (_hudSystem) {
+                _hudSystem->setWeaponWithTimer(1, duration);
+              }
+            } else if (powerupComp->type ==
+                       component::powerUpType::WeaponPlasma) {
+              const float duration =
+                  (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
+              auto *ctrl =
+                  context.registry.get_components<component::Controllable>().get(
+                      playerEnt);
+              if (ctrl) {
+                ctrl->weaponType = 2;
+                ctrl->weaponTimer = duration;
+                ctrl->weaponMaxDuration = duration;
+              }
+              if (_hudSystem) {
+                _hudSystem->setWeaponWithTimer(2, duration);
+              }
             }
           }
         }
@@ -640,6 +687,36 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           sprite->flags = 1 << 1;
         }
       }
+
+      if (transform && (type == context._entityFactory.getArchetypeID("bullet_plasma") ||
+                        (type == context._entityFactory.getArchetypeID("bullet") &&
+                         std::abs(transform->rotation) > 0.1f))) {
+        const std::uint8_t wType =
+            (type == context._entityFactory.getArchetypeID("bullet_plasma")) ? 2 : 1;
+        for (auto pEnt : context.registry.view<component::Controllable>()) {
+          auto *pTrans =
+              context.registry.get_components<component::Transform>().get(pEnt);
+          if (pTrans &&
+              std::abs(transform->position.y - pTrans->position.y) < 40.0f &&
+              std::abs(transform->position.x - pTrans->position.x) < 100.0f) {
+            auto *ctrl =
+                context.registry.get_components<component::Controllable>().get(
+                    pEnt);
+            if (ctrl) {
+              ctrl->weaponType = wType;
+              if (ctrl->weaponTimer <= 0.0f) {
+                ctrl->weaponTimer = 5.0f;
+                ctrl->weaponMaxDuration = 5.0f;
+              }
+            }
+            if (_hudSystem && (_hudSystem->getWeapon() != wType ||
+                               _hudSystem->getWeaponTimer() <= 0.0f)) {
+              _hudSystem->setWeaponWithTimer(
+                  wType, (ctrl && ctrl->weaponTimer > 0.0f) ? ctrl->weaponTimer : 5.0f);
+            }
+          }
+        }
+      }
     }
 
     else if (std::holds_alternative<protocol::DestroyEntityPayload>(
@@ -661,6 +738,51 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
         auto *netEnt =
             context.registry.get_components<component::NetworkEntity>().get(e);
         if (netEnt && netEnt->id == destroyPayload.networkId.get()) {
+          auto *powerupComp =
+              context.registry.get_components<component::powerUp>().get(e);
+          auto &deads = context.registry.get_components<component::Dead>();
+
+          if (powerupComp && deads.get(e) == nullptr) {
+            for (auto pEnt : context.registry.view<component::Controllable>()) {
+              auto *ctrl =
+                  context.registry.get_components<component::Controllable>().get(
+                      pEnt);
+              if (powerupComp->type == component::powerUpType::Speed) {
+                constexpr float MAX_SPEED = 440.0f;
+                if (ctrl) {
+                  ctrl->speed =
+                      std::min(ctrl->speed + powerupComp->value, MAX_SPEED);
+                }
+                if (_hudSystem) {
+                  _hudSystem->addSpeedBonus();
+                }
+              } else if (powerupComp->type ==
+                         component::powerUpType::WeaponSpread) {
+                const float duration =
+                    (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
+                if (ctrl) {
+                  ctrl->weaponType = 1;
+                  ctrl->weaponTimer = duration;
+                  ctrl->weaponMaxDuration = duration;
+                }
+                if (_hudSystem) {
+                  _hudSystem->setWeaponWithTimer(1, duration);
+                }
+              } else if (powerupComp->type ==
+                         component::powerUpType::WeaponPlasma) {
+                const float duration =
+                    (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
+                if (ctrl) {
+                  ctrl->weaponType = 2;
+                  ctrl->weaponTimer = duration;
+                  ctrl->weaponMaxDuration = duration;
+                }
+                if (_hudSystem) {
+                  _hudSystem->setWeaponWithTimer(2, duration);
+                }
+              }
+            }
+          }
           if (destroyPayload.reason == protocol::DestroyReason::Collision &&
               _collisionFlashSystem) {
             auto *bullet =
@@ -863,7 +985,51 @@ void Game::destroyReplicatedEntity(
   if (it == _networkEntities.end())
     return;
 
-  context.registry.kill_entity(it->second);
+  const auto entity = it->second;
+  auto &deads = context.registry.get_components<component::Dead>();
+  auto *powerupComp =
+      context.registry.get_components<component::powerUp>().get(entity);
+
+  if (powerupComp && deads.get(entity) == nullptr &&
+      payload.reason == protocol::DestroyReason::Collision) {
+    for (auto pEnt : context.registry.view<component::Controllable>()) {
+      auto *ctrl =
+          context.registry.get_components<component::Controllable>().get(pEnt);
+      if (powerupComp->type == component::powerUpType::Speed) {
+        constexpr float MAX_SPEED = 440.0f;
+        if (ctrl) {
+          ctrl->speed = std::min(ctrl->speed + powerupComp->value, MAX_SPEED);
+        }
+        if (_hudSystem) {
+          _hudSystem->addSpeedBonus();
+        }
+      } else if (powerupComp->type == component::powerUpType::WeaponSpread) {
+        const float duration =
+            (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
+        if (ctrl) {
+          ctrl->weaponType = 1;
+          ctrl->weaponTimer = duration;
+          ctrl->weaponMaxDuration = duration;
+        }
+        if (_hudSystem) {
+          _hudSystem->setWeaponWithTimer(1, duration);
+        }
+      } else if (powerupComp->type == component::powerUpType::WeaponPlasma) {
+        const float duration =
+            (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
+        if (ctrl) {
+          ctrl->weaponType = 2;
+          ctrl->weaponTimer = duration;
+          ctrl->weaponMaxDuration = duration;
+        }
+        if (_hudSystem) {
+          _hudSystem->setWeaponWithTimer(2, duration);
+        }
+      }
+    }
+  }
+
+  context.registry.kill_entity(entity);
   _networkEntities.erase(it);
 }
 
