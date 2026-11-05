@@ -286,6 +286,7 @@ void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
   context._entityFactory.loadBlueprintFromPath(
       "bidos_death_effect", "assets/descriptionEntity/bidos_death_effect.json");
   context._entityFactory.loadBlueprintFromPath(
+      "boss_room", "assets/descriptionEntity/boss_room.json");
       "enemySpinner", "assets/descriptionEntity/enemySpinner.json");
   context._entityFactory.loadBlueprintFromPath(
       "enemyPod", "assets/descriptionEntity/enemyPod.json");
@@ -1251,6 +1252,53 @@ void GameInstance::updateStage(float dt) {
   if (!_isActive || !_stageActive)
     return;
   _stageTimer += dt;
+
+  auto viewTransCol =
+      context.registry.view<component::Transform, component::AABBCollider>();
+  auto &transforms = context.registry.get_components<component::Transform>();
+  auto &colliders = context.registry.get_components<component::AABBCollider>();
+  auto &velocities = context.registry.get_components<component::Velocity>();
+  bool stopScrolling = false;
+  for (auto entity : viewTransCol) {
+    auto *col = colliders.get(entity);
+    auto *transform = transforms.get(entity);
+
+    if (col && transform && (col->layer & Collider::CollisionLayer::BossRoom)) {
+      if (transform->position.x <= 0.0f) {
+        transform->position.x = 0.0f;
+        stopScrolling = true;
+        break;
+      }
+    }
+  }
+  if (stopScrolling) {
+    auto viewVelCol =
+        context.registry.view<component::Velocity, component::AABBCollider>();
+    for (auto entity : viewVelCol) {
+      auto *col = colliders.get(entity);
+      auto *vel = velocities.get(entity);
+      if (col && vel &&
+          ((col->layer & Collider::CollisionLayer::Environment) ||
+           (col->layer & Collider::CollisionLayer::BossRoom))) {
+        vel->x = 0.0f;
+      }
+    }
+
+    if (!_bossSpawned) {
+      std::uint32_t netId = NetworkIdGenerator::getInstance().getNextId();
+      auto bossEntity = context._entityFactory.createNetwork(
+          context.registry, "enemyMecha", netId);
+      auto *bossTransform = transforms.get(bossEntity);
+      if (bossTransform) {
+        bossTransform->position.x = 1000.0f;
+        bossTransform->position.y = 300.0f;
+        _eventBus.publish(rtype::events::EnemySpawnedEvent{
+            netId, bossTransform->position.x, bossTransform->position.y,
+            "enemyMecha"});
+      }
+      _bossSpawned = true;
+    }
+  }
   if (isStageFinished(context)) {
     if (!advanceToNextStage(context)) {
       _allStagesCompleted = true;

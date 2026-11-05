@@ -23,7 +23,8 @@ enum CollisionLayer : std::uint32_t {
   PlayerProjectile = 1 << 2, ///< Missiles fired by players.
   EnemyProjectile = 1 << 3,  ///< Missiles fired by enemies.
   Environment = 1 << 4,      ///< Stage walls and obstacles.
-  PowerUp = 1 << 5           ///< PowerUp.
+  PowerUp = 1 << 5,          ///< PowerUp.
+  BossRoom = 1 << 6          ///< BossRoom.
 };
 
 /** @} */
@@ -68,6 +69,8 @@ inline std::uint32_t stringToLayer(const std::string &name) {
     return Collider::CollisionLayer::Environment;
   if (name == "PowerUp")
     return Collider::CollisionLayer::PowerUp;
+  if (name == "BossRoom")
+    return Collider::CollisionLayer::BossRoom;
   return 0;
 }
 
