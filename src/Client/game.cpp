@@ -336,6 +336,9 @@ void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
   context.eventBus.subscribe<rtype::events::PlayerShotEvent>(
       [this, shootSoundId](const rtype::events::PlayerShotEvent &) {
         _adapterAudioManager.playSound(shootSoundId);
+        if (_hudSystem) {
+          _hudSystem->incrementShotCount();
+        }
       });
 
   context.eventBus.subscribe<rtype::events::EnemyEscapedEvent>(
@@ -378,7 +381,8 @@ void Game::addSystems(rtk::EngineContext &context) {
       rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::DeathSystem>(rtk::ecs::Order::Update);
   _hudSystem = &context.scheduler.add<rtk::systems::HudSystem>(
-      rtk::ecs::Order::Update, std::ref(_window), std::ref(_inputState));
+      rtk::ecs::Order::Update, std::ref(_window), std::ref(_inputState),
+      _fontRtype);
 }
 
 bool Game::shouldContinue() const
