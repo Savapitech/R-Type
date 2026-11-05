@@ -491,7 +491,7 @@ Game rules a client should know:
 | Player slots | 4, one ship color per slot |
 | Spawn position of slot n (0 to 3) | x = 150, y = 150 + 100 n |
 | Return to lobby | When every player has left, or when every ship is destroyed (game over) |
-| Game over | Every entity is removed with `DestroyEntity` reason 4, then the client closes |
+| Game over | Every entity is removed with `DestroyEntity` reason 4, every player becomes not ready, then the client goes back to the room lobby |
 
 ## 11. Examples
 

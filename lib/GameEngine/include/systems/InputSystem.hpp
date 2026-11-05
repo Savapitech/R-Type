@@ -15,8 +15,8 @@ namespace rtk::systems {
 /**
  * @brief Polls window events and turns bound controls into action bits.
  *
- * Escape requests the window to close, and F3 held with B toggles the debug
- * overlay.
+ * Escape requests the window to close unless disabled, and F3 held with B
+ * toggles the debug overlay.
  *
  * @tparam WindowType Window satisfying IsRenderWindow.
  */
@@ -28,11 +28,14 @@ public:
    * @param window Window to poll.
    * @param inputState State written every frame.
    * @param mapping Bindings between controls and actions.
+   * @param closeOnEscape False if the game handles Escape itself.
    */
   InputSystem(std::reference_wrapper<WindowType> window,
               rtk::InputState &inputState,
-              const rtk::Input::InputMapping &mapping)
-      : _window(window.get()), _inputState(inputState), _mapping(mapping){};
+              const rtk::Input::InputMapping &mapping,
+              bool closeOnEscape = true)
+      : _window(window.get()), _inputState(inputState), _mapping(mapping),
+        _closeOnEscape(closeOnEscape) {};
 
   ~InputSystem() override = default;
 
@@ -93,7 +96,7 @@ public:
       }
     }
 
-    if (_event.isKeyPressed(ecs::concepts::Key::Escape))
+    if (_closeOnEscape && _event.isKeyPressed(ecs::concepts::Key::Escape))
       _inputState.closeRequested = true;
 
     if (_event.isKeyPressed(ecs::concepts::Key::F3) &&
@@ -106,6 +109,7 @@ private:
   WindowType &_window;
   rtk::InputState &_inputState;
   const rtk::Input::InputMapping &_mapping;
+  bool _closeOnEscape;
 };
 
 /** @} */

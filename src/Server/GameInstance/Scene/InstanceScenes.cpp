@@ -12,7 +12,10 @@
 namespace rtype::server {
 
 void InstanceLobbyScene::onEnter(rtk::EngineContext &) {
-  std::cout << "[Room " << _dependency.instance.getRoomId() << "] Lobby started"
+  auto &instance = _dependency.instance;
+  if (!instance.hasAlivePlayers())
+    instance.respawnPlayers();
+  std::cout << "[Room " << instance.getRoomId() << "] Lobby started"
             << std::endl;
 }
 
@@ -46,11 +49,9 @@ InstanceLobbyScene::onUpdate(rtk::EngineContext &context, const ServerInput &,
   return std::nullopt;
 }
 
-void InstanceLobbyScene::onExit(rtk::EngineContext &)
-{
-    std::cout << "[Room " << _dependency.instance.getRoomId()
-              << "] Leaving lobby, starting game"
-              << std::endl;
+void InstanceLobbyScene::onExit(rtk::EngineContext &) {
+  std::cout << "[Room " << _dependency.instance.getRoomId()
+            << "] Leaving lobby, starting game" << std::endl;
 }
 
 void InstanceGameScene::onEnter(rtk::EngineContext &) {
@@ -87,12 +88,31 @@ std::optional<ServerSceneType> InstanceGameScene::onUpdate(rtk::EngineContext &,
   return std::nullopt;
 }
 
-void InstanceGameScene::onExit(rtk::EngineContext &)
-{
-    _dependency.instance.setGameActive(false);
-    std::cout << "[Room " << _dependency.instance.getRoomId()
-              << "] Leaving game scene"
-              << std::endl;
+void InstanceGameScene::onExit(rtk::EngineContext &) {
+  auto &instance = _dependency.instance;
+  auto &roomManager = _dependency.roomManager;
+  const std::uint32_t roomId = instance.getRoomId();
+
+  std::cout << "[Room " << roomId << "] Leaving game scene" << std::endl;
+  instance.endGame(_dependency.server);
+
+  auto *room = roomManager.getRoom(roomId);
+  if (!room)
+    return;
+
+  room->setState(RoomState::Waiting);
+  roomManager.resetReadyStates(roomId);
+
+  protocol::RoomStateUpdatePayload payload{};
+  payload.roomId = roomId;
+  for (const auto connectionId : room->getPlayers()) {
+    protocol::RoomPlayerState player{};
+    player.connectionId = connectionId;
+    player.ready = false;
+    payload.players.push_back(player);
+  }
+  for (const auto connectionId : room->getPlayers())
+    _dependency.server.sendRoomStateUpdate(connectionId, payload);
 }
 
 } // namespace rtype::server

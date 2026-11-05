@@ -25,13 +25,13 @@
 #include "scene/gameScene.hpp"
 #include "scene/introScene.hpp"
 #include "scene/menuScene.hpp"
-#include "scene/roomLobbyScene.hpp"
 #include "scene/networkConnectionScene.hpp"
+#include "scene/roomLobbyScene.hpp"
 
 namespace rtk::systems {
 class CollisionFlashSystem;
 class HudSystem;
-}
+} // namespace rtk::systems
 
 namespace rtype::events {
 /**
@@ -122,8 +122,7 @@ public:
    * @brief Returns the players currently present in the room.
    * @return List of players with their connection IDs and ready states.
    */
-  const std::vector<protocol::RoomPlayerState> &
-  getRoomPlayers() const;
+  const std::vector<protocol::RoomPlayerState> &getRoomPlayers() const;
 
   /**
    * @brief Returns whether the local player is ready.
@@ -177,6 +176,12 @@ private:
   void applySnapshot(rtk::EngineContext &context,
                      const protocol::SnapshotPayload &payload);
   void updateNetworkStats();
+  /**
+   * @brief Destroys every replicated entity, the server does not send
+   * DestroyEntity to a player who leaves the room.
+   * @param context Engine services.
+   */
+  void clearNetworkEntities(rtk::EngineContext &context);
 
   std::unordered_map<protocol::NetworkEntityId, std::size_t> _networkEntities;
   std::unordered_set<std::uint32_t> _pendingEntityQueries;
@@ -187,12 +192,14 @@ private:
   RtkWindowAdapter _adapter;
   RtkAudioAdapter _adapterAudioManager;
   rtk::InputState _inputState{};
+  std::uint32_t _previousActionMask = 0;
   rtk::collision::CollisionBuffer _collisionBuffer;
   rtk::Input::InputMapping _inputMapping;
   rtype::client::NetworkClient _networkClient;
   clientDependancy _dependency;
   rtk::SceneManager<SceneType, clientDependancy, rtk::InputState, IntroScene,
-                    MenuScene, NetworkConnectionScene, RoomListScene, RoomLobbyScene, GameScene>
+                    MenuScene, NetworkConnectionScene, RoomListScene,
+                    RoomLobbyScene, GameScene>
       _sceneManager;
 
   rtk::Font _fontRtype;

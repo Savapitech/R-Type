@@ -37,10 +37,6 @@ std::chrono::steady_clock::time_point Connection::getLastReceived() const {
   return _lastReceived;
 }
 
-NetworkMetrics &Connection::getMetrics() {
-  return _metrics;
-}
+NetworkMetrics &Connection::getMetrics() { return _metrics; }
 
-const NetworkMetrics &Connection::getMetrics() const {
-  return _metrics;
-}
+const NetworkMetrics &Connection::getMetrics() const { return _metrics; }

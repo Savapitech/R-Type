@@ -57,8 +57,8 @@ public:
    * @param dt Elapsed time since last frame in seconds.
    */
   void update(rtk::ecs::Registry &reg, float dt) override {
-    const bool togglePressed =
-        rtype::Input::hasAction(_inputState.actionMask, rtype::Action::ToggleHud);
+    const bool togglePressed = rtype::Input::hasAction(
+        _inputState.actionMask, rtype::Action::ToggleHud);
     if (togglePressed && !_wasTogglePressed) {
       _visible = !_visible;
     }
@@ -94,32 +94,24 @@ public:
    * @brief Sets whether the gameplay scene is active.
    * @param inGame True if in game scene.
    */
-  void setInGameScene(bool inGame) noexcept {
-    _inGameScene = inGame;
-  }
+  void setInGameScene(bool inGame) noexcept { _inGameScene = inGame; }
 
   /**
    * @brief Updates the active font handle.
    * @param font Valid font handle.
    */
-  void setFont(rtk::Font font) noexcept {
-    _font = font;
-  }
+  void setFont(rtk::Font font) noexcept { _font = font; }
 
   /**
    * @brief Increments the counter of bullets fired by the player.
    */
-  void incrementShotCount() noexcept {
-    ++_shotsFired;
-  }
+  void incrementShotCount() noexcept { ++_shotsFired; }
 
   /**
    * @brief Sets the counter of bullets fired.
    * @param shots Total shot count.
    */
-  void setShotCount(std::size_t shots) noexcept {
-    _shotsFired = shots;
-  }
+  void setShotCount(std::size_t shots) noexcept { _shotsFired = shots; }
 
   /**
    * @brief Returns the total number of bullets fired.
@@ -129,9 +121,7 @@ public:
     return _shotsFired;
   }
 
-  [[nodiscard]] bool isVisible() const noexcept {
-    return _visible;
-  }
+  [[nodiscard]] bool isVisible() const noexcept { return _visible; }
 
   [[nodiscard]] bool shouldDisplay() const noexcept {
     return _inGameScene && _visible;
@@ -191,19 +181,23 @@ private:
       borderSprite.textureId = bgTex.getHandle();
       borderSprite.size = {0.0f, 0.0f};
       borderSprite.origin = {0.0f, 0.0f};
-      borderSprite.textureRect = {0, 0, 2, static_cast<uint16_t>(SIDEBAR_HEIGHT)};
+      borderSprite.textureRect = {0, 0, 2,
+                                  static_cast<uint16_t>(SIDEBAR_HEIGHT)};
       borderSprite.color = {0, 0, 0, 0};
       borderSprite.layer = 100;
       borderSprite.flags = 0;
 
-      reg.get_components<::component::Transform>().insert_at(border, borderTransform);
-      reg.get_components<rtk::ecs::concepts::SpriteData>().insert_at(border, borderSprite);
+      reg.get_components<::component::Transform>().insert_at(border,
+                                                             borderTransform);
+      reg.get_components<rtk::ecs::concepts::SpriteData>().insert_at(
+          border, borderSprite);
     }
 
     auto *sprite =
         reg.get_components<rtk::ecs::concepts::SpriteData>().get(*_hudEntity);
     auto *borderSprite =
-        reg.get_components<rtk::ecs::concepts::SpriteData>().get(*_borderEntity);
+        reg.get_components<rtk::ecs::concepts::SpriteData>().get(
+            *_borderEntity);
 
     if (shouldDisplay()) {
       if (sprite) {
@@ -226,10 +220,8 @@ private:
     }
   }
 
-  void addText(rtk::ecs::Registry &reg,
-               const std::string &content,
-               float x, float y,
-               const rtk::ecs::concepts::ColorRGBA8 &color,
+  void addText(rtk::ecs::Registry &reg, const std::string &content, float x,
+               float y, const rtk::ecs::concepts::ColorRGBA8 &color,
                float scaleFactor = 0.45f) {
     if (!_font.isValid()) {
       _font = _window.loadFont("./assets/font/r-type.otf", 40.0f);
@@ -237,9 +229,9 @@ private:
     if (!_font.isValid() || content.empty())
       return;
 
-    const rtk::Text text = _window.createText(
-        content, _font, {x, y},
-        rtk::ColorRGBA8{color.r, color.g, color.b, color.a});
+    const rtk::Text text =
+        _window.createText(content, _font, {x, y},
+                           rtk::ColorRGBA8{color.r, color.g, color.b, color.a});
 
     for (const auto &glyph : text.getSprites()) {
       const auto entity = reg.spawn_entity();
@@ -250,7 +242,8 @@ private:
       sprite.textureRect.y = glyph.textureRect.top;
       sprite.textureRect.width = glyph.textureRect.width;
       sprite.textureRect.height = glyph.textureRect.height;
-      sprite.color = {glyph.color.r, glyph.color.g, glyph.color.b, glyph.color.a};
+      sprite.color = {glyph.color.r, glyph.color.g, glyph.color.b,
+                      glyph.color.a};
       sprite.size = {glyph.size.x, glyph.size.y};
       sprite.origin = {glyph.origin.x, glyph.origin.y};
       sprite.scale = {glyph.scale.x * scaleFactor, glyph.scale.y * scaleFactor};
@@ -260,11 +253,13 @@ private:
       ::component::Transform transform{};
       transform.position.x = x + (glyph.position.x - x) * scaleFactor;
       transform.position.y = y + (glyph.position.y - y) * scaleFactor;
-      transform.scale = {glyph.scale.x * scaleFactor, glyph.scale.y * scaleFactor};
+      transform.scale = {glyph.scale.x * scaleFactor,
+                         glyph.scale.y * scaleFactor};
       transform.rotation = 0.0f;
 
       reg.get_components<::component::Transform>().insert_at(entity, transform);
-      reg.get_components<rtk::ecs::concepts::SpriteData>().insert_at(entity, sprite);
+      reg.get_components<rtk::ecs::concepts::SpriteData>().insert_at(entity,
+                                                                     sprite);
 
       _textEntities.push_back(entity);
     }
@@ -316,9 +311,10 @@ private:
     } else {
       addText(reg, "READY", 18.0f, 418.0f, {255, 160, 40, 255}, 0.46f);
     }
-  
+
     addText(reg, "SHOTS", 18.0f, 475.0f, {170, 170, 195, 255}, 0.36f);
-    addText(reg, std::to_string(_shotsFired), 18.0f, 498.0f, {255, 120, 120, 255}, 0.52f);
+    addText(reg, std::to_string(_shotsFired), 18.0f, 498.0f,
+            {255, 120, 120, 255}, 0.52f);
 
     addText(reg, "H  TOGGLE", 18.0f, 680.0f, {120, 120, 150, 200}, 0.34f);
   }

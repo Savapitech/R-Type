@@ -989,6 +989,8 @@ void GameInstance::respawnPlayers() {
     if (!transform) {
       registry.remove_entity_from_all_pools(entity);
       registry.kill_entity(entity);
+      ++slot;
+      continue;
     }
 
     transform->position = {150.0f, 150.0f + static_cast<float>(slot) * 100.0f};
