@@ -238,13 +238,16 @@ if(RTYPE_BUILD_CLIENT)
     endif()
 endif()
 
+# Lua Scripting Engine (via vcpkg)
+find_package(Lua REQUIRED)
+
 #SERVER
 file(GLOB_RECURSE SERVER_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Server/*.cpp")
 
 add_executable(r-type_server ${SERVER_SOURCES})
-target_include_directories(r-type_server PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/Server")
+target_include_directories(r-type_server PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/Server" ${LUA_INCLUDE_DIR})
 
-target_link_libraries(r-type_server PRIVATE ECSLib GameEngine Network CommonProtocole Resources)
+target_link_libraries(r-type_server PRIVATE ECSLib GameEngine Network CommonProtocole Resources ${LUA_LIBRARIES})
 
 #EMBEDDED: same sources, but assets are linked in the binary
 set(EMBEDDED_ASSETS_CPP ${CMAKE_BINARY_DIR}/generated/EmbeddedAssets.cpp)
