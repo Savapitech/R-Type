@@ -340,7 +340,7 @@ std::optional<SceneType> SettingScene::onUpdate(rtk::EngineContext &context,
   _previousActionMask = inputState.actionMask;
 
   if (escapePressed) {
-    return SceneType::Menu;
+    return SceneType::Intro;
   }
 
   const int totalOptions = static_cast<int>(OPTIONS.size());
@@ -354,7 +354,7 @@ std::optional<SceneType> SettingScene::onUpdate(rtk::EngineContext &context,
 
   if (confirmPressed) {
     if (_selectedOption == totalOptions - 1) {
-      return SceneType::Menu;
+      return SceneType::Intro;
     }
     if (_selectedOption == totalOptions - 2) {
       _dependency.game.resetDefaultBindings();
