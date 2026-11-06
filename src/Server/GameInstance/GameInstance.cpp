@@ -287,6 +287,7 @@ void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
       "bidos_death_effect", "assets/descriptionEntity/bidos_death_effect.json");
   context._entityFactory.loadBlueprintFromPath(
       "boss_room", "assets/descriptionEntity/boss_room.json");
+  context._entityFactory.loadBlueprintFromPath(
       "enemySpinner", "assets/descriptionEntity/enemySpinner.json");
   context._entityFactory.loadBlueprintFromPath(
       "enemyPod", "assets/descriptionEntity/enemyPod.json");
@@ -1078,6 +1079,8 @@ void GameInstance::loadStage(rtk::EngineContext &context,
   _stageTimer = 0.0f;
   _stageObstaclesSpawned = 0;
   _stageActive = true;
+  _bossSpawned = false;
+  _bossNetId = 0;
 
   float currentX = stageJson.value("startX", 0.0f);
   if (!stageJson.contains("segments") || !stageJson["segments"].is_array()) {
@@ -1199,10 +1202,29 @@ void GameInstance::clearEnvironmentEntities(rtk::EngineContext &context) {
   for (auto entity : view) {
     const auto *col = colliders.get(entity);
 
-    if (col && (col->layer & Collider::CollisionLayer::Environment)) {
+    if (col && ((col->layer & Collider::CollisionLayer::Environment) ||
+                (col->layer & Collider::CollisionLayer::BossRoom))) {
       deads.insert_at(entity, {});
     }
   }
+}
+
+bool GameInstance::isBossDefeated(rtk::EngineContext &context) const {
+  auto view = context.registry.view<component::NetworkEntity>();
+  auto &netEntities =
+      context.registry.get_components<component::NetworkEntity>();
+  auto &deads = context.registry.get_components<component::Dead>();
+
+  for (auto entity : view) {
+    const auto *net = netEntities.get(entity);
+    if (net && net->id == _bossNetId)
+      if (deads.get(entity) != nullptr) {
+        return true;
+      } else {
+        return false;
+      }
+  }
+  return true;
 }
 
 void GameInstance::clearEnemies(rtk::EngineContext &context) {
@@ -1216,6 +1238,9 @@ void GameInstance::clearEnemies(rtk::EngineContext &context) {
 bool GameInstance::isStageFinished(rtk::EngineContext &context) const {
   if (!_stageActive)
     return false;
+
+  if (_bossSpawned)
+    return isBossDefeated(context);
 
   if (_stageDuration > 0.0f && _stageTimer >= _stageDuration)
     return true;
@@ -1258,11 +1283,14 @@ void GameInstance::updateStage(float dt) {
   auto &transforms = context.registry.get_components<component::Transform>();
   auto &colliders = context.registry.get_components<component::AABBCollider>();
   auto &velocities = context.registry.get_components<component::Velocity>();
+  auto &deads = context.registry.get_components<component::Dead>();
   bool stopScrolling = false;
   for (auto entity : viewTransCol) {
     auto *col = colliders.get(entity);
     auto *transform = transforms.get(entity);
 
+    if (deads.get(entity) != nullptr)
+      continue;
     if (col && transform && (col->layer & Collider::CollisionLayer::BossRoom)) {
       if (transform->position.x <= 0.0f) {
         transform->position.x = 0.0f;
@@ -1289,6 +1317,10 @@ void GameInstance::updateStage(float dt) {
       auto bossEntity = context._entityFactory.createNetwork(
           context.registry, "enemyMecha", netId);
       auto *bossTransform = transforms.get(bossEntity);
+      auto *bossVelocity = velocities.get(bossEntity);
+      _bossNetId = netId;
+      if (bossVelocity)
+        bossVelocity->x = 0.0f;
       if (bossTransform) {
         bossTransform->position.x = 1000.0f;
         bossTransform->position.y = 300.0f;

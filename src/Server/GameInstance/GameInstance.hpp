@@ -244,6 +244,7 @@ private:
   bool _stageActive = false;
   bool _allStagesCompleted = false;
   bool _bossSpawned = false;
+  std::uint32_t _bossNetId = 0; ///< Network id of the current stage boss.
   /**
    * @brief Registers components in the instance registry.
    * @param context Instance engine context.
@@ -314,7 +315,13 @@ private:
    */
   bool hasActiveEnvironmentEntities(rtk::EngineContext &context) const;
   /**
-   * @brief Removes environment entities from the current stage.
+   * @brief Checks whether the boss of the current stage has been killed.
+   * @param context Engine context of the current game instance.
+   * @return True if the boss is dead or no longer exists.
+   */
+  bool isBossDefeated(rtk::EngineContext &context) const;
+  /**
+   * @brief Removes environment entities (and the boss room) from the stage.
    * @param context Engine context of the current game instance.
    */
   void clearEnvironmentEntities(rtk::EngineContext &context);
