@@ -27,6 +27,7 @@
 #include "scene/menuScene.hpp"
 #include "scene/networkConnectionScene.hpp"
 #include "scene/roomLobbyScene.hpp"
+#include "scene/settingScene.hpp"
 
 #include "events/GameEvents.hpp"
 
@@ -144,6 +145,46 @@ public:
    */
   const rtk::Font &getFont() const;
 
+  /**
+   * @brief Checks if a specific key is pressed in the window.
+   * @param key Candidate key.
+   * @return True if currently pressed.
+   */
+  [[nodiscard]] bool isKeyPressed(rtk::ecs::concepts::Key key) const {
+    return _adapter.isKeyPressed(key);
+  }
+
+  /**
+   * @brief Returns the first key currently pressed, if any.
+   * @return Pressed key or nullopt.
+   */
+  [[nodiscard]] std::optional<rtk::ecs::concepts::Key> getAnyKeyPressed() const {
+    return _adapter.getAnyKeyPressed();
+  }
+
+  /**
+   * @brief Returns the mutable client input mapping.
+   * @return Reference to the input mapping.
+   */
+  [[nodiscard]] rtk::Input::InputMapping &getInputMapping() noexcept {
+    return _inputMapping;
+  }
+
+  /**
+   * @brief Returns the const client input mapping.
+   * @return Const reference to the input mapping.
+   */
+  [[nodiscard]] const rtk::Input::InputMapping &getInputMapping() const noexcept {
+    return _inputMapping;
+  }
+
+  /**
+   * @brief Resets input bindings to default controls.
+   */
+  void resetDefaultBindings() {
+    createBindings();
+  }
+
 private:
   void registerBuilders(rtk::EngineContext &context);
   void registerComponents(rtk::EngineContext &context);
@@ -182,7 +223,7 @@ private:
   clientDependancy _dependency;
   rtk::SceneManager<SceneType, clientDependancy, rtk::InputState, IntroScene,
                     MenuScene, NetworkConnectionScene, RoomListScene,
-                    RoomLobbyScene, GameScene>
+                    RoomLobbyScene, GameScene, SettingScene>
       _sceneManager;
 
   rtk::Font _fontRtype;

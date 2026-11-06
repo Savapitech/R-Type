@@ -244,7 +244,7 @@ std::optional<SceneType> MenuScene::onUpdate(rtk::EngineContext &context,
     case MenuOption::Play:
       return SceneType::Connection;
     case MenuOption::Setting:
-      return SceneType::Intro;
+      return SceneType::Setting;
     case MenuOption::Quit:
       context.eventBus.publish(rtype::events::QuitGameEvent{});
       return std::nullopt;
