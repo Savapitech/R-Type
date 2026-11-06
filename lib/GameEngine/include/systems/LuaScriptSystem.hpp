@@ -12,7 +12,7 @@
 
 namespace rtk::systems {
 /**
- * @addtogroup api_gameplay
+ * @addtogroup api_engine
  * @{
  */
 

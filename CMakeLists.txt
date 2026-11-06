@@ -210,10 +210,16 @@ target_link_libraries(NetworkClientLib
         CommonProtocole
 )
 
+# Lua Scripting Engine (via vcpkg)
+find_package(Lua REQUIRED)
+
 #Game Engine Lib
 add_library(GameEngine INTERFACE)
-target_link_libraries(GameEngine INTERFACE nlohmann_json::nlohmann_json)
-target_include_directories(GameEngine INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/lib/GameEngine/include")
+target_link_libraries(GameEngine INTERFACE nlohmann_json::nlohmann_json ${LUA_LIBRARIES})
+target_include_directories(GameEngine INTERFACE
+    "${CMAKE_CURRENT_SOURCE_DIR}/lib/GameEngine/include"
+    ${LUA_INCLUDE_DIR}
+)
 
 add_library(CommonProtocole INTERFACE)
 target_include_directories(CommonProtocole  INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/Common/)
@@ -238,16 +244,13 @@ if(RTYPE_BUILD_CLIENT)
     endif()
 endif()
 
-# Lua Scripting Engine (via vcpkg)
-find_package(Lua REQUIRED)
-
 #SERVER
 file(GLOB_RECURSE SERVER_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Server/*.cpp")
 
 add_executable(r-type_server ${SERVER_SOURCES})
-target_include_directories(r-type_server PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/Server" ${LUA_INCLUDE_DIR})
+target_include_directories(r-type_server PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/Server")
 
-target_link_libraries(r-type_server PRIVATE ECSLib GameEngine Network CommonProtocole Resources ${LUA_LIBRARIES})
+target_link_libraries(r-type_server PRIVATE ECSLib GameEngine Network CommonProtocole Resources)
 
 #EMBEDDED: same sources, but assets are linked in the binary
 set(EMBEDDED_ASSETS_CPP ${CMAKE_BINARY_DIR}/generated/EmbeddedAssets.cpp)

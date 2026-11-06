@@ -6,7 +6,7 @@
 
 namespace component {
 /**
- * @addtogroup api_gameplay
+ * @addtogroup api_engine
  * @{
  */
 
