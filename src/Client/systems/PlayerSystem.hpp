@@ -19,6 +19,7 @@
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
 
+#include "LocalPrediction.hpp"
 #include "NetworkClient.hpp"
 #include "factoryDataDriven/factoryDataDriven.hpp"
 
@@ -38,9 +39,11 @@ private:
   busEvent &_eventBus;
   rtk::factory::EntityFactory &_entityFactory;
   rtype::client::NetworkClient &_networkClient;
-  std::uint32_t _clientTick{0};
+  rtype::client::LocalPrediction &_prediction;
 
   static constexpr float SQUARE_2_DIVIDE_BY_2 = 0.7071f;
+  /// Speed of a ship whose Controllable component is missing.
+  static constexpr float DEFAULT_SHIP_SPEED = 300.0f;
 
 public:
   /**
@@ -49,12 +52,15 @@ public:
    * @param eventBus Bus on which PlayerShotEvent is published.
    * @param entityFactory Entity factory of the engine.
    * @param networkClient Client used to send Input messages.
+   * @param prediction Prediction of the ship of the local player.
    */
   PlayerSystem(rtk::InputState &inputState, busEvent &eventBus,
                rtk::factory::EntityFactory &entityFactory,
-               rtype::client::NetworkClient &networkClient)
+               rtype::client::NetworkClient &networkClient,
+               rtype::client::LocalPrediction &prediction)
       : _inputState(inputState), _eventBus(eventBus),
-        _entityFactory(entityFactory), _networkClient(networkClient) {}
+        _entityFactory(entityFactory), _networkClient(networkClient),
+        _prediction(prediction) {}
 
   ~PlayerSystem() override = default;
 
@@ -66,7 +72,8 @@ public:
   }
 
   /**
-   * @brief Sends an Input message and publishes a shot on button release.
+   * @brief Sends the held actions, moves the predicted ship at once and
+   * publishes a shot on button release.
    */
   void update(rtk::ecs::Registry &reg, float dt) override {
     for (auto ent : reg.view<component::Controllable>()) {
@@ -81,9 +88,9 @@ public:
       }
     }
 
-    sendInputsToServer();
+    const auto actions = sendInputsToServer();
+    moveLocalShip(reg, dt, actions);
     handleBeamChargeAndShooting(reg, dt);
-    _clientTick++;
   }
 
 private:
@@ -91,9 +98,51 @@ private:
   float _chargeTimer{0.0f};
   std::optional<std::size_t> _chargeEffectEntity{std::nullopt};
 
-  void sendInputsToServer() {
-    if (!_networkClient.isConnected())
+  /**
+   * Moves the ship of the local player without waiting for the server, with
+   * the movement the server applies (LocalPrediction). Each Snapshot then
+   * corrects it.
+   */
+  void moveLocalShip(rtk::ecs::Registry &reg,
+                     float dt, rtype::protocol::InputAction actions) {
+    const auto ownId = _prediction.ownNetworkId();
+    if (ownId == 0)
       return;
+
+    auto &networkEntities = reg.get_components<component::NetworkEntity>();
+    auto &transforms = reg.get_components<component::Transform>();
+    auto &controllables = reg.get_components<component::Controllable>();
+    auto &animators = reg.get_components<component::animator>();
+    for (auto ent : reg.view<component::NetworkEntity, component::Transform>()) {
+      const auto *netEnt = networkEntities.get(ent);
+      auto *transform = transforms.get(ent);
+      if (!netEnt || !transform || netEnt->id != ownId)
+        continue;
+
+      const auto *ctrl = controllables.get(ent);
+      _prediction.step(dt, actions, ctrl ? ctrl->speed : DEFAULT_SHIP_SPEED,
+                       _networkClient.inputTick());
+      if (!_prediction.isActive())
+        return;
+      transform->position.x = _prediction.x();
+      transform->position.y = _prediction.y();
+
+      if (auto *anim = animators.get(ent)) {
+        using rtype::protocol::InputAction;
+        if (rtype::protocol::hasAction(actions, InputAction::Up))
+          anim->currentState = component::animState::UP;
+        else if (rtype::protocol::hasAction(actions, InputAction::Down))
+          anim->currentState = component::animState::DOWN;
+        else
+          anim->currentState = component::animState::IDLE;
+      }
+      return;
+    }
+  }
+
+  rtype::protocol::InputAction sendInputsToServer() {
+    if (!_networkClient.isConnected())
+      return rtype::protocol::InputAction::NoneAction;
 
     rtype::protocol::InputAction networkActions =
         rtype::protocol::InputAction::NoneAction;
@@ -114,7 +163,8 @@ private:
       networkActions = networkActions | rtype::protocol::InputAction::Shoot;
     }
 
-    _networkClient.sendInput(_clientTick, networkActions);
+    _networkClient.sendInput(_networkClient.inputTick(), networkActions);
+    return networkActions;
   }
 
   void handleBeamChargeAndShooting(rtk::ecs::Registry &reg, float dt) {
