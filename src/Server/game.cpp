@@ -33,6 +33,7 @@
 #include "components/EnemyEvent.hpp"
 #include "components/Health.hpp"
 #include "components/WaveMovement.hpp"
+#include "components/LuaScript.hpp"
 #include "components/dropPowerUp.hpp"
 #include "components/powerUp.hpp"
 
@@ -45,6 +46,7 @@
 #include "systems/EnemySpawnerSystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/WaveMovementSystem.hpp"
+#include "systems/LuaScriptSystem.hpp"
 
 namespace rtype::server {
 
@@ -78,6 +80,7 @@ void Game::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::Health>();
   context.registry.register_component<component::DestroyableTile>();
   context.registry.register_component<component::WaveMovement>();
+  context.registry.register_component<component::LuaScript>();
   context.registry.register_component<component::powerUp>();
   context.registry.register_component<component::DropPowerUp>();
 }
@@ -131,6 +134,10 @@ void Game::registerBuilders(rtk::EngineContext &context) {
                                          component::waveMovementFromJson);
   context._entityFactory.registerBuilder("WaveMovement",
                                          component::waveMovementFromJson);
+  context._entityFactory.registerBuilder("luaScript",
+                                         component::luaScriptFromJson);
+  context._entityFactory.registerBuilder("LuaScript",
+                                         component::luaScriptFromJson);
   context._entityFactory.registerBuilder("powerUp", component::powerupFromJson);
   context._entityFactory.registerBuilder("powerup", component::powerupFromJson);
   context._entityFactory.registerBuilder("Powerup", component::powerupFromJson);
@@ -392,6 +399,8 @@ void Game::addSystems(rtk::EngineContext &context) {
       rtk::ecs::Order::SecondUpdate, std::ref(_server), std::ref(_players),
       std::cref(_serverTick), std::ref(context._entityFactory));
   context.scheduler.add<rtk::systems::WaveMovementSystem>(
+      rtk::ecs::Order::Update);
+  context.scheduler.add<rtk::systems::LuaScriptSystem>(
       rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
   context.scheduler.add<rtk::systems::ColliderSystem>(

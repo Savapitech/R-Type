@@ -25,6 +25,7 @@
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
 #include "components/WaveMovement.hpp"
+#include "components/LuaScript.hpp"
 #include "components/dropPowerUp.hpp"
 #include "components/powerUp.hpp"
 
@@ -79,9 +80,9 @@ void Game::onLoad(rtk::EngineContext &context) {
 
   _networkClient.connect(_host, _port);
 
-  uint32_t shootSoundId = _adapterAudioManager.addSound("assets/shoot.wav");
+  _shootSoundId = _adapterAudioManager.addSound("assets/shoot.wav");
 
-  subscribeEvents(context, shootSoundId);
+  subscribeEvents(context, _shootSoundId);
   addSystems(context);
 
   _sceneManager.start(context);
@@ -241,6 +242,10 @@ void Game::registerBuilders(rtk::EngineContext &context) {
                                          component::waveMovementFromJson);
   context._entityFactory.registerBuilder("WaveMovement",
                                          component::waveMovementFromJson);
+  context._entityFactory.registerBuilder("luaScript",
+                                         component::luaScriptFromJson);
+  context._entityFactory.registerBuilder("LuaScript",
+                                         component::luaScriptFromJson);
 
   context._entityFactory.registerBuilder(
       "sprite", [this](rtk::ecs::Registry &reg, std::size_t entity,
@@ -314,6 +319,7 @@ void Game::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::Health>();
   context.registry.register_component<component::DestroyableTile>();
   context.registry.register_component<component::WaveMovement>();
+  context.registry.register_component<component::LuaScript>();
   context.registry.register_component<component::powerUp>();
   context.registry.register_component<component::DropPowerUp>();
   context.registry.register_component<component::DestroyAnimEnd>();
@@ -321,6 +327,8 @@ void Game::registerComponents(rtk::EngineContext &context) {
 }
 
 void Game::createBindings() {
+  _inputMapping = rtk::Input::InputMapping();
+
   _inputMapping.bindKey(0, rtk::ecs::concepts::Key::Up);
   _inputMapping.bindKey(0, rtk::ecs::concepts::Key::Z);
   _inputMapping.bindGamepad(0, rtk::ecs::concepts::GamepadButton::DpadUp);
@@ -334,11 +342,13 @@ void Game::createBindings() {
                                 0.30f);
 
   _inputMapping.bindKey(2, rtk::ecs::concepts::Key::Left);
+  _inputMapping.bindKey(2, rtk::ecs::concepts::Key::Q);
   _inputMapping.bindGamepad(2, rtk::ecs::concepts::GamepadButton::DpadLeft);
   _inputMapping.bindGamepadAxis(2, rtk::ecs::concepts::GamepadAxis::LeftX,
                                 -0.30f);
 
   _inputMapping.bindKey(3, rtk::ecs::concepts::Key::Right);
+  _inputMapping.bindKey(3, rtk::ecs::concepts::Key::D);
   _inputMapping.bindGamepad(3, rtk::ecs::concepts::GamepadButton::DpadRight);
   _inputMapping.bindGamepadAxis(3, rtk::ecs::concepts::GamepadAxis::LeftX,
                                 0.30f);
@@ -483,8 +493,8 @@ void Game::addSystems(rtk::EngineContext &context) {
       std::ref(context.eventBus), std::ref(context._entityFactory),
       std::ref(_networkClient));
   context.scheduler.add<rtk::systems::InputSystem<RtkWindowAdapter>>(
-      rtk::ecs::Order::Input, std::ref(_adapter), _inputState, _inputMapping,
-      false);
+      rtk::ecs::Order::Input, std::ref(_adapter), std::ref(_inputState),
+      std::ref(_inputMapping), false);
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
   _collisionFlashSystem =
       &context.scheduler.add<rtk::systems::CollisionFlashSystem>(
@@ -932,7 +942,10 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
                               rtype::Action::LeaveRoom) &&
       !rtype::Input::hasAction(_previousActionMask, rtype::Action::LeaveRoom);
   _previousActionMask = _inputState.actionMask;
-  if (escapePressed && _sceneManager.get<RoomLobbyScene>() == nullptr)
+  if (escapePressed && _sceneManager.get<RoomLobbyScene>() == nullptr &&
+      _sceneManager.get<SettingScene>() == nullptr &&
+      _sceneManager.get<GameOverScene>() == nullptr &&
+      _sceneManager.get<GameScene>() == nullptr)
     _shouldQuit = true;
 
   _sceneManager.update(context, _inputState, dt);

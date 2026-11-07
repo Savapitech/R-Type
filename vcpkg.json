@@ -7,7 +7,8 @@
     "miniaudio",
     "stb",
     "vulkan-headers",
-    "nlohmann-json"
+    "nlohmann-json",
+    "lua"
   ],
   "features": {
     "client": {

@@ -24,7 +24,12 @@ std::optional<SceneType> GameScene::onUpdate(rtk::EngineContext &context,
                                              const rtk::InputState &inputState,
                                              float dt) {
   if (!_dependency.game.isGameStarting())
-    return SceneType::RoomLobby;
+    return SceneType::GameOver;
+
+  if (_dependency.game.isKeyPressed(rtk::ecs::concepts::Key::Escape) ||
+      rtype::Input::hasAction(inputState.actionMask, rtype::Action::LeaveRoom)) {
+    return SceneType::GameOver;
+  }
   return std::nullopt;
 }
 

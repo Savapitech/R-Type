@@ -86,6 +86,21 @@ public:
     return isOpen;
   }
 
+  [[nodiscard]] bool isKeyPressed(rtk::ecs::concepts::Key key) const {
+    return _rtkEventCache.isKeyPressed(static_cast<rtk::Key>(key));
+  }
+
+  [[nodiscard]] std::optional<rtk::ecs::concepts::Key> getAnyKeyPressed() const {
+    for (uint16_t k = 1;
+         k < static_cast<uint16_t>(rtk::ecs::concepts::Key::KeyCount); ++k) {
+      const auto key = static_cast<rtk::ecs::concepts::Key>(k);
+      if (_rtkEventCache.isKeyPressed(static_cast<rtk::Key>(key))) {
+        return key;
+      }
+    }
+    return std::nullopt;
+  }
+
   /**
    * @brief Starts a frame cleared with a color.
    * @param color Clear color, alpha is ignored.
