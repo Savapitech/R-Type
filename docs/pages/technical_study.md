@@ -178,7 +178,7 @@ of eight messages.
 
 **Measured effect of quantization.** A snapshot entry is 11 bytes. With a
 32-bit `float` per coordinate and for the rotation it would be 17 bytes, so the
-encoding saves 35 percent. One `Snapshot` message carries up to 47 entities in
+encoding saves 35 percent. One `Snapshot` message carries up to 46 entities in
 a 548 byte datagram.
 
 ### 6.4 Compression
@@ -292,6 +292,97 @@ to compress, and the 19 byte header is the real cost there.
   compression) would remove more than any algorithm above, and is the next step
   if bandwidth becomes a problem.
 
+### 6.5 Hiding the latency
+
+With an authoritative server, the ship of the player used to move only when a
+snapshot came back: the delay between a key press and the movement was the round
+trip time plus about 35 ms (135 ms at 100 ms RTT, 235 ms at 200 ms, 535 ms at 500
+ms, measured with `netem`, see @ref network_benchmark). The subject lists the
+usual techniques; this is how they compare for a shoot'em up whose enemies and
+missiles are simulated by the server.
+
+| Technique | What it fixes | Cost | Our decision |
+| --------- | ------------- | ---- | ------------ |
+| Nothing (what we had) | Nothing | None | Ship reacts one round trip time late. Rejected. |
+| **Client side prediction with server reconciliation** | The delay of the local ship, which is the one the player controls and feels | The client simulates the movement of its ship, the protocol must tell which input the server has applied, hits and power ups are corrected afterwards | **Done.** The movement is one small function shared by client and server, and the position error is small (see below). |
+| Entity interpolation | The 20 Hz steps of the other entities and a lost snapshot | The other entities are shown about 100 ms in the past, a buffer of snapshots | Not done yet. The enemies already move in straight lines and the players fly slowly, so the gain is mostly visual smoothness. It is the next step. |
+| Server side lag compensation | A shot that hits what the shooter saw, for hit scan weapons | The server keeps a history of positions and rewinds it for each shot | Not needed: missiles are entities simulated by the server, they hit what the server has. Missiles leave from the server ship, which is behind the ship drawn by the client by half a round trip time (15 pixels at 100 ms). Accepted. |
+| Rollback netcode | Everything, by replaying the whole game after each correction | Both sides must simulate the same game deterministically, with a snapshot of the whole state per frame | Too heavy: the server uses variable time steps, random spawns and a Lua scripting layer. Rejected. |
+| Input delay | Makes every player equally late | Adds latency for everyone | Opposite of what we want. Rejected. |
+
+**Why prediction first.** The player controls only the ship, and the ship is the
+only thing whose delay the player feels at each key press. The enemies and
+missiles are not controlled, so seeing them half a round trip time late is
+barely noticed in a game this slow. Predicting only the ship needs no change in
+how the server simulates the world.
+
+**How it works.** The client moves its ship at once with
+protocol::shipVelocity(), the function the server calls too. Each snapshot
+carries the network id of the ship of the receiver and the client tick that the
+server position accounts for. The client takes the server position, replays the
+movements it made since that tick, and gets where the ship should be now. It then
+moves toward that point, half of the gap at each snapshot, and jumps if the gap is
+above 96 pixels. The server computes the tick from the current run of actions:
+`first client tick of the run + server ticks elapsed since`. See @ref protocol,
+section 10.1.
+
+**Measured effect** (@ref network_benchmark). The delay seen by the player went
+from the round trip time plus 35 ms to 0 ms in the same frame, at every latency up
+to 500 ms and with up to 50 percent loss. The gap between the predicted ship and
+the server position has a median below 1 pixel, a 95th percentile of at most 10
+pixels, and the prediction had to jump only twice in 15 213 comparisons, both on a
+5 KB/s link.
+
+**Limits.** The server position is only trusted through the acknowledged tick,
+which assumes that the client and the server tick at the same rate. We measured
+with bots that tick at exactly 60 per second: a real client has frames of different
+durations, so the gap will be larger than measured. Other players are still late
+and in steps.
+
+### 6.6 Adapting to the link
+
+The subject asks to test a very low bandwidth, 5 KB/s. Each client used to receive
+7.7 KB/s of snapshots and creations and to send 1.9 KB/s of inputs (12.4 KB/s on
+the wire with the IP and UDP headers). On a link that cannot carry this, a queue
+grows in front of it, and all the packets arrive late: a 10 KB/s link added 775
+ms, a 5 KB/s link made the game unplayable.
+
+**Sending less upstream.** An input was sent 60 times per second, 31 bytes each,
+19 of which are the packet header, while the server keeps the last actions it
+received. It is now sent when the keys change, twice more against packet loss, and
+every 50 ms otherwise: 21 packets per second instead of 61, 0.66 KB/s instead of
+1.90 KB/s.
+
+**Sending fewer snapshots when the link is saturated.** The question is how the
+server knows that a client's link is saturated.
+
+| Signal | Good | Bad | Decision |
+| ------ | ---- | --- | -------- |
+| Packet loss | Easy to count with the ack bit field | Loss also comes from radio noise, where sending less does not help. With a deep buffer it comes late, after seconds of delay | Rejected as the only signal. |
+| Round trip time of the reliable packets (what the resend logic used) | Already measured | Too few samples: it said 28 ms while the real delay was 775 ms | Rejected. |
+| **Smallest round trip time of every acknowledged packet over half a second** | About 20 samples per second and per client, grows as soon as a queue forms, ignores the delay before the acknowledgement because of the minimum | The empty link round trip time must be known: it is the smallest value seen, taken in the lobby where nothing is sent | **Chosen.** |
+| Bandwidth estimation by packet pairs, or a report from the client | Gives the capacity directly | Needs a probing protocol or a new message, fragile on a shared link | Too heavy for the gain. |
+
+When the smallest round trip time of a client is more than 60 ms above its normal
+value, the server sends it one snapshot out of 2, 3 or 4 (down to 5 per second),
+and goes straight to 4 if it is more than 300 ms above. It speeds up one step after
+6 seconds without growth, because trying a faster rate on a link that cannot
+carry it fills the queue again.
+
+**Measured effect.** With one player, a 10 KB/s link went from 775 to 64 ms of
+confirmation delay. Four players on a congested mobile profile (400 kbit/s) went
+from 501 to 227 ms, and on a 50 KB/s link from 481 to 59 ms. A 5 KB/s link, which
+did not work at all, now gives 149 ms and world updates every 177 ms, but one run
+out of two was disconnected. The reason is the burst of creations at the start of
+the game, which overflows the queue before the adaptation reacts. Pacing it is a
+known follow-up.
+
+**What was not done.** The way down stays at 7.5 KB/s per client. Delta
+snapshots, which the subject suggests, would reduce it further by sending only the
+entities that changed, and would make narrower links possible. We chose to adapt
+the rate first because it solves the saturation without changing the format of the
+snapshot a second time.
+
 ## 7. Build and dependencies
 
 | Option | Integration with CMake | Binary cache | Notes |
@@ -343,7 +434,7 @@ in a single file without running a database server.
 | Technology | Typical vulnerability | Mitigation in the project |
 | ---------- | --------------------- | ------------------------- |
 | C++ | Buffer overflow, out of bounds read, use after free | All network reads go through PacketReader, which checks the remaining size before every read. Payloads are copied into fixed size structs, never cast in place. Owned memory uses containers and smart pointers. |
-| Custom binary protocol | Lying length fields, truncated messages, huge counts that trigger large allocations | Declared sizes are compared to the received bytes, packets with trailing bytes are dropped, fixed payloads must match their exact size, and `entityCount` is capped at 47 before any allocation. |
+| Custom binary protocol | Lying length fields, truncated messages, huge counts that trigger large allocations | Declared sizes are compared to the received bytes, packets with trailing bytes are dropped, fixed payloads must match their exact size, and `entityCount` is capped at 46 before any allocation. |
 | UDP | Source address spoofing, replay, flooding | Connected packets must carry the connection id bound to their source address. Duplicate and old packets are dropped. Old inputs are rejected by input sequence. Invalid datagrams get no answer, so the server cannot be used to amplify traffic. Datagrams larger than 548 bytes are dropped by the transport. |
 | Compression | Decompression bomb: a few bytes that expand to megabytes, or a malformed frame | The decoder writes into a buffer of `MAX_MESSAGE_SIZE` (529) bytes and fails instead of growing, the frame has no declared size to trust, and decompression only happens after the packet passed the connection and sequence checks, so spoofed and duplicate packets cost nothing. |
 | Asio asynchronous I/O | Handler running after the object it uses was destroyed | Send buffers are kept alive by shared pointers captured in the handler, and the network thread is joined before the server object is destroyed. |
@@ -397,5 +488,7 @@ in a single file without running a database server.
 | Serialization | Fixed layout big-endian structs, quantized positions |
 | Packet size | Batching per priority, zstd level 1 with a trained dictionary |
 | Reliability | Sequence and ack bitfield, full snapshots, query based repair |
+| Latency | Prediction and reconciliation of the local ship, no interpolation yet |
+| Narrow links | Inputs sent on change, snapshot rate lowered when the round trip time grows |
 | Build | CMake and vcpkg |
 | Storage | Versioned plain files for assets, memory for live state |
