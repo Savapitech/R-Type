@@ -34,15 +34,22 @@
 #include <cstdint>
 #include <fstream>
 #include <functional>
+#include <mutex>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
 #include <utility>
 
 namespace rtype::server {
+namespace {
+// Systems log when they start and the logger calls std::localtime, which is not
+// thread safe. Rooms are created rarely, so they can simply start one by one.
+std::mutex systemsStartMutex;
+} // namespace
+
 GameInstance::GameInstance(std::uint32_t roomId, Server &server,
-                           RoomManager &roomManager)
-    : _roomId(roomId), _dependency{*this, server, roomManager},
+                           RoomEventQueue &events)
+    : _roomId(roomId), _dependency{*this, server, events},
       _sceneManager(_dependency, std::in_place_type<InstanceLobbyScene>) {}
 
 std::uint32_t GameInstance::getRoomId() const { return _roomId; }
@@ -79,6 +86,12 @@ void GameInstance::resetGameState() {
   _serverTick = 0;
 }
 
+void GameInstance::requestGameStart() { _gameStartRequested = true; }
+
+bool GameInstance::consumeGameStartRequest() {
+  return std::exchange(_gameStartRequested, false);
+}
+
 rtk::EngineContext &GameInstance::getContext() { return _context; }
 
 void GameInstance::start(Server &server) {
@@ -88,7 +101,10 @@ void GameInstance::start(Server &server) {
   initialize();
   subscribeEvents(server);
   addSystems(server);
-  _scheduler.start(_registry);
+  {
+    std::lock_guard<std::mutex> lock(systemsStartMutex);
+    _scheduler.start(_registry);
+  }
   _sceneManager.start(_context);
   _systemsStarted = true;
 }
