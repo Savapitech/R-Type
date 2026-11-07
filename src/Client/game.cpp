@@ -166,6 +166,8 @@ void Game::loadEntityBluePrint(rtk::EngineContext &context) {
       "enemyGreenMecha", "assets/descriptionEntity/enemyGreenMecha.json");
   context._entityFactory.loadBlueprintFromPath(
       "green_mecha_bullet", "assets/descriptionEntity/green_mecha_bullet.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "dobkeratops_body", "assets/descriptionEntity/dobkeratops_body.json");
 }
 
 void Game::registerBuilders(rtk::EngineContext &context) {

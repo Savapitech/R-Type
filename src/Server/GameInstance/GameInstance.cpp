@@ -301,6 +301,8 @@ void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
       "enemyGreenMecha", "assets/descriptionEntity/enemyGreenMecha.json");
   context._entityFactory.loadBlueprintFromPath(
       "green_mecha_bullet", "assets/descriptionEntity/green_mecha_bullet.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "dobkeratops_body", "assets/descriptionEntity/dobkeratops_body.json");
 }
 
 const std::array<std::uint16_t, 4> &GameInstance::getPlayerArchetypes() const {
@@ -1315,18 +1317,19 @@ void GameInstance::updateStage(float dt) {
     if (!_bossSpawned) {
       std::uint32_t netId = NetworkIdGenerator::getInstance().getNextId();
       auto bossEntity = context._entityFactory.createNetwork(
-          context.registry, "enemyMecha", netId);
+          context.registry, "dobkeratops_body", netId);
       auto *bossTransform = transforms.get(bossEntity);
       auto *bossVelocity = velocities.get(bossEntity);
       _bossNetId = netId;
-      if (bossVelocity)
-        bossVelocity->x = 0.0f;
       if (bossTransform) {
-        bossTransform->position.x = 1000.0f;
-        bossTransform->position.y = 300.0f;
+        constexpr float screenH = 720.0f;
+        const float bossH = 204.0f * bossTransform->scale.y;
+        const float bossW = 155.0f * bossTransform->scale.x;
+        bossTransform->position.x = 1000.0f - (bossW / 2.0f);
+        bossTransform->position.y = (screenH - bossH) / 2.0f;
         _eventBus.publish(rtype::events::EnemySpawnedEvent{
             netId, bossTransform->position.x, bossTransform->position.y,
-            "enemyMecha"});
+            "dobkeratops_body"});
       }
       _bossSpawned = true;
     }
