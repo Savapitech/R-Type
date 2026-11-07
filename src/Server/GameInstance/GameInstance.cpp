@@ -305,6 +305,8 @@ void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
       "dobkeratops_body", "assets/descriptionEntity/dobkeratops_body.json");
   context._entityFactory.loadBlueprintFromPath(
       "dobkeratops_bullet", "assets/descriptionEntity/dobkeratops_bullet.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "dobkeratops_alien", "assets/descriptionEntity/dobkeratops_alien.json");
 }
 
 const std::array<std::uint16_t, 4> &GameInstance::getPlayerArchetypes() const {
@@ -1317,21 +1319,39 @@ void GameInstance::updateStage(float dt) {
     }
 
     if (!_bossSpawned) {
-      std::uint32_t netId = NetworkIdGenerator::getInstance().getNextId();
+      std::uint32_t bodyNetId = NetworkIdGenerator::getInstance().getNextId();
       auto bossEntity = context._entityFactory.createNetwork(
-          context.registry, "dobkeratops_body", netId);
+          context.registry, "dobkeratops_body", bodyNetId);
       auto *bossTransform = transforms.get(bossEntity);
       auto *bossVelocity = velocities.get(bossEntity);
-      _bossNetId = netId;
+
       if (bossTransform) {
         constexpr float screenH = 720.0f;
         const float bossH = 204.0f * bossTransform->scale.y;
         const float bossW = 155.0f * bossTransform->scale.x;
         bossTransform->position.x = 1000.0f - (bossW / 2.0f);
         bossTransform->position.y = (screenH - bossH) / 2.0f;
+
         _eventBus.publish(rtype::events::EnemySpawnedEvent{
-            netId, bossTransform->position.x, bossTransform->position.y,
+            bodyNetId, bossTransform->position.x, bossTransform->position.y,
             "dobkeratops_body"});
+
+        std::uint32_t alienNetId =
+            NetworkIdGenerator::getInstance().getNextId();
+        auto alienEntity = context._entityFactory.createNetwork(
+            context.registry, "dobkeratops_alien", alienNetId);
+        auto *alienTransform = transforms.get(alienEntity);
+        auto *alienVelocity = velocities.get(alienEntity);
+        if (alienTransform) {
+          alienTransform->position.x =
+              bossTransform->position.x + 72.0f * bossTransform->scale.x;
+          alienTransform->position.y =
+              bossTransform->position.y + 94.0f * bossTransform->scale.y;
+          _eventBus.publish(rtype::events::EnemySpawnedEvent{
+              alienNetId, alienTransform->position.x,
+              alienTransform->position.y, "dobkeratops_alien"});
+        }
+        _bossNetId = alienNetId;
       }
       _bossSpawned = true;
     }

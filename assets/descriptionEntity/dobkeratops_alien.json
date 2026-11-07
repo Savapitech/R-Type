@@ -1,0 +1,74 @@
+{
+    "components": {
+        "transform": {
+            "position": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "scale": {
+                "x": 3.0,
+                "y": 3.0
+            },
+            "rotation": 0.0
+        },
+        "sprite": {
+            "texture": "assets/entityTexture/dobkeratops.png",
+            "size": {
+                "w": 32.0,
+                "h": 32.0
+            },
+            "origin": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "textureRect": {
+                "x": 0,
+                "y": 204,
+                "w": 32,
+                "h": 32
+            },
+            "color": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 255
+            },
+            "layer": 2,
+            "flags": 0
+        },
+        "animation": {
+            "frameDuration": 0.2,
+            "currentFrame": 0,
+            "totalFrames": 8,
+            "frameWidth": 32,
+            "frameHeight": 32,
+            "startX": 0,
+            "startY": 204,
+            "loop": true,
+            "playing": true,
+            "columns": 8,
+            "paddingX": 0,
+            "paddingY": 0
+        },
+        "collider": {
+            "offsetX": 6.0,
+            "offsetY": 6.0,
+            "width": 20.0,
+            "height": 20.0,
+            "layer": "Enemy",
+            "mask": [
+                "PlayerProjectile",
+                "Player"
+            ]
+        },
+        "enemy": {
+            "health": 3000.0,
+            "fireRate": 99999.0,
+            "blueprintName": "dobkeratops_bullet"
+        },
+        "networkEntity": {},
+        "deathEffect": {
+            "blueprintName": "explosion"
+        }
+    }
+}

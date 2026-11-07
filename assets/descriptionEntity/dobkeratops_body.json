@@ -37,7 +37,7 @@
             "flags": 0
         },
         "animation": {
-            "frameDuration": 0.15,
+            "frameDuration": 0.7,
             "currentFrame": 0,
             "totalFrames": 4,
             "frameWidth": 155,
@@ -54,7 +54,7 @@
             "offsetX": 104.0,
             "offsetY": 64.0,
             "width": 46.0,
-            "height": 112.0,
+            "height": 60.0,
             "layer": "Enemy",
             "mask": [
                 "PlayerProjectile",
