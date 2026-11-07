@@ -373,3 +373,10 @@ if(RTYPE_BUILD_BENCH)
         LibLZMA::LibLZMA
         ZLIB::ZLIB)
 endif()
+
+# Headless load-test bot (cmake -DRTYPE_BUILD_BOT=ON), see tools/bot
+option(RTYPE_BUILD_BOT "Build tools/bot, a headless client for load tests" OFF)
+if(RTYPE_BUILD_BOT)
+    add_executable(rtype_bot tools/bot/main.cpp)
+    target_link_libraries(rtype_bot PRIVATE NetworkClientLib Network CommonProtocole Threads::Threads)
+endif()
