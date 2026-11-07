@@ -157,6 +157,21 @@ target_include_directories(ECSLib INTERFACE "${ecslib_SOURCE_DIR}/include")
 #Network
 find_package(Threads REQUIRED)
 find_package(asio CONFIG REQUIRED)
+find_package(zstd CONFIG REQUIRED)
+
+set(COMPRESSION_DICTIONARY ${CMAKE_CURRENT_SOURCE_DIR}/lib/Network/src/protocol/zstd_dict.bin)
+set(COMPRESSION_DICTIONARY_CPP ${CMAKE_BINARY_DIR}/generated/CompressionDictionary.cpp)
+
+add_custom_command(
+    OUTPUT ${COMPRESSION_DICTIONARY_CPP}
+    COMMAND ${CMAKE_COMMAND}
+        -DDICTIONARY=${COMPRESSION_DICTIONARY}
+        -DOUTPUT=${COMPRESSION_DICTIONARY_CPP}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedDictionary.cmake
+    DEPENDS ${COMPRESSION_DICTIONARY} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedDictionary.cmake
+    COMMENT "Embedding the zstd dictionary"
+    VERBATIM
+)
 
 add_library(Network STATIC
     lib/Network/src/metrics/Metrics.cpp
@@ -170,6 +185,8 @@ add_library(Network STATIC
     lib/Network/src/protocol/PingMessage.cpp
     lib/Network/src/protocol/PongMessage.cpp
     lib/Network/src/protocol/Capture.cpp
+    lib/Network/src/protocol/Compression.cpp
+    ${COMPRESSION_DICTIONARY_CPP}
 
     lib/Network/src/tracking/PacketTracker.cpp
     lib/Network/src/connection/Connection.cpp
@@ -196,6 +213,7 @@ target_link_libraries(Network
     PUBLIC
         Threads::Threads
         asio::asio
+        $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>
 )
 
 #JSON LOADER
