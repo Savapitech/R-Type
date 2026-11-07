@@ -4,7 +4,7 @@
 
 | Item | Value |
 | ---- | ----- |
-| Protocol version | 2 |
+| Protocol version | 3 |
 | Transport | UDP over IPv4 |
 | Default server port | 4242 |
 | Byte order | Big-endian (network order) |
@@ -87,7 +87,7 @@ The receiver tells them apart by the sender address, not by content:
 | Offset | Size | Field | Type | Description |
 | -----: | ---: | ----- | ---- | ----------- |
 | 0 | 4 | `magic` | `u32` | MUST be `0x52545950` ("RTYP" in ASCII). |
-| 4 | 1 | `version` | `u8` | Protocol version, MUST be `2`. |
+| 4 | 1 | `version` | `u8` | Protocol version, MUST be `3`. |
 | 5 | 1 | `type` | `u8` | Handshake type, see below. |
 
 | `type` | Name | Direction | Total size |
@@ -239,7 +239,7 @@ server.
 | `0x0003` | `Ping` | Client to server | 4 | 7.2 |
 | `0x0004` | `Disconnect` | Client to server | 1 | 7.3 |
 | `0x0013` | `QueryEntity` | Client to server | 4 | 7.4 |
-| `0x0083` | `Snapshot` | Server to client | 6 + 11 n | 8.1 |
+| `0x0083` | `Snapshot` | Server to client | 14 + 11 n | 8.1 |
 | `0x0084` | `CreateEntity` | Server to client | 16 | 8.2 |
 | `0x0085` | `DestroyEntity` | Server to client | 9 | 8.3 |
 | `0x0086` | `Pong` | Server to client | 4 | 8.4 |
@@ -252,12 +252,12 @@ sent.
 
 ### 7.1 Input (0x0002)
 
-Actions held by the player during one client frame.
+Actions held by the player at a given client tick.
 
 | Offset | Size | Field | Type | Description |
 | -----: | ---: | ----- | ---- | ----------- |
 | 0 | 4 | `inputSequence` | `u32` | Starts at 1, increases by 1 for each `Input` sent. |
-| 4 | 4 | `clientTick` | `u32` | Client frame counter. |
+| 4 | 4 | `clientTick` | `u32` | Client tick, see below. |
 | 8 | 1 | `actions` | `u8` | Bit flags, see below. |
 
 | Bit | Value | Action |
@@ -271,8 +271,23 @@ Actions held by the player during one client frame.
 Bits 5 to 7 are reserved and MUST be 0. Several bits can be set at once, for
 example Up, Right and Shoot give `0x19`.
 
-`actions` is the full state of the controls, not a change: the client SHOULD
-send one `Input` per frame, including frames where nothing is held (`0x00`).
+`actions` is the full state of the controls, not a change, and `0x00` means
+that nothing is held. `clientTick` counts ticks of 1/60 second on the client
+clock, from any origin. It follows the clock and not the number of rendered
+frames, because the server uses the difference between two ticks as a duration
+(section 10.1).
+
+The server keeps applying the last actions it received until it receives other
+ones, so a client does not have to send one `Input` per frame. A client SHOULD
+send an `Input`:
+
+- as soon as the actions change, and again in each of the two following frames,
+  so that the loss of one packet does not delay the change,
+- then, while the actions stay the same, every 50 ms. This repairs a change that
+  was lost anyway, and tells the server that the client is alive.
+
+A player who holds the same keys sends about 20 `Input` per second instead of
+60. Each repetition has its own `inputSequence`.
 
 The server:
 
@@ -282,7 +297,10 @@ The server:
   counter MAY wrap around.
 - Sets the ship velocity from the direction bits. If two opposite directions
   are held, Down and Right win. Diagonal speed is scaled by 0.7071 so that it
-  matches the straight speed.
+  matches the straight speed. The client uses the same rule to predict its ship
+  (section 10.1).
+- Starts a new "run" of actions when they differ from the previous ones, and
+  keeps the run when they are the same (a repetition does not restart it).
 - Fires a missile when the Shoot bit goes from set to cleared.
 
 ### 7.2 Ping (0x0003)
@@ -335,7 +353,12 @@ Positions of the replicated entities at a given server tick.
 | -----: | ---: | ----- | ---- | ----------- |
 | 0 | 4 | `serverTick` | `u32` | Server tick of the states. |
 | 4 | 2 | `entityCount` | `u16` | Number of entity states that follow. |
-| 6 | 11 x `entityCount` | states | | Entity states, see below. |
+| 6 | 4 | `ackedInputTick` | `u32` | Client tick that the ship of the receiver accounts for, 0 if the server has no `Input` of this client yet. |
+| 10 | 4 | `ownNetworkId` | `u32` | Network id of the ship of the receiver, 0 if it has none (spectator, dead). |
+| 14 | 11 x `entityCount` | states | | Entity states, see below. |
+
+`ackedInputTick` and `ownNetworkId` are different for every receiver. They let a
+client predict and correct the movement of its own ship, see section 10.1.
 
 Each entity state:
 
@@ -347,20 +370,21 @@ Each entity state:
 | 7 | 2 | `positionY` | `pos16` | Vertical position. |
 | 9 | 2 | `rotation` | `rot16` | Rotation. |
 
-One `Snapshot` holds at most 47 entity states. When more entities exist, the
+One `Snapshot` holds at most 46 entity states. When more entities exist, the
 server sends several `Snapshot` messages with the same `serverTick`, each in
 its own packet.
 
 The client MUST drop the message if:
 
-- `entityCount` is greater than 47,
-- the payload size is not exactly `6 + 11 x entityCount`,
+- `entityCount` is greater than 46,
+- the payload size is not exactly `14 + 11 x entityCount`,
 - any `networkId` is 0,
 - the same `networkId` appears twice.
 
-The client sets the position of every known entity to the received values.
+The client sets the position of every known entity to the received values,
+except its own ship, which is predicted (section 10.1).
 Snapshots are not deltas: each one carries the full position of the entities it
-lists. The server sends one every 3 ticks, which is about 20 per second.
+lists. The server normally sends one every 3 ticks, which is about 20 per second.
 
 ### 8.2 CreateEntity (0x0084)
 
@@ -488,7 +512,7 @@ digraph session {
   w  [label="Server: Welcome(connectionId)"];
   ce [label="Server: CreateEntity for each existing entity"];
   sp [label="Server: CreateEntity of the new ship, to every player"];
-  lp [label="Loop, about 60 times per second:\nClient: Input\nServer: Snapshot every 3 ticks,\nCreateEntity and DestroyEntity on events"];
+  lp [label="Loop:\nClient: Input when the keys change, and every 50 ms\nServer: Snapshot every 3 ticks (less often on a saturated link),\nCreateEntity and DestroyEntity on events"];
   q  [label="Client: QueryEntity for an unknown id\nServer: CreateEntity answer"];
   d  [label="Client: Disconnect\nServer: DestroyEntity(reason 3) to the others"];
   h -> w -> ce -> sp -> lp -> d;
@@ -500,7 +524,8 @@ digraph session {
 until the server answers with `Welcome`. The server then sends a `CreateEntity`
 for every entity already in the world, spawns the ship of the new player and
 sends its `CreateEntity` to every player. During the game the client sends an
-`Input` every frame and the server sends a `Snapshot` every 3 ticks, plus
+`Input` when its keys change and every 50 ms, and the server sends a `Snapshot`
+every 3 ticks, plus
 `CreateEntity` and `DestroyEntity` when entities appear or disappear. When a
 snapshot lists an unknown entity, the client sends `QueryEntity` and the server
 answers with `CreateEntity`. The session ends when the client sends
@@ -512,12 +537,67 @@ Game rules a client should know:
 | Rule | Value |
 | ---- | ----- |
 | Server tick rate | About 60 per second |
-| Snapshot rate | One every 3 ticks |
+| Snapshot rate | One every 3 ticks, down to one every 12 ticks for a client whose link is saturated (section 10.2) |
 | Round start | 2 players connected, or 30 seconds after the first player joined |
 | Player slots | 4, one ship color per slot |
 | Spawn position of slot n (0 to 3) | x = 150, y = 150 + 100 n |
 | Return to lobby | When every player has left, or when every ship is destroyed (game over) |
 | Game over | Every entity is removed with `DestroyEntity` reason 4, every player becomes not ready, then the client goes back to the room lobby |
+
+### 10.1 Prediction of the local ship
+
+Without prediction, the ship of a player moves only when a `Snapshot` comes
+back, one round trip time after the key was pressed. A client SHOULD instead
+move its own ship at once and use the `Snapshot` to correct it. The server
+gives it what it needs, in every `Snapshot`:
+
+- `ownNetworkId` tells which entity is the ship of the receiver,
+- `ackedInputTick` tells which client tick the position of that ship in the
+  `Snapshot` accounts for.
+
+The server computes `ackedInputTick` from the current run of actions of the
+client: if the run started with the `Input` of client tick `c`, applied at
+server tick `s`, then a `Snapshot` sent at server tick `n` has
+`ackedInputTick = c + (n - s)`. The ship has been moving with these actions
+since then, one client tick per server tick, which assumes that both sides tick
+60 times per second. The value is 0 until the first `Input`.
+
+A client that predicts:
+
+1. Every frame, moves its ship by the velocity of the held actions (section
+   7.1) times the duration of the frame, and records the movement with the
+   client tick of the frame.
+2. On every `Snapshot` that contains its ship, forgets the recorded movements
+   whose tick is not after `ackedInputTick`, and adds the remaining ones to the
+   position of the `Snapshot`. The result is the position the ship should have
+   now. If `ackedInputTick` is 0, no movement is forgotten.
+3. Moves the displayed ship toward that position. Small errors SHOULD be
+   corrected smoothly (the reference client removes half of the error at each
+   `Snapshot` and ignores errors under 0.75 pixel), large ones, above 96
+   pixels, at once.
+4. Ignores a `Snapshot` whose `ackedInputTick` is older than the last one used,
+   which happens when packets are reordered.
+
+The server stays the authority: a hit, a power up or a lost packet is corrected
+by step 2 and 3. Other entities are not predicted and are set to the position
+of the `Snapshot`.
+
+### 10.2 Snapshot rate
+
+A saturated link makes packets wait in a queue, and everything then arrives
+late. The server MAY send fewer `Snapshot` to a client whose link is saturated,
+and MUST send them again at the normal rate once the link is free. A client
+MUST NOT assume a fixed rate: it uses `serverTick` to order the `Snapshot` and
+to know their age.
+
+The reference server watches the smallest round trip time of each client over
+half a second, measured on every acknowledged packet. If it grows by more than
+60 ms above the smallest value seen for this client, a queue is filling: the
+server sends one `Snapshot` out of 2, 3 or 4 (down to 5 per second), going
+straight to the slowest rate if the growth is above 300 ms. It goes back one
+step after 6 seconds without growth. Only `Snapshot` are slowed down:
+`CreateEntity`, `DestroyEntity` and every reliable message keep their
+priority.
 
 ## 11. Examples
 
@@ -526,14 +606,14 @@ All bytes are written in hexadecimal.
 ### 11.1 Hello
 
 ```text
-52 54 59 50  02  01
+52 54 59 50  03  01
 magic        ver type=Hello
 ```
 
 ### 11.2 Welcome with connection id 1
 
 ```text
-52 54 59 50  02  02         00 00 00 01
+52 54 59 50  03  02         00 00 00 01
 magic        ver type=Welcome connectionId=1
 ```
 
