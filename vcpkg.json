@@ -24,6 +24,10 @@
           "platform": "windows"
         }
       ]
+    },
+    "bench": {
+      "description": "Compression benchmark (zstd, lz4, brotli, lzma, zlib)",
+      "dependencies": ["zstd", "lz4", "brotli", "liblzma", "zlib"]
     }
   }
 }

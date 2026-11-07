@@ -1,5 +1,6 @@
 #include "PacketTracker.hpp"
 #include "../config/NetworkConfig.hpp"
+#include "../protocol/Capture.hpp"
 #include "../protocol/PacketWriter.hpp"
 #include <algorithm>
 #include <cstdint>
@@ -195,6 +196,7 @@ PacketTracker::collectOutgoing(TimePoint now, std::uint32_t connectionId) {
           buildPacket(connectionId, priority, reliableId, body, sequence);
       if (packet.empty())
         continue;
+      captureBody(body); // first send only, resends are not captured
 
       if (priority != PacketPriority::Unreliable) {
         Pending pending;
