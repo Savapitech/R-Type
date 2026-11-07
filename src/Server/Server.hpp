@@ -27,7 +27,9 @@ namespace rtype::server {
  * and encodes server messages.
  *
  * Decoded messages are pushed by the network thread into mutex protected
- * queues that the game loop drains with the poll methods.
+ * queues that the game loop drains with the poll methods, or handed to the
+ * callbacks set with setInputHandler() and setQueryEntityHandler().
+ *
  */
 class Server {
 public:
@@ -89,6 +91,32 @@ public:
     std::uint32_t roomId = 0;   ///< Target room for JoinRoom.
     bool ready = false;         ///< Requested ready state for SetReady.
   };
+
+  /// Receives Input messages on the network thread.
+  using InputHandler = std::function<void(const InputEvent &)>;
+  /// Receives QueryEntity messages on the network thread.
+  using QueryEntityHandler = std::function<void(const QueryEntityEvent &)>;
+
+  /**
+   * @brief Hands Input messages to a callback instead of pollInput().
+   *
+   * The callback runs on the network thread and must not block. Must be called
+   * before start().
+   *
+   * @param handler Callback receiving the messages.
+   */
+  void setInputHandler(InputHandler handler);
+
+  /**
+   * @brief Hands QueryEntity messages to a callback instead of
+   * pollQueryEntity().
+   *
+   * The callback runs on the network thread and must not block. Must be called
+   * before start().
+   *
+   * @param handler Callback receiving the messages.
+   */
+  void setQueryEntityHandler(QueryEntityHandler handler);
 
   /**
    * @brief Starts the network thread.
@@ -236,6 +264,8 @@ private:
                    const std::vector<std::uint8_t> &payload);
 
   NetworkServer _network;
+  InputHandler _inputHandler;
+  QueryEntityHandler _queryEntityHandler;
   std::mutex _inputMutex;
   std::queue<InputEvent> _inputQueue;
   std::unordered_map<std::uint32_t, std::uint32_t> _lastInputSequence;

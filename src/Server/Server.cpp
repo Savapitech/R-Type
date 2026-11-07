@@ -48,6 +48,14 @@ Server::Server(std::uint16_t port) : _network(port) {
 
 Server::~Server() { stop(); }
 
+void Server::setInputHandler(InputHandler handler) {
+  _inputHandler = std::move(handler);
+}
+
+void Server::setQueryEntityHandler(QueryEntityHandler handler) {
+  _queryEntityHandler = std::move(handler);
+}
+
 void Server::start() { _network.start(); }
 
 void Server::stop() { _network.stop(); }
@@ -81,6 +89,10 @@ void Server::handleMessage(std::uint32_t connectionId, MessageId type,
       _lastInputSequence.emplace(connectionId, sequence);
     }
 
+    if (_inputHandler) {
+      _inputHandler({connectionId, input});
+      break;
+    }
     {
       std::lock_guard<std::mutex> lock(_inputMutex);
 
@@ -96,6 +108,10 @@ void Server::handleMessage(std::uint32_t connectionId, MessageId type,
     if (!protocol::readPayload(reader, query) || !reader.isEnd() ||
         !protocol::isValid(query)) {
       return;
+    }
+    if (_queryEntityHandler) {
+      _queryEntityHandler({connectionId, query.networkId.get()});
+      break;
     }
     {
       std::lock_guard<std::mutex> lock(_queryMutex);
