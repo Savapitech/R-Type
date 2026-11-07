@@ -3,7 +3,9 @@
 bool PacketHeader::serialize(PacketWriter &writer) const {
   return writer.writeUInt32(connectionId) && writer.writeUInt32(sequence) &&
          writer.writeUInt32(ack) && writer.writeUInt32(ackBits) &&
-         writer.writeUInt8(static_cast<std::uint8_t>(priority)) &&
+         writer.writeUInt8(static_cast<std::uint8_t>(
+             static_cast<std::uint8_t>(priority) |
+             (compressed ? COMPRESSED_FLAG : 0))) &&
          writer.writeUInt16(reliableId);
 }
 
@@ -25,6 +27,8 @@ bool PacketHeader::deserialize(PacketReader &reader) {
     return false;
   }
 
+  const bool readCompressed = (readPriority & COMPRESSED_FLAG) != 0;
+  readPriority &= static_cast<std::uint8_t>(~COMPRESSED_FLAG);
   if (readPriority > static_cast<std::uint8_t>(PacketPriority::Unreliable))
     return false;
 
@@ -34,5 +38,6 @@ bool PacketHeader::deserialize(PacketReader &reader) {
   ackBits = readAckBits;
   priority = static_cast<PacketPriority>(readPriority);
   reliableId = readReliableId;
+  compressed = readCompressed;
   return true;
 }

@@ -415,11 +415,6 @@ void NetworkClient::handleConnectedPackets(const std::uint8_t *data,
   if (header.connectionId != _connectionId.load())
     return;
 
-  std::vector<ParsedMessage> messages;
-
-  if (!MessageParser::parse(reader, messages))
-    return;
-
   const auto previousDup = _tracker.getDuplicateCount();
   const auto previousOut = _tracker.getOutOfOrderCount();
   const auto previousRttSamples = _tracker.getRttSampleCount();
@@ -443,6 +438,10 @@ void NetworkClient::handleConnectedPackets(const std::uint8_t *data,
   }
 
   if (!accepted)
+    return;
+
+  std::vector<ParsedMessage> messages;
+  if (!MessageParser::parseBody(header.compressed, reader, messages))
     return;
 
   for (auto &message : messages) {
