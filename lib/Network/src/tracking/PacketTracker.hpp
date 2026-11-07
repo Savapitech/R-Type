@@ -150,7 +150,8 @@ public:
 
 private:
   struct Pending {
-    std::vector<std::uint8_t> payload;
+    std::vector<std::uint8_t> payload; ///< Body as sent, compressed or not.
+    bool compressed = false;           ///< True if payload is a zstd frame.
     PacketPriority priority = PacketPriority::Unreliable;
     std::uint16_t reliableId = 0;
     std::uint64_t order = 0;
@@ -167,6 +168,7 @@ private:
                                         PacketPriority priority,
                                         std::uint16_t reliableId,
                                         const std::vector<std::uint8_t> &body,
+                                        bool compressed,
                                         std::uint32_t &sequence);
   void acknowledge(std::uint32_t ack, std::uint32_t ackBits, TimePoint now);
   bool markReliableReceived(std::uint16_t reliableId);

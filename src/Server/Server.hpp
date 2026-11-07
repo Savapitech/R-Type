@@ -151,6 +151,13 @@ public:
             PacketPriority priority = PacketPriority::Unreliable);
 
   /**
+   * @brief Sends every queued message now, batched per connection.
+   *
+   * Called by a room at the end of each tick. Thread safe.
+   */
+  void flushAll();
+
+  /**
    * @brief Pops the oldest connection change.
    * @param event Receives the change.
    * @return True if a change was popped.

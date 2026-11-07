@@ -72,6 +72,7 @@ void RoomWorker::run() {
 
       processMailbox();
       tick(std::min(elapsed, MAX_DELTA_TIME));
+      _server.flushAll();
 
       const auto tickEnd = Clock::now();
       nextTick = std::max(nextTick, tickEnd);

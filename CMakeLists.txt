@@ -6,6 +6,11 @@ if(RTYPE_BUILD_CLIENT)
     list(APPEND VCPKG_MANIFEST_FEATURES "client")
 endif()
 
+option(RTYPE_BUILD_BENCH "Build tools/compression_bench (needs zstd, lz4, brotli, lzma, zlib)" OFF)
+if(RTYPE_BUILD_BENCH)
+    list(APPEND VCPKG_MANIFEST_FEATURES "bench")
+endif()
+
 list(APPEND VCPKG_INSTALL_OPTIONS "--no-print-usage")
 list(REMOVE_DUPLICATES VCPKG_INSTALL_OPTIONS)
 
@@ -152,6 +157,21 @@ target_include_directories(ECSLib INTERFACE "${ecslib_SOURCE_DIR}/include")
 #Network
 find_package(Threads REQUIRED)
 find_package(asio CONFIG REQUIRED)
+find_package(zstd CONFIG REQUIRED)
+
+set(COMPRESSION_DICTIONARY ${CMAKE_CURRENT_SOURCE_DIR}/lib/Network/src/protocol/zstd_dict.bin)
+set(COMPRESSION_DICTIONARY_CPP ${CMAKE_BINARY_DIR}/generated/CompressionDictionary.cpp)
+
+add_custom_command(
+    OUTPUT ${COMPRESSION_DICTIONARY_CPP}
+    COMMAND ${CMAKE_COMMAND}
+        -DDICTIONARY=${COMPRESSION_DICTIONARY}
+        -DOUTPUT=${COMPRESSION_DICTIONARY_CPP}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedDictionary.cmake
+    DEPENDS ${COMPRESSION_DICTIONARY} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedDictionary.cmake
+    COMMENT "Embedding the zstd dictionary"
+    VERBATIM
+)
 
 add_library(Network STATIC
     lib/Network/src/metrics/Metrics.cpp
@@ -164,6 +184,9 @@ add_library(Network STATIC
     lib/Network/src/protocol/MessageParser.cpp
     lib/Network/src/protocol/PingMessage.cpp
     lib/Network/src/protocol/PongMessage.cpp
+    lib/Network/src/protocol/Capture.cpp
+    lib/Network/src/protocol/Compression.cpp
+    ${COMPRESSION_DICTIONARY_CPP}
 
     lib/Network/src/tracking/PacketTracker.cpp
     lib/Network/src/connection/Connection.cpp
@@ -190,6 +213,7 @@ target_link_libraries(Network
     PUBLIC
         Threads::Threads
         asio::asio
+        $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>
 )
 
 #JSON LOADER
@@ -582,3 +606,27 @@ endif()
 #     enable_test_assertions(test_connected_packet)
 
 # endif()
+
+# Compression benchmark (cmake -DRTYPE_BUILD_BENCH=ON), see tools/compression_bench
+if(RTYPE_BUILD_BENCH)
+    find_package(zstd CONFIG REQUIRED)
+    find_package(lz4 CONFIG REQUIRED)
+    find_package(unofficial-brotli CONFIG REQUIRED)
+    find_package(LibLZMA REQUIRED)
+    find_package(ZLIB REQUIRED)
+    add_executable(compression_bench tools/compression_bench/main.cpp)
+    target_link_libraries(compression_bench PRIVATE
+        $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>
+        lz4::lz4
+        unofficial::brotli::brotlienc
+        unofficial::brotli::brotlidec
+        LibLZMA::LibLZMA
+        ZLIB::ZLIB)
+endif()
+
+# Headless load-test bot (cmake -DRTYPE_BUILD_BOT=ON), see tools/bot
+option(RTYPE_BUILD_BOT "Build tools/bot, a headless client for load tests" OFF)
+if(RTYPE_BUILD_BOT)
+    add_executable(rtype_bot tools/bot/main.cpp)
+    target_link_libraries(rtype_bot PRIVATE NetworkClientLib Network CommonProtocole Threads::Threads)
+endif()

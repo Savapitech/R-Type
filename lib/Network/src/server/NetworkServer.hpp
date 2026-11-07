@@ -71,6 +71,14 @@ public:
             PacketPriority priority = PacketPriority::Unreliable);
 
   /**
+   * @brief Sends every queued message of every connection now.
+   *
+   * Call it at the end of a game tick so the messages produced during the
+   * tick are batched together into as few datagrams as possible. Thread safe.
+   */
+  void flushAll();
+
+  /**
    * @brief Returns a thread-safe snapshot of network metrics.
    *
    * The returned metrics represent the latest snapshot

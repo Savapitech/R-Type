@@ -68,6 +68,8 @@ void Server::send(std::uint32_t connectionId,
   _network.send(connectionId, payload, priority);
 }
 
+void Server::flushAll() { _network.flushAll(); }
+
 void Server::handleMessage(std::uint32_t connectionId, MessageId type,
                            const std::vector<std::uint8_t> &payload) {
   switch (static_cast<protocol::MessageType>(type)) {
