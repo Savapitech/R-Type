@@ -85,6 +85,14 @@ private:
   std::atomic_bool _connected{false};
   std::atomic<std::uint32_t> _connectionId{0};
   std::uint32_t _nextInputSequence = 1;
+  const std::chrono::steady_clock::time_point _inputEpoch =
+      std::chrono::steady_clock::now();
+  // State of the Input sending policy, used on the network thread only.
+  bool _hasSentInput = false;
+  rtype::protocol::InputAction _lastSentActions =
+      rtype::protocol::InputAction::NoneAction;
+  std::chrono::steady_clock::time_point _lastInputSent{};
+  std::uint32_t _redundantInputsLeft = 0;
   std::chrono::steady_clock::time_point _lastKeepalive{};
 
   std::mutex _eventMutex;
@@ -138,12 +146,28 @@ public:
   void sendHello();
 
   /**
-   * @brief Sends an Input message with the next input sequence number.
-   * @param clientTick Current client frame counter.
+   * @brief Declares the actions held during the current frame.
+   *
+   * Call it every frame. An Input message is not sent for every call: the
+   * actions are sent when they change (and `INPUT_REDUNDANT_COPIES` more times
+   * against packet loss), then again every `INPUT_HEARTBEAT` while they stay
+   * the same. The server keeps applying the last actions it received, so this
+   * costs far less bandwidth than one message per frame.
+   *
+   * @param clientTick Current input tick, see inputTick().
    * @param actions Actions currently held.
    */
   void sendInput(std::uint32_t clientTick,
                  rtype::protocol::InputAction actions);
+
+  /**
+   * @brief Returns the current input tick: time elapsed since the creation of
+   * the client, in 1 / INPUT_TICK_RATE of a second.
+   *
+   * The server uses the difference between ticks as a duration, so the tick
+   * follows the clock and not the number of rendered frames.
+   */
+  std::uint32_t inputTick() const;
 
   /**
    * @brief Asks the server to describe an unknown entity.

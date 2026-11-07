@@ -90,33 +90,47 @@ void NetworkClient::sendInput(std::uint32_t clientTick,
   if (!_running.load() || !_connected.load())
     return;
 
-  PacketWriter writer;
+  asio::post(_ioContext, [this, clientTick, actions]() {
+    if (!_running.load() || !_connected.load())
+      return;
 
-  MessageHeader messageHeader;
-  messageHeader.setType(protocol::toMessageId(protocol::MessageType::Input));
-  messageHeader.size =
-      static_cast<std::uint16_t>(sizeof(rtype::protocol::InputPayload));
+    const auto now = std::chrono::steady_clock::now();
+    if (!_hasSentInput || actions != _lastSentActions) {
+      _redundantInputsLeft = INPUT_REDUNDANT_COPIES;
+    } else if (_redundantInputsLeft > 0) {
+      --_redundantInputsLeft;
+    } else if (now - _lastInputSent < INPUT_HEARTBEAT) {
+      return;
+    }
+    _hasSentInput = true;
+    _lastSentActions = actions;
+    _lastInputSent = now;
 
-  if (!messageHeader.serialize(writer))
-    return;
+    PacketWriter writer;
+    MessageHeader messageHeader;
+    messageHeader.setType(protocol::toMessageId(protocol::MessageType::Input));
+    messageHeader.size =
+        static_cast<std::uint16_t>(sizeof(rtype::protocol::InputPayload));
+    if (!messageHeader.serialize(writer))
+      return;
 
-  asio::post(_ioContext,
-             [this, clientTick, actions, writer = std::move(writer)]() mutable {
-               if (!_running.load() || !_connected.load())
-                 return;
+    rtype::protocol::InputPayload input{
+        rtype::protocol::be32(_nextInputSequence),
+        rtype::protocol::be32(clientTick), actions};
+    if (!rtype::protocol::writePayload(writer, input))
+      return;
 
-               rtype::protocol::InputPayload input{
-                   rtype::protocol::be32(_nextInputSequence),
-                   rtype::protocol::be32(clientTick), actions};
+    ++_nextInputSequence;
+    enqueue(writer.getData(),
+            protocol::messagePriority(protocol::MessageType::Input));
+  });
+}
 
-               if (!rtype::protocol::writePayload(writer, input))
-                 return;
-
-               ++_nextInputSequence;
-
-               enqueue(writer.getData(),
-                       protocol::messagePriority(protocol::MessageType::Input));
-             });
+std::uint32_t NetworkClient::inputTick() const {
+  const double elapsed = std::chrono::duration<double>(
+                             std::chrono::steady_clock::now() - _inputEpoch)
+                             .count();
+  return static_cast<std::uint32_t>(elapsed * INPUT_TICK_RATE);
 }
 
 void NetworkClient::sendQueryEntity(std::uint32_t networkId) {
@@ -396,6 +410,7 @@ void NetworkClient::handleHandshake(const std::uint8_t *data,
   }
 
   _connectionId.store(connectionId);
+  _hasSentInput = false;
   _connected.store(true);
 
   pushEvent(
