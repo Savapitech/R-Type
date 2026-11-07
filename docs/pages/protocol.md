@@ -4,7 +4,7 @@
 
 | Item | Value |
 | ---- | ----- |
-| Protocol version | 1 |
+| Protocol version | 2 |
 | Transport | UDP over IPv4 |
 | Default server port | 4242 |
 | Byte order | Big-endian (network order) |
@@ -87,7 +87,7 @@ The receiver tells them apart by the sender address, not by content:
 | Offset | Size | Field | Type | Description |
 | -----: | ---: | ----- | ---- | ----------- |
 | 0 | 4 | `magic` | `u32` | MUST be `0x52545950` ("RTYP" in ASCII). |
-| 4 | 1 | `version` | `u8` | Protocol version, MUST be `1`. |
+| 4 | 1 | `version` | `u8` | Protocol version, MUST be `2`. |
 | 5 | 1 | `type` | `u8` | Handshake type, see below. |
 
 | `type` | Name | Direction | Total size |
@@ -145,11 +145,11 @@ this header.
 | 4 | 4 | `sequence` | `u32` | Sequence number of this packet. |
 | 8 | 4 | `ack` | `u32` | Highest sequence number received from the peer, 0 if none. |
 | 12 | 4 | `ackBits` | `u32` | Bit `i` set when sequence `ack - 1 - i` was received. |
-| 16 | 1 | `priority` | `u8` | 0 critical, 1 reliable, 2 unreliable. Other values make the packet invalid. |
+| 16 | 1 | `priority` | `u8` | Bits 0 to 6: 0 critical, 1 reliable, 2 unreliable, other values make the packet invalid. Bit 7 (`0x80`): the body is compressed, see section 5.5. |
 | 17 | 2 | `reliableId` | `u16` | Identifies a priority 0 or 1 packet, kept by its resends. 0 for priority 2. |
 
-The header is followed by zero or more messages (section 5.3) that fill the
-rest of the datagram exactly.
+The header is followed by the body: zero or more messages (section 5.3) that
+fill the rest of the datagram exactly, or a compressed body (section 5.5).
 
 ### 5.2 Sequence numbers and acknowledgements
 
@@ -191,6 +191,12 @@ A receiver MUST drop the whole packet if a message header is truncated, if a
 the last complete message. A packet MAY contain several messages, and a packet
 with no message is valid.
 
+A sender SHOULD put in one packet all the messages of the same priority it has
+to send at the same time, up to 529 bytes, instead of sending one packet per
+message. Messages of different priorities cannot share a packet, because a
+packet has a single `priority` and a single `reliableId`. A batch of priority 0
+or 1 messages is acknowledged and resent as a whole.
+
 ### 5.4 Server checks
 
 The server MUST drop a connected packet if:
@@ -199,8 +205,28 @@ The server MUST drop a connected packet if:
 - `connectionId` does not match an open connection,
 - the connection with that id is bound to another address,
 - its sequence number is a duplicate or too old, or its `reliableId` was already delivered.
+- its body is flagged as compressed and cannot be decompressed within 529 bytes (section 5.5).
 
 The client MUST drop a connected packet whose `connectionId` is not its own.
+
+### 5.5 Compressed bodies
+
+When bit 7 of `priority` is set, everything after the 19 byte header is a
+single compressed frame instead of messages. The frame is a zstd frame
+(RFC 8878) with these properties:
+
+- the format is "magicless": the 4 byte magic number is absent,
+- no checksum, no content size and no dictionary id are present,
+- it is compressed with the dictionary of the protocol version, 4096 bytes,
+  published in `lib/Network/src/protocol/zstd_dict.bin`.
+
+Once decompressed, the bytes are read as in section 5.3. The sender MUST set the
+flag only if the frame is strictly smaller than the uncompressed body, and
+compresses a packet once: a resend carries the same bytes with the same flag.
+
+The receiver MUST decompress only after the packet passed the checks of section
+5.4 and MUST limit the output to 529 bytes. It MUST drop the packet if the
+frame is empty, invalid, or expands to more than 529 bytes.
 
 ## 6. Message catalog
 
@@ -500,14 +526,14 @@ All bytes are written in hexadecimal.
 ### 11.1 Hello
 
 ```text
-52 54 59 50  01  01
+52 54 59 50  02  01
 magic        ver type=Hello
 ```
 
 ### 11.2 Welcome with connection id 1
 
 ```text
-52 54 59 50  01  02         00 00 00 01
+52 54 59 50  02  02         00 00 00 01
 magic        ver type=Welcome connectionId=1
 ```
 
@@ -548,3 +574,23 @@ message is shown, it follows a packet header.
 84 B0         positionY    = 300
 00 00         rotation     = 0
 ```
+
+### 11.5 Packet with a compressed body
+
+Connection 1, packet sequence 9, critical packet with `reliableId` 3. The body
+holds three `CreateEntity` messages of 20 bytes each (60 bytes), and compresses
+to 47 bytes with the protocol dictionary.
+
+```text
+00 00 00 01   connectionId = 1
+00 00 00 09   sequence     = 9
+00 00 00 05   ack          = 5
+00 00 00 01   ackBits      = packet 4 received
+80            priority     = critical (0) | compressed (0x80)
+00 03         reliableId   = 3
+00 00 55 01 00 C3 01 06 FF 5F 23 AB 55 98 2C BC
+FD D6 2A CC C2 6D DD C2 5A 85 69 2E FE 07 B1 04
+04 FC 00 9F 63 ED C9 6E C5 F5 A7 8D E1 C2 10
+```
+
+Total size: 66 bytes instead of 79 without compression.
