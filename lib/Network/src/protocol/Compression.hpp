@@ -13,7 +13,7 @@
 #include <vector>
 
 /// zstd compression level used for packet body
-inline constexpr int COMPRESSION_LEVEL = 3;
+inline constexpr int COMPRESSION_LEVEL = 1;
 
 /**
  * @brief Returns the zstd dictionary embedded in the binary.
