@@ -94,7 +94,7 @@ std::vector<std::uint8_t>
 PacketTracker::buildPacket(std::uint32_t connectionId, PacketPriority priority,
                            std::uint16_t reliableId,
                            const std::vector<std::uint8_t> &body, bool compressed,
-                           std::uint32_t &sequence) {
+                           TimePoint now, std::uint32_t &sequence) {
   PacketHeader header;
   header.connectionId = connectionId;
   header.sequence = getNextSequence();
@@ -104,6 +104,7 @@ PacketTracker::buildPacket(std::uint32_t connectionId, PacketPriority priority,
   header.reliableId = reliableId;
   header.compressed = compressed;
   sequence = header.sequence;
+  _sent[sequence % SENT_HISTORY] = {sequence, now};
 
   PacketWriter writer;
   if (!header.serialize(writer) || !writer.writeBytes(body.data(), body.size()))
@@ -157,7 +158,7 @@ PacketTracker::collectOutgoing(TimePoint now, std::uint32_t connectionId) {
 
         std::uint32_t sequence = 0;
         auto packet = buildPacket(connectionId, priority, pending->reliableId,
-                                  pending->payload, pending->compressed,
+                                  pending->payload, pending->compressed, now,
                                   sequence);
         if (packet.empty())
           continue;
@@ -203,7 +204,7 @@ PacketTracker::collectOutgoing(TimePoint now, std::uint32_t connectionId) {
 
       std::uint32_t sequence = 0;
       auto packet = buildPacket(connectionId, priority, reliableId, body,
-                                compressed, sequence);
+                                compressed, now, sequence);
       if (packet.empty())
         continue;
 
@@ -227,7 +228,8 @@ PacketTracker::collectOutgoing(TimePoint now, std::uint32_t connectionId) {
   } else if (_ackDue && now - _ackDueSince >= ACK_ONLY_DELAY) {
     std::uint32_t sequence = 0;
     auto packet =
-        buildPacket(connectionId, PacketPriority::Unreliable, 0, {}, false, sequence);
+        buildPacket(connectionId, PacketPriority::Unreliable, 0, {}, false, now,
+                    sequence);
     if (!packet.empty())
       out.push_back(std::move(packet));
     _ackDue = false;
@@ -239,6 +241,18 @@ void PacketTracker::acknowledge(std::uint32_t ack, std::uint32_t ackBits,
                                 TimePoint now) {
   if (ack == 0)
     return;
+
+  // Round trip of the newest acknowledged packet, whatever its priority.
+  if (ack != _lastSampledSequence) {
+    const SentRecord &record = _sent[ack % SENT_HISTORY];
+    if (record.sequence == ack) {
+      const auto sample = std::chrono::duration_cast<std::chrono::microseconds>(
+          now - record.sentAt);
+      if (!_minRttSample || sample < *_minRttSample)
+        _minRttSample = sample;
+      _lastSampledSequence = ack;
+    }
+  }
 
   for (auto it = _pending.begin(); it != _pending.end();) {
     const bool acked =
@@ -333,6 +347,12 @@ std::uint64_t PacketTracker::getOutOfOrderCount() const {
 }
 
 std::uint64_t PacketTracker::getTooOldCount() const { return _tooOldCount; }
+
+std::optional<std::chrono::microseconds> PacketTracker::takeMinRttSample() {
+  const auto sample = _minRttSample;
+  _minRttSample.reset();
+  return sample;
+}
 
 std::chrono::microseconds PacketTracker::getLastRttSample() const {
   return _lastRttSample;

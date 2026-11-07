@@ -127,6 +127,8 @@ void NetworkServer::handleConnectedPacket(
   const auto previousOut = tracker.getOutOfOrderCount();
   const auto previousRttSamples = tracker.getRttSampleCount();
   const bool accepted = tracker.onPacketReceived(header, now);
+  if (const auto rttSample = tracker.takeMinRttSample())
+    connection.recordRttSample(*rttSample, now);
 
   const auto newDup = tracker.getDuplicateCount() - previousDup;
   for (std::uint64_t i = 0; i < newDup; i++) {
