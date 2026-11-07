@@ -561,6 +561,7 @@ void GameInstance::processInput(const Server::InputEvent &inputEvent,
     std::uint32_t bulletNetId =
         rtype::server::NetworkIdGenerator::getInstance().getNextId();
 
+    const auto shooterPosition = transform->position;
     auto bulletEntity = _context._entityFactory.createNetwork(
         _context.registry, "bullet", bulletNetId);
     auto *bulletTransform =
@@ -568,8 +569,8 @@ void GameInstance::processInput(const Server::InputEvent &inputEvent,
             bulletEntity);
 
     if (bulletTransform) {
-      bulletTransform->position = {transform->position.x + 50.0f,
-                                   transform->position.y};
+      bulletTransform->position = {shooterPosition.x + 50.0f,
+                                   shooterPosition.y};
       const auto payload = protocol::createEntityPayload(
           _serverTick, bulletNetId,
           _context._entityFactory.getArchetypeID("bullet"),
