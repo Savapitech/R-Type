@@ -106,9 +106,36 @@ public:
 
     json blueprintJson;
     file >> blueprintJson;
-    std::cout << blueprintName << " Hash ID : "
-              << registerBlueprint(blueprintName, blueprintJson) << std::endl;
-    return registerBlueprint(blueprintName, blueprintJson);
+    const ArchetypeID id = registerBlueprint(blueprintName, blueprintJson);
+    std::cout << blueprintName << " Hash ID : " << id << std::endl;
+    return id;
+  }
+
+  /**
+   * @brief Loads every blueprint listed in a manifest file.
+   *
+   * The manifest is a JSON document of the form
+   * `{"blueprints": [{"name": "...", "file": "..."}]}`, as written by the
+   * level editor (tools/editor).
+   * @param manifestPath Path of the manifest file.
+   * @throws std::runtime_error If the manifest or a listed file cannot be
+   * opened, or if the manifest is malformed.
+   */
+  void loadBlueprintManifest(const std::string &manifestPath) {
+    std::ifstream file(manifestPath);
+    if (!file.is_open())
+      throw std::runtime_error("Failed to open blueprint manifest: " +
+                               manifestPath);
+
+    json manifest;
+    file >> manifest;
+    if (!manifest.contains("blueprints") || !manifest["blueprints"].is_array())
+      throw std::runtime_error("Blueprint manifest missing 'blueprints': " +
+                               manifestPath);
+
+    for (const auto &entry : manifest["blueprints"])
+      loadBlueprintFromPath(entry.at("name").get<std::string>(),
+                            entry.at("file").get<std::string>());
   }
 
   /**

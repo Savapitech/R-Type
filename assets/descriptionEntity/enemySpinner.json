@@ -71,11 +71,8 @@
             "fireRate": 3.0,
             "blueprintName": "enemy_bullet"
         },
-        "waveMovement": {
-            "baseY": 300.0,
-            "amplitude": 60.0,
-            "frequency": 3.0,
-            "time": 0.0
+        "luaScript": {
+            "script": "assets/scripts/enemies/spinner.lua"
         },
         "networkEntity": {},
         "deathEffect": {

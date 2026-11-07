@@ -48,6 +48,14 @@ Server::Server(std::uint16_t port) : _network(port) {
 
 Server::~Server() { stop(); }
 
+void Server::setInputHandler(InputHandler handler) {
+  _inputHandler = std::move(handler);
+}
+
+void Server::setQueryEntityHandler(QueryEntityHandler handler) {
+  _queryEntityHandler = std::move(handler);
+}
+
 void Server::start() { _network.start(); }
 
 void Server::stop() { _network.stop(); }
@@ -81,12 +89,8 @@ void Server::handleMessage(std::uint32_t connectionId, MessageId type,
       _lastInputSequence.emplace(connectionId, sequence);
     }
 
-    {
-      std::lock_guard<std::mutex> lock(_inputMutex);
-
-      if (_inputQueue.size() < MAX_QUEUED_EVENTS)
-        _inputQueue.push({connectionId, input});
-    }
+    if (_inputHandler)
+      _inputHandler({connectionId, input});
     break;
   }
 
@@ -97,11 +101,8 @@ void Server::handleMessage(std::uint32_t connectionId, MessageId type,
         !protocol::isValid(query)) {
       return;
     }
-    {
-      std::lock_guard<std::mutex> lock(_queryMutex);
-      if (_queryQueue.size() < MAX_QUEUED_EVENTS)
-        _queryQueue.push({connectionId, query.networkId.get()});
-    }
+    if (_queryEntityHandler)
+      _queryEntityHandler({connectionId, query.networkId.get()});
     break;
   }
 
@@ -189,17 +190,6 @@ void Server::handleMessage(std::uint32_t connectionId, MessageId type,
   }
 }
 
-bool Server::pollInput(InputEvent &event) {
-  std::lock_guard<std::mutex> lock(_inputMutex);
-
-  if (_inputQueue.empty())
-    return false;
-
-  event = _inputQueue.front();
-  _inputQueue.pop();
-  return true;
-}
-
 bool Server::pollConnectionEvent(ConnectionEvent &event) {
   std::lock_guard<std::mutex> lock(_connectionMutex);
 
@@ -208,17 +198,6 @@ bool Server::pollConnectionEvent(ConnectionEvent &event) {
 
   event = _connectionQueue.front();
   _connectionQueue.pop();
-  return true;
-}
-
-bool Server::pollQueryEntity(QueryEntityEvent &event) {
-  std::lock_guard<std::mutex> lock(_queryMutex);
-
-  if (_queryQueue.empty())
-    return false;
-
-  event = _queryQueue.front();
-  _queryQueue.pop();
   return true;
 }
 

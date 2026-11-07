@@ -21,8 +21,6 @@ std::optional<ServerSceneType>
 ServerLobbyScene::onUpdate(rtk::EngineContext &context, const ServerInput &,
                            float dt) {
   _dependency.game.handleConnections(context);
-  _dependency.game.handleInputs(context);
-  _dependency.game.handleEntityQueries(context);
   _dependency.game.incrementServerTick();
 
   if (_dependency.game.getServerTick() % 3 == 0) {

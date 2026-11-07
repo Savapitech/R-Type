@@ -70,14 +70,17 @@ loop never touches the socket directly:
 
 - **Receiving.** NetworkServer calls the callbacks set with
   NetworkServer::setOnClientConnected(), NetworkServer::setOnClientDisconnected()
-  and NetworkServer::setOnMessage(). rtype::server::Server decodes the message
-  and pushes the result into one of three queues, each protected by its own
-  mutex: inputs, connection changes and entity queries. The game loop drains
-  them at the start of each tick with rtype::server::Server::pollInput(),
+  and NetworkServer::setOnMessage(). rtype::server::Server decodes the message.
+  Connection changes and room requests go into queues protected by a mutex,
+  which the main thread drains at the start of each frame with
   rtype::server::Server::pollConnectionEvent() and
-  rtype::server::Server::pollQueryEntity().
-- **Sending.** NetworkServer::send() posts a task to the network thread, which
-  builds the packet header and hands the datagram to the transport.
+  rtype::server::Server::pollRoomRequest(). Inputs and entity queries go to the
+  callbacks set with rtype::server::Server::setInputHandler() and
+  rtype::server::Server::setQueryEntityHandler(), which hand them to the room of
+  the client (see @ref room_threads).
+- **Sending.** NetworkServer::send() can be called from any thread. It posts a
+  task to the network thread, which builds the packet header and hands the
+  datagram to the transport.
 
 The client follows the same model: rtype::client::NetworkClient pushes
 connection events and decoded replication messages into queues read with

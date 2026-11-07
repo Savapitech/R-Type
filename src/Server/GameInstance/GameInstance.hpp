@@ -10,12 +10,17 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace rtype::server {
 
 /**
  * @brief Owns an isolated ECS world and scene lifecycle for one room.
+ *
+ * Not thread safe: once started, it is only used by the thread of its
+ * RoomWorker.
  */
 class GameInstance {
 public:
@@ -26,10 +31,10 @@ public:
    * @brief Constructs an isolated simulation for a room.
    * @param roomId Identifier of the room.
    * @param server Shared network server.
-   * @param roomManager Manager containing the room and its ready states.
+   * @param events Queue used to notify the main thread.
    */
   explicit GameInstance(std::uint32_t roomId, Server &server,
-                        RoomManager &roomManager);
+                        RoomEventQueue &events);
 
   /** @brief Instances cannot be copied. */
   GameInstance(const GameInstance &) = delete;
@@ -95,6 +100,15 @@ public:
    * @brief Resets the per-round state of the instance.
    */
   void resetGameState();
+  /**
+   * @brief Asks the lobby scene to start a round at its next update.
+   */
+  void requestGameStart();
+  /**
+   * @brief Reads and clears the request made with requestGameStart().
+   * @return True if a round must start.
+   */
+  bool consumeGameStartRequest();
   /**
    * @brief Accesses the isolated ECS engine context.
    * @return Reference to the instance context.
@@ -218,6 +232,7 @@ private:
   std::unordered_map<std::uint32_t, std::size_t> _players;
   std::uint32_t _serverTick = 0;
   bool _isActive = false;
+  bool _gameStartRequested = false;
   bool _systemsStarted = false;
   bool _initialized = false;
   rtk::ecs::Registry _registry;
@@ -243,6 +258,33 @@ private:
   std::size_t _stageObstaclesSpawned = 0;
   bool _stageActive = false;
   bool _allStagesCompleted = false;
+  bool _stageRandomSpawns = true;
+
+  /// Optional sinusoidal flight parameters of a scripted spawn.
+  struct StageSpawnWave {
+    float amplitude = 120.0f;
+    float frequency = 2.5f;
+  };
+
+  /// Entity placed by the level editor, spawned once `time` is reached.
+  struct StageSpawn {
+    std::string blueprint;
+    float time = 0.0f;
+    float x = 1300.0f;
+    float y = 0.0f;
+    bool hasWave = false;
+    StageSpawnWave wave;
+  };
+
+  std::vector<StageSpawn> _stageSpawns;
+  std::size_t _nextStageSpawn = 0;
+
+  /**
+   * @brief Spawns every scripted entity whose time has been reached.
+   * @param context Instance engine context.
+   */
+  void spawnDueStageEntities(rtk::EngineContext &context);
+
   bool _bossSpawned = false;
   std::uint32_t _bossNetId = 0; ///< Network id of the current stage boss.
   /**

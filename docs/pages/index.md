@@ -19,6 +19,7 @@ code is available from the navigation tree on the left.
 | Learn how the network layer works | @ref networking |
 | Write a new client or a network tool | @ref protocol |
 | Add content or features step by step | @ref tutorials |
+| Build levels and entities without writing JSON by hand | @ref editor |
 | Understand our technical choices | @ref technical_study |
 | Know how the project handles accessibility | @ref accessibility |
 | Contribute to the project | @ref contributing and @ref coding_conventions |
@@ -61,6 +62,7 @@ The flat lists of namespaces, classes and source files follow.
 - @subpage networking
 - @subpage protocol
 - @subpage tutorials
+- @subpage editor
 - @subpage technical_study
 - @subpage accessibility
 - @subpage contributing

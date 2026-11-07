@@ -1,0 +1,56 @@
+{
+  "components": {
+    "transform": {
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "scale": {
+        "x": 1.0,
+        "y": 1.0
+      },
+      "rotation": 0.0
+    },
+    "sprite": {
+      "texture": "assets/entityTexture/r-typesheet1.png",
+      "size": {
+        "w": 32.0,
+        "h": 32.0
+      },
+      "origin": {
+        "x": 16.0,
+        "y": 16.0
+      },
+      "textureRect": {
+        "x": 0,
+        "y": 50,
+        "w": 32,
+        "h": 32
+      },
+      "color": {
+        "r": 255,
+        "g": 255,
+        "b": 255,
+        "a": 255
+      },
+      "layer": 10
+    },
+    "animation": {
+      "frameDuration": 0.05,
+      "totalFrames": 8,
+      "frameWidth": 32,
+      "frameHeight": 32,
+      "startX": 0,
+      "startY": 50,
+      "columns": 8,
+      "paddingX": 1,
+      "loop": true,
+      "playing": true
+    },
+    "attachedTo": {
+      "targetEntity": 0,
+      "offsetX": 60.0,
+      "offsetY": 17.0
+    }
+  }
+}

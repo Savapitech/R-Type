@@ -22,35 +22,20 @@
 #include "NetworkClient.hpp"
 #include "Protocol/RoomPayload.hpp"
 #include "metrics/Metrics.hpp"
+#include "scene/gameOverScene.hpp"
 #include "scene/gameScene.hpp"
 #include "scene/introScene.hpp"
 #include "scene/menuScene.hpp"
 #include "scene/networkConnectionScene.hpp"
 #include "scene/roomLobbyScene.hpp"
+#include "scene/settingScene.hpp"
+
+#include "events/GameEvents.hpp"
 
 namespace rtk::systems {
 class CollisionFlashSystem;
 class HudSystem;
 } // namespace rtk::systems
-
-namespace rtype::events {
-/**
- * @addtogroup api_client
- * @{
- */
-
-/**
- * @brief Published when the local player releases the shoot button.
- */
-struct PlayerShotEvent {};
-
-/**
- * @brief Published when a quit request is triggered from the menu or game.
- */
-struct QuitGameEvent {};
-
-/** @} */
-} // namespace rtype::events
 
 namespace rtype::client {
 /**
@@ -143,6 +128,12 @@ public:
   bool isGameStarting() const;
 
   /**
+   * @brief Sets whether the current room game has started.
+   * @param starting Game starting status.
+   */
+  void setGameStarting(bool starting);
+
+  /**
    * @brief Requests a ready-state change for the local player.
    * @param ready Desired ready state.
    * @return True if a request was initiated.
@@ -161,6 +152,161 @@ public:
    */
   const rtk::Font &getFont() const;
 
+  /**
+   * @brief Checks if a specific key is pressed in the window.
+   * @param key Candidate key.
+   * @return True if currently pressed.
+   */
+  [[nodiscard]] bool isKeyPressed(rtk::ecs::concepts::Key key) const {
+    return _adapter.isKeyPressed(key);
+  }
+
+  /**
+   * @brief Returns the first key currently pressed, if any.
+   * @return Pressed key or nullopt.
+   */
+  [[nodiscard]] std::optional<rtk::ecs::concepts::Key>
+  getAnyKeyPressed() const {
+    return _adapter.getAnyKeyPressed();
+  }
+
+  /**
+   * @brief Returns the mutable client input mapping.
+   * @return Reference to the input mapping.
+   */
+  [[nodiscard]] rtk::Input::InputMapping &getInputMapping() noexcept {
+    return _inputMapping;
+  }
+
+  /**
+   * @brief Returns the const client input mapping.
+   * @return Const reference to the input mapping.
+   */
+  [[nodiscard]] const rtk::Input::InputMapping &
+  getInputMapping() const noexcept {
+    return _inputMapping;
+  }
+
+  /**
+   * @brief Resets input bindings to default controls.
+   */
+  void resetDefaultBindings() { createBindings(); }
+
+  /**
+   * @brief Plays the UI / shoot selection sound effect.
+   */
+  void playSelectSound() {
+    if (_shootSoundId != 0) {
+      _adapterAudioManager.playSound(_shootSoundId);
+    }
+  }
+
+  /**
+   * @brief Plays a sound by its identifier.
+   */
+  void playSound(size_t soundId) {
+    _adapterAudioManager.playSound(soundId);
+  }
+
+  /**
+   * @brief Stops a specific dedicated sound by its identifier.
+   */
+  void stopSound(size_t soundId) {
+    _adapterAudioManager.stopSound(soundId);
+  }
+
+  /**
+   * @brief Checks if a specific sound is currently playing.
+   */
+  [[nodiscard]] bool isSoundPlaying(size_t soundId) const {
+    return _adapterAudioManager.isSoundPlaying(soundId);
+  }
+
+  /**
+   * @brief Configures looping for a specific sound.
+   */
+  void setSoundLooping(size_t soundId, bool loop) {
+    _adapterAudioManager.setSoundLooping(soundId, loop);
+  }
+
+  /**
+   * @brief Sets volume of a specific sound.
+   */
+  void setSoundVolume(size_t soundId, float volume) {
+    _adapterAudioManager.setSoundVolume(soundId, volume);
+  }
+
+  /**
+   * @brief Starts dedicated background music (looping by default).
+   */
+  void playMusic(const std::string &path, bool loop = true) {
+    _adapterAudioManager.playMusic(path, loop);
+  }
+
+  /**
+   * @brief Stops current background music immediately.
+   */
+  void stopMusic() {
+    _adapterAudioManager.stopMusic();
+  }
+
+  /**
+   * @brief Pauses background music.
+   */
+  void pauseMusic() {
+    _adapterAudioManager.pauseMusic();
+  }
+
+  /**
+   * @brief Resumes paused background music.
+   */
+  void resumeMusic() {
+    _adapterAudioManager.resumeMusic();
+  }
+
+  /**
+   * @brief Checks if background music is currently playing.
+   */
+  [[nodiscard]] bool isMusicPlaying() const {
+    return _adapterAudioManager.isMusicPlaying();
+  }
+
+  /**
+   * @brief Stops all active sounds and music.
+   */
+  void stopAllSounds() {
+    _adapterAudioManager.stopAllSounds();
+  }
+
+  /**
+   * @brief Sets whether all sound output is muted.
+   */
+  void setMuted(bool muted) {
+    _adapterAudioManager.setMuted(muted);
+  }
+
+  /**
+   * @brief Returns whether audio is currently muted.
+   */
+  [[nodiscard]] bool isMuted() const noexcept {
+    return _adapterAudioManager.isMuted();
+  }
+
+  /**
+   * @brief Toggles mute state of all audio output.
+   * @return New mute state (true if muted).
+   */
+  bool toggleMute() {
+    return _adapterAudioManager.toggleMute();
+  }
+
+  /**
+   * @brief Destroys every replicated entity, the server does not send
+   * DestroyEntity to a player who leaves the room.
+   * @param context Engine services.
+   */
+  void clearNetworkEntities(rtk::EngineContext &context);
+
 private:
   void registerBuilders(rtk::EngineContext &context);
   void registerComponents(rtk::EngineContext &context);
@@ -176,12 +322,6 @@ private:
   void applySnapshot(rtk::EngineContext &context,
                      const protocol::SnapshotPayload &payload);
   void updateNetworkStats();
-  /**
-   * @brief Destroys every replicated entity, the server does not send
-   * DestroyEntity to a player who leaves the room.
-   * @param context Engine services.
-   */
-  void clearNetworkEntities(rtk::EngineContext &context);
 
   std::unordered_map<protocol::NetworkEntityId, std::size_t> _networkEntities;
   std::unordered_set<std::uint32_t> _pendingEntityQueries;
@@ -191,6 +331,7 @@ private:
   rtk::RenderWindow _window;
   RtkWindowAdapter _adapter;
   RtkAudioAdapter _adapterAudioManager;
+  std::uint32_t _shootSoundId = 0;
   rtk::InputState _inputState{};
   std::uint32_t _previousActionMask = 0;
   rtk::collision::CollisionBuffer _collisionBuffer;
@@ -199,13 +340,14 @@ private:
   clientDependancy _dependency;
   rtk::SceneManager<SceneType, clientDependancy, rtk::InputState, IntroScene,
                     MenuScene, NetworkConnectionScene, RoomListScene,
-                    RoomLobbyScene, GameScene>
+                    RoomLobbyScene, GameScene, SettingScene, GameOverScene>
       _sceneManager;
 
   rtk::Font _fontRtype;
   rtk::systems::CollisionFlashSystem *_collisionFlashSystem = nullptr;
   rtk::systems::HudSystem *_hudSystem = nullptr;
   bool _shouldQuit = false;
+  bool _previousMuteKey = false;
   std::string _host = "127.0.0.1";
   std::string _port = "4242";
   ClientNetworkStats _networkStats{};

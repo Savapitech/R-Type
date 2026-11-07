@@ -122,6 +122,68 @@ public:
     return _bindings;
   }
 
+  /**
+   * @brief Clears all bindings assigned to an action.
+   * @param bitIndex Action index from 0 to 31.
+   */
+  void clearActionBindings(uint8_t bitIndex) {
+    if (bitIndex >= MAX_ACTIONS)
+      return;
+    const size_t startIndex = bitIndex * BINDINGS_PER_ACTION;
+    for (size_t i = 0; i < BINDINGS_PER_ACTION; ++i) {
+      _bindings[startIndex + i] = InputBinding();
+    }
+  }
+
+  /**
+   * @brief Rebinds an action's keyboard key without destroying gamepad
+   * controls.
+   * @param bitIndex Action index from 0 to 31.
+   * @param key New keyboard key to bind.
+   */
+  void rebindKey(uint8_t bitIndex, ecs::concepts::Key key) {
+    if (bitIndex >= MAX_ACTIONS)
+      return;
+    const size_t startIndex = bitIndex * BINDINGS_PER_ACTION;
+    bool rebound = false;
+    for (size_t i = 0; i < BINDINGS_PER_ACTION; ++i) {
+      if (_bindings[startIndex + i].type == InputBinding::Type::Keyboard) {
+        if (!rebound) {
+          _bindings[startIndex + i].key = key;
+          rebound = true;
+        } else {
+          _bindings[startIndex + i] = InputBinding();
+        }
+      }
+    }
+    if (!rebound) {
+      for (size_t i = 0; i < BINDINGS_PER_ACTION; ++i) {
+        if (_bindings[startIndex + i].type == InputBinding::Type::NoneAction) {
+          _bindings[startIndex + i].type = InputBinding::Type::Keyboard;
+          _bindings[startIndex + i].key = key;
+          return;
+        }
+      }
+    }
+  }
+
+  /**
+   * @brief Returns the primary keyboard key bound to an action.
+   * @param bitIndex Action index from 0 to 31.
+   * @return Key or Key::Unknown if not bound.
+   */
+  [[nodiscard]] ecs::concepts::Key getPrimaryBoundKey(uint8_t bitIndex) const {
+    if (bitIndex >= MAX_ACTIONS)
+      return ecs::concepts::Key::Unknown;
+    const size_t startIndex = bitIndex * BINDINGS_PER_ACTION;
+    for (size_t i = 0; i < BINDINGS_PER_ACTION; ++i) {
+      if (_bindings[startIndex + i].type == InputBinding::Type::Keyboard) {
+        return _bindings[startIndex + i].key;
+      }
+    }
+    return ecs::concepts::Key::Unknown;
+  }
+
 private:
   template <typename Func> void addBinding(uint8_t bitIndex, Func assignFunc) {
     if (bitIndex >= MAX_ACTIONS)
