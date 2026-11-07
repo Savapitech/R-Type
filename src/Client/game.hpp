@@ -22,6 +22,7 @@
 #include "NetworkClient.hpp"
 #include "Protocol/RoomPayload.hpp"
 #include "metrics/Metrics.hpp"
+#include "scene/gameOverScene.hpp"
 #include "scene/gameScene.hpp"
 #include "scene/introScene.hpp"
 #include "scene/menuScene.hpp"
@@ -185,6 +186,22 @@ public:
     createBindings();
   }
 
+  /**
+   * @brief Plays the UI / shoot selection sound effect.
+   */
+  void playSelectSound() {
+    if (_shootSoundId != 0) {
+      _adapterAudioManager.playSound(_shootSoundId);
+    }
+  }
+
+  /**
+   * @brief Destroys every replicated entity, the server does not send
+   * DestroyEntity to a player who leaves the room.
+   * @param context Engine services.
+   */
+  void clearNetworkEntities(rtk::EngineContext &context);
+
 private:
   void registerBuilders(rtk::EngineContext &context);
   void registerComponents(rtk::EngineContext &context);
@@ -200,12 +217,6 @@ private:
   void applySnapshot(rtk::EngineContext &context,
                      const protocol::SnapshotPayload &payload);
   void updateNetworkStats();
-  /**
-   * @brief Destroys every replicated entity, the server does not send
-   * DestroyEntity to a player who leaves the room.
-   * @param context Engine services.
-   */
-  void clearNetworkEntities(rtk::EngineContext &context);
 
   std::unordered_map<protocol::NetworkEntityId, std::size_t> _networkEntities;
   std::unordered_set<std::uint32_t> _pendingEntityQueries;
@@ -215,6 +226,7 @@ private:
   rtk::RenderWindow _window;
   RtkWindowAdapter _adapter;
   RtkAudioAdapter _adapterAudioManager;
+  std::uint32_t _shootSoundId = 0;
   rtk::InputState _inputState{};
   std::uint32_t _previousActionMask = 0;
   rtk::collision::CollisionBuffer _collisionBuffer;
@@ -223,7 +235,7 @@ private:
   clientDependancy _dependency;
   rtk::SceneManager<SceneType, clientDependancy, rtk::InputState, IntroScene,
                     MenuScene, NetworkConnectionScene, RoomListScene,
-                    RoomLobbyScene, GameScene, SettingScene>
+                    RoomLobbyScene, GameScene, SettingScene, GameOverScene>
       _sceneManager;
 
   rtk::Font _fontRtype;

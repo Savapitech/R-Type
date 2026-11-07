@@ -80,9 +80,9 @@ void Game::onLoad(rtk::EngineContext &context) {
 
   _networkClient.connect(_host, _port);
 
-  uint32_t shootSoundId = _adapterAudioManager.addSound("assets/shoot.wav");
+  _shootSoundId = _adapterAudioManager.addSound("assets/shoot.wav");
 
-  subscribeEvents(context, shootSoundId);
+  subscribeEvents(context, _shootSoundId);
   addSystems(context);
 
   _sceneManager.start(context);
@@ -943,7 +943,9 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
       !rtype::Input::hasAction(_previousActionMask, rtype::Action::LeaveRoom);
   _previousActionMask = _inputState.actionMask;
   if (escapePressed && _sceneManager.get<RoomLobbyScene>() == nullptr &&
-      _sceneManager.get<SettingScene>() == nullptr)
+      _sceneManager.get<SettingScene>() == nullptr &&
+      _sceneManager.get<GameOverScene>() == nullptr &&
+      _sceneManager.get<GameScene>() == nullptr)
     _shouldQuit = true;
 
   _sceneManager.update(context, _inputState, dt);

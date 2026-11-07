@@ -18,7 +18,8 @@ enum class SceneType {
   RoomList,   ///< List of all the rooms available.
   RoomLobby,  ///< Lobby of a room before the game start.
   Game,       ///< In game.
-  Setting     ///< Settings and key bindings.
+  Setting,    ///< Settings and key bindings.
+  GameOver    ///< Game over screen.
 };
 /** @} */
 } // namespace rtype::client
