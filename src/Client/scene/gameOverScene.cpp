@@ -4,6 +4,7 @@
 #include <string>
 
 #include "components/Transform.hpp"
+#include "events/GameEvents.hpp"
 #include "game.hpp"
 #include "input/action.hpp"
 #include "systems/RenderConcept.hpp"
@@ -104,7 +105,11 @@ void GameOverScene::onEnter(rtk::EngineContext &context) {
   _firstFrame = true;
 
   createBackground(context);
-  _dependency.game.playMusic("assets/sound/game_over.mp3", true);
+  context.eventBus.publish(rtype::events::StopMusicEvent{});
+  context.eventBus.publish(rtype::events::PlayMusicEvent{
+      .path = "assets/sound/game_over.mp3",
+      .loop = true,
+  });
   updateVisuals(context);
 }
 
@@ -269,7 +274,7 @@ GameOverScene::onUpdate(rtk::EngineContext &context,
 }
 
 void GameOverScene::onExit(rtk::EngineContext &context) {
-  _dependency.game.stopMusic();
+  context.eventBus.publish(rtype::events::StopMusicEvent{});
   _dependency.game.setGameStarting(false);
   _dependency.game.clearNetworkEntities(context);
 

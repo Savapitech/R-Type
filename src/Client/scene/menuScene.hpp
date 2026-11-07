@@ -46,7 +46,7 @@ class MenuScene {
 public:
   /**
    * @brief Creates the scene.
-   * @param window Window used to load textures.
+   * @param dep Client dependencies reference.
    */
   explicit MenuScene(clientDependancy &dep);
   ~MenuScene() = default;

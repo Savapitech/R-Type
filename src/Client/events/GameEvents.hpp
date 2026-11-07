@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace rtype::events {
 /**
@@ -31,6 +32,19 @@ struct BeamChargeEvent {
       0}; ///< Charge stage (0: tap/charging 1, 1: stage 1, 2: stage 2, 3: max).
   bool isCharging{false}; ///< True while beam is charging.
 };
+
+/**
+ * @brief Published on the event bus to request playing a background music track.
+ */
+struct PlayMusicEvent {
+  std::string path; ///< File path to the music audio asset.
+  bool loop{true};  ///< Whether the music track should loop continuously.
+};
+
+/**
+ * @brief Published on the event bus to request stopping the background music.
+ */
+struct StopMusicEvent {};
 
 /** @} */
 } // namespace rtype::events

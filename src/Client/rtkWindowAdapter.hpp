@@ -86,10 +86,19 @@ public:
     return isOpen;
   }
 
+  /**
+   * @brief Checks if a specific keyboard key is currently pressed.
+   * @param key Candidate key to check.
+   * @return True if currently pressed, false otherwise.
+   */
   [[nodiscard]] bool isKeyPressed(rtk::ecs::concepts::Key key) const {
     return _rtkEventCache.isKeyPressed(static_cast<rtk::Key>(key));
   }
 
+  /**
+   * @brief Returns the first key currently pressed on the keyboard, if any.
+   * @return Key if one is pressed, std::nullopt otherwise.
+   */
   [[nodiscard]] std::optional<rtk::ecs::concepts::Key>
   getAnyKeyPressed() const {
     for (uint16_t k = 1;

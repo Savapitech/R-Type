@@ -409,6 +409,16 @@ void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
         _inputState.closeRequested = true;
       });
 
+  context.eventBus.subscribe<rtype::events::PlayMusicEvent>(
+      [this](const rtype::events::PlayMusicEvent &event) {
+        playMusic(event.path, event.loop);
+      });
+
+  context.eventBus.subscribe<rtype::events::StopMusicEvent>(
+      [this](const rtype::events::StopMusicEvent &) {
+        stopMusic();
+      });
+
   context.eventBus.subscribe<
       rtk::collision::Collision>([this, &context](
                                      const rtk::collision::Collision &event) {

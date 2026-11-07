@@ -25,7 +25,7 @@ struct AddPlayerCommand {
 /** @brief Asks a room to destroy the entity of a connection. */
 struct RemovePlayerCommand {
   std::uint32_t connectionId; ///< Connection leaving the room.
-  bool notifyClient;
+  bool notifyClient;          ///< Whether to notify the client about removal.
 };
 
 /** @brief Asks a room to leave its lobby and start a round. */
