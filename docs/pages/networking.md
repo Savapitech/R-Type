@@ -77,9 +77,7 @@ loop never touches the socket directly:
   rtype::server::Server::pollRoomRequest(). Inputs and entity queries go to the
   callbacks set with rtype::server::Server::setInputHandler() and
   rtype::server::Server::setQueryEntityHandler(), which hand them to the room of
-  the client (see @ref room_threads). Without a callback, they are queued for
-  rtype::server::Server::pollInput() and
-  rtype::server::Server::pollQueryEntity().
+  the client (see @ref room_threads).
 - **Sending.** NetworkServer::send() can be called from any thread. It posts a
   task to the network thread, which builds the packet header and hands the
   datagram to the transport.
