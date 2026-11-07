@@ -1043,6 +1043,7 @@ void GameInstance::createBackground() {
 
   _stageActive = false;
   _allStagesCompleted = false;
+  _bossSpawned = false;
 
   loadStageManifest(_context);
 }

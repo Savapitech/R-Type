@@ -23,6 +23,7 @@ namespace rtype::client {
  */
 class NetworkConnectionScene {
 private:
+  clientDependancy &_dependency;
   float _timeoutTimer = 0.0f;
   float _retryTimer = 0.0f;
   bool _isConnected = false;
@@ -34,17 +35,27 @@ public:
   /**
    * @brief Creates the scene.
    */
-  NetworkConnectionScene(clientDependancy &dep) {}
+  NetworkConnectionScene(clientDependancy &dep) : _dependency(dep) {}
 
   /**
    * @brief Subscribes to the connection result events.
    * @param context Engine services.
    */
   void onEnter(rtk::EngineContext &context) {
+    _timeoutTimer = 0.0f;
+    _retryTimer = 0.0f;
+    _isConnected = _dependency.networkClient.isConnected();
+
+    if (_isConnected) {
+      _dependency.networkClient.sendListRoom();
+      return;
+    }
+
     context.eventBus.subscribe<rtype::events::ConnectedToServerEvent>(
         [this](const rtype::events::ConnectedToServerEvent &) {
           LOG_INFO("Handshake success connection");
           _isConnected = true;
+          _dependency.networkClient.sendListRoom();
         });
 
     context.eventBus.subscribe<rtype::events::ConnectionRejectedEvent>(
@@ -61,7 +72,7 @@ public:
    */
   std::optional<SceneType> onUpdate(rtk::EngineContext &context,
                                     const rtk::InputState &, float dt) {
-    if (_isConnected) {
+    if (_isConnected || _dependency.networkClient.isConnected()) {
       return SceneType::RoomList;
     }
 

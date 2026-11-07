@@ -19,6 +19,7 @@ const std::vector<BindingOption> SettingScene::OPTIONS = {
     {"SWITCH WEAPON", 10},
     {"TOGGLE HUD", 7},
     {"READY / UNREADY", 8},
+    {"MUTE AUDIO", 253},
     {"RESTORE DEFAULT CONTROLS", 255},
     {"BACK TO MAIN MENU", 254},
 };
@@ -231,8 +232,8 @@ void SettingScene::updateVisuals(rtk::EngineContext &context) {
   addText(context, _dependency.window, _font, "KEYBOARD CONTROLS CONFIGURATION",
           350.0f, 100.0f, {0, 220, 255, 255}, 0.36f, _dynamicTextEntities);
 
-  constexpr float startY = 150.0f;
-  constexpr float rowHeight = 44.0f;
+  constexpr float startY = 145.0f;
+  constexpr float rowHeight = 41.0f;
   const int total = static_cast<int>(OPTIONS.size());
 
   for (int i = 0; i < total; ++i) {
@@ -240,6 +241,23 @@ void SettingScene::updateVisuals(rtk::EngineContext &context) {
     const bool isSelected = (i == _selectedOption);
     const float labelX = isSelected ? 290.0f : 250.0f;
     const float textScale = isSelected ? 0.44f : 0.38f;
+
+    if (OPTIONS[i].actionBit == 253) {
+      const bool muted = _dependency.game.isMuted();
+      const rtk::ecs::concepts::ColorRGBA8 labelColor =
+          isSelected ? rtk::ecs::concepts::ColorRGBA8{255, 255, 255, 255}
+                     : rtk::ecs::concepts::ColorRGBA8{170, 175, 195, 220};
+      addText(context, _dependency.window, _font, OPTIONS[i].label,
+              labelX, y, labelColor, textScale, _dynamicTextEntities);
+
+      const std::string statusStr = muted ? "MUTED" : "UNMUTED";
+      const rtk::ecs::concepts::ColorRGBA8 statusColor =
+          muted ? rtk::ecs::concepts::ColorRGBA8{255, 80, 80, 255}
+                : rtk::ecs::concepts::ColorRGBA8{80, 255, 120, 240};
+      addText(context, _dependency.window, _font, statusStr, 730.0f, y,
+              statusColor, textScale, _dynamicTextEntities);
+      continue;
+    }
 
     if (OPTIONS[i].actionBit == 255) {
       const rtk::ecs::concepts::ColorRGBA8 color =
@@ -359,11 +377,16 @@ SettingScene::onUpdate(rtk::EngineContext &context,
   }
 
   if (confirmPressed) {
-    if (_selectedOption == totalOptions - 1) {
+    if (OPTIONS[_selectedOption].actionBit == 254) {
       return SceneType::Intro;
     }
-    if (_selectedOption == totalOptions - 2) {
+    if (OPTIONS[_selectedOption].actionBit == 255) {
       _dependency.game.resetDefaultBindings();
+      updateVisuals(context);
+      return std::nullopt;
+    }
+    if (OPTIONS[_selectedOption].actionBit == 253) {
+      _dependency.game.toggleMute();
       updateVisuals(context);
       return std::nullopt;
     }

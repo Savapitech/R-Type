@@ -84,6 +84,9 @@ void GameOverScene::createBackground(rtk::EngineContext &context) {
 }
 
 void GameOverScene::onEnter(rtk::EngineContext &context) {
+  _dependency.game.setGameStarting(false);
+  _dependency.game.clearNetworkEntities(context);
+
   _font = _dependency.game.getFont();
   if (!_font.isValid()) {
     _font = _dependency.window.loadFont("./assets/font/r-type.otf", 40.0f);
@@ -101,7 +104,7 @@ void GameOverScene::onEnter(rtk::EngineContext &context) {
   _firstFrame = true;
 
   createBackground(context);
-  _dependency.game.playSelectSound();
+  _dependency.game.playMusic("assets/sound/game_over.mp3", true);
   updateVisuals(context);
 }
 
@@ -225,6 +228,8 @@ GameOverScene::onUpdate(rtk::EngineContext &context,
   _previousEscape = isEscapeHeld;
 
   if (escapeTriggered) {
+    _dependency.game.setGameStarting(false);
+    _dependency.game.clearNetworkEntities(context);
     if (_dependency.game.getCurrentRoomId().has_value()) {
       return SceneType::RoomLobby;
     }
@@ -236,17 +241,21 @@ GameOverScene::onUpdate(rtk::EngineContext &context,
     const auto option = static_cast<GameOverOption>(_selectedOption);
     switch (option) {
     case GameOverOption::ReturnToLobby:
+      _dependency.game.setGameStarting(false);
+      _dependency.game.clearNetworkEntities(context);
       if (_dependency.game.getCurrentRoomId().has_value()) {
         return SceneType::RoomLobby;
       }
       return SceneType::RoomList;
 
     case GameOverOption::RoomList:
+      _dependency.game.setGameStarting(false);
       _dependency.game.requestLeaveRoom();
       _dependency.game.clearNetworkEntities(context);
       return SceneType::RoomList;
 
     case GameOverOption::MainMenu:
+      _dependency.game.setGameStarting(false);
       _dependency.game.requestLeaveRoom();
       _dependency.game.clearNetworkEntities(context);
       return SceneType::Menu;
@@ -260,6 +269,10 @@ GameOverScene::onUpdate(rtk::EngineContext &context,
 }
 
 void GameOverScene::onExit(rtk::EngineContext &context) {
+  _dependency.game.stopMusic();
+  _dependency.game.setGameStarting(false);
+  _dependency.game.clearNetworkEntities(context);
+
   for (const auto entity : _staticEntities) {
     context.registry.remove_entity_from_all_pools(entity);
     context.registry.kill_entity(entity);

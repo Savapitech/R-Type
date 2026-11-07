@@ -542,6 +542,14 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
         if (!localPlayerFound) {
           _localReady = false;
         }
+        bool anyPlaying = false;
+        for (const auto &player : _roomPlayers) {
+          if (player.ready)
+            anyPlaying = true;
+        }
+        if (!anyPlaying) {
+          _gameStarting = false;
+        }
         break;
       }
       case rtype::protocol::MessageType::GameStarting: {
@@ -554,6 +562,7 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
         if (!_currentRoomId.has_value() ||
             *_currentRoomId != payload.roomId.get())
           break;
+        clearNetworkEntities(context);
         _gameStarting = true;
         _readyRequestPending = false;
         break;
@@ -672,6 +681,7 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           _gameStarting) {
         LOG_INFO("Game ended");
         _gameStarting = false;
+        clearNetworkEntities(context);
       }
 
       auto view = context.registry.view<component::NetworkEntity>();
@@ -863,6 +873,13 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
       _sceneManager.get<GameScene>() == nullptr)
     _shouldQuit = true;
 
+  const bool mPressed = isKeyPressed(rtk::ecs::concepts::Key::M);
+  if (mPressed && !_previousMuteKey) {
+    const bool muted = toggleMute();
+    LOG_INFO(std::string("Audio output ") + (muted ? "MUTED" : "UNMUTED"));
+  }
+  _previousMuteKey = mPressed;
+
   _sceneManager.update(context, _inputState, dt);
 }
 
@@ -871,12 +888,19 @@ void Game::clearNetworkEntities(rtk::EngineContext &context) {
   for (auto entity : context.registry.view<component::NetworkEntity>())
     entities.push_back(entity);
 
+  for (auto entity : context.registry.view<component::AttachedTo>())
+    entities.push_back(entity);
+
   for (auto entity : entities) {
     context.registry.remove_entity_from_all_pools(entity);
     context.registry.kill_entity(entity);
   }
+  context.registry.flush();
+
   _networkEntities.clear();
   _pendingEntityQueries.clear();
+  _destroyedEntities.clear();
+  _lastServerTick = 0;
 }
 
 void Game::onUnload(rtk::EngineContext &context) {
@@ -1117,6 +1141,8 @@ bool Game::isLocalReady() const { return _localReady; }
 bool Game::isReadyRequestPending() const { return _readyRequestPending; }
 
 bool Game::isGameStarting() const { return _gameStarting; }
+
+void Game::setGameStarting(bool starting) { _gameStarting = starting; }
 
 bool Game::requestReady(bool ready) {
   if (!_currentRoomId.has_value())
