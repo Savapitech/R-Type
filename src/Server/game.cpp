@@ -38,6 +38,7 @@
 #include "components/EnemyEvent.hpp"
 #include "components/Health.hpp"
 #include "components/WaveMovement.hpp"
+#include "components/LuaScript.hpp"
 #include "components/dropPowerUp.hpp"
 #include "components/powerUp.hpp"
 
@@ -50,6 +51,7 @@
 #include "systems/EnemySpawnerSystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/WaveMovementSystem.hpp"
+#include "systems/LuaScriptSystem.hpp"
 
 namespace rtype::server {
 
@@ -92,6 +94,7 @@ void Game::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::Health>();
   context.registry.register_component<component::DestroyableTile>();
   context.registry.register_component<component::WaveMovement>();
+  context.registry.register_component<component::LuaScript>();
   context.registry.register_component<component::powerUp>();
   context.registry.register_component<component::DropPowerUp>();
 }
@@ -145,6 +148,10 @@ void Game::registerBuilders(rtk::EngineContext &context) {
                                          component::waveMovementFromJson);
   context._entityFactory.registerBuilder("WaveMovement",
                                          component::waveMovementFromJson);
+  context._entityFactory.registerBuilder("luaScript",
+                                         component::luaScriptFromJson);
+  context._entityFactory.registerBuilder("LuaScript",
+                                         component::luaScriptFromJson);
   context._entityFactory.registerBuilder("powerUp", component::powerupFromJson);
   context._entityFactory.registerBuilder("powerup", component::powerupFromJson);
   context._entityFactory.registerBuilder("Powerup", component::powerupFromJson);
@@ -171,6 +178,16 @@ void Game::loadEntityBlueprints(rtk::EngineContext &context) {
 
   context._entityFactory.loadBlueprintFromPath(
       "bullet", "assets/descriptionEntity/bullet.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_plasma", "assets/descriptionEntity/bullet_plasma.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_beam_lvl1", "assets/descriptionEntity/bullet_beam_lvl1.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_beam_lvl2", "assets/descriptionEntity/bullet_beam_lvl2.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_beam_lvl3", "assets/descriptionEntity/bullet_beam_lvl3.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "beam_charge_effect", "assets/descriptionEntity/beam_charge_effect.json");
 
   context._entityFactory.loadBlueprintFromPath(
       "enemyBidos", "assets/descriptionEntity/enemyBidos.json");
@@ -210,6 +227,12 @@ void Game::loadEntityBlueprints(rtk::EngineContext &context) {
       "explosion", "assets/descriptionEntity/explosion.json");
   context._entityFactory.loadBlueprintFromPath(
       "powerup_speed", "assets/powerUp/powerUp_speed.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "powerup_spread", "assets/powerUp/powerUp_spread.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "powerup_plasma", "assets/powerUp/powerUp_plasma.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_plasma", "assets/descriptionEntity/bullet_plasma.json");
 }
 
 void Game::subscribeEvents(rtk::EngineContext &context) {
@@ -268,13 +291,22 @@ void Game::subscribeEvents(rtk::EngineContext &context) {
                   ? event.firstEntity
                   : event.secondEntity;
 
-          deads.insert_at(bulletEnt, {});
-
           auto &enemies = context.registry.get_components<component::Enemy>();
           auto &healths = context.registry.get_components<component::Health>();
           auto &bullets = context.registry.get_components<component::Bullet>();
 
           auto *bulletComp = bullets.get(bulletEnt);
+          if (bulletComp && bulletComp->piercing) {
+            if (std::find(bulletComp->hitEntities.begin(),
+                          bulletComp->hitEntities.end(),
+                          enemyEnt) != bulletComp->hitEntities.end()) {
+              return;
+            }
+            bulletComp->hitEntities.push_back(enemyEnt);
+          } else {
+            deads.insert_at(bulletEnt, {});
+          }
+
           const float damage = bulletComp ? bulletComp->damage : 10.0f;
 
           auto *enemyComp = enemies.get(enemyEnt);
@@ -381,6 +413,8 @@ void Game::addSystems(rtk::EngineContext &context) {
       rtk::ecs::Order::SecondUpdate, std::ref(_server), std::ref(_players),
       std::cref(_serverTick), std::ref(context._entityFactory));
   context.scheduler.add<rtk::systems::WaveMovementSystem>(
+      rtk::ecs::Order::Update);
+  context.scheduler.add<rtk::systems::LuaScriptSystem>(
       rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
   context.scheduler.add<rtk::systems::ColliderSystem>(

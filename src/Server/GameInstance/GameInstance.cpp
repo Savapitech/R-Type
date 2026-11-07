@@ -18,6 +18,7 @@
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
 #include "components/WaveMovement.hpp"
+#include "components/LuaScript.hpp"
 #include "components/powerUp.hpp"
 #include "systems/BulletSystem.hpp"
 #include "systems/ColliderSystem.hpp"
@@ -26,6 +27,7 @@
 #include "systems/EnemySpawnerSystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/WaveMovementSystem.hpp"
+#include "systems/LuaScriptSystem.hpp"
 
 #include <algorithm>
 #include <array>
@@ -114,8 +116,24 @@ void GameInstance::update(float dt) {
     return;
 
   _sceneManager.update(_context, _sceneInput, dt);
-  if (_isActive)
+  if (_isActive) {
+    for (auto ent : _registry.view<component::Controllable>()) {
+      if (auto *ctrl =
+              _registry.get_components<component::Controllable>().get(ent)) {
+        if (ctrl->weaponTimer > 0.0f) {
+          ctrl->weaponTimer -= dt;
+          if (ctrl->weaponTimer <= 0.0f) {
+            ctrl->weaponTimer = 0.0f;
+            ctrl->weaponType = 0;
+          }
+        }
+        if (ctrl->isChargingShoot) {
+          ctrl->chargeTimer = std::min(ctrl->chargeTimer + dt, 3.0f);
+        }
+      }
+    }
     _scheduler.run(_registry, dt);
+  }
   _registry.flush();
 }
 
@@ -141,6 +159,7 @@ void GameInstance::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::Health>();
   context.registry.register_component<component::DestroyableTile>();
   context.registry.register_component<component::WaveMovement>();
+  context.registry.register_component<component::LuaScript>();
   context.registry.register_component<component::powerUp>();
   context.registry.register_component<component::DropPowerUp>();
   context.registry.register_component<component::DeathEffect>();
@@ -220,6 +239,10 @@ void GameInstance::registerBuilders(rtk::EngineContext &context) {
                                          component::waveMovementFromJson);
   context._entityFactory.registerBuilder("WaveMovement",
                                          component::waveMovementFromJson);
+  context._entityFactory.registerBuilder("luaScript",
+                                         component::luaScriptFromJson);
+  context._entityFactory.registerBuilder("LuaScript",
+                                         component::luaScriptFromJson);
   context._entityFactory.registerBuilder("powerUp", component::powerupFromJson);
   context._entityFactory.registerBuilder("PowerUp", component::powerupFromJson);
   context._entityFactory.registerBuilder("powerup", component::powerupFromJson);
@@ -256,6 +279,16 @@ void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
 
   context._entityFactory.loadBlueprintFromPath(
       "bullet", "assets/descriptionEntity/bullet.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_plasma", "assets/descriptionEntity/bullet_plasma.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_beam_lvl1", "assets/descriptionEntity/bullet_beam_lvl1.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_beam_lvl2", "assets/descriptionEntity/bullet_beam_lvl2.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "bullet_beam_lvl3", "assets/descriptionEntity/bullet_beam_lvl3.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "beam_charge_effect", "assets/descriptionEntity/beam_charge_effect.json");
 
   context._entityFactory.loadBlueprintFromPath(
       "enemyBidos", "assets/descriptionEntity/enemyBidos.json");
@@ -295,6 +328,10 @@ void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
       "explosion", "assets/descriptionEntity/explosion.json");
   context._entityFactory.loadBlueprintFromPath(
       "powerup_speed", "assets/powerUp/powerUp_speed.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "powerup_spread", "assets/powerUp/powerUp_spread.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "powerup_plasma", "assets/powerUp/powerUp_plasma.json");
   context._entityFactory.loadBlueprintFromPath(
       "enemyMecha", "assets/descriptionEntity/enemyMecha.json");
   context._entityFactory.loadBlueprintFromPath(
@@ -368,6 +405,9 @@ void GameInstance::addSystems(Server &server) {
   context.scheduler.add<rtk::systems::WaveMovementSystem>(
       rtk::ecs::Order::Update);
 
+  context.scheduler.add<rtk::systems::LuaScriptSystem>(
+      rtk::ecs::Order::Update);
+
   _systemsRegistered = true;
 }
 
@@ -426,9 +466,43 @@ void GameInstance::subscribeEvents(Server &server) {
         auto &bullets = _context.registry.get_components<component::Bullet>();
 
         if (collisionPair == bulletVsEnemy) {
+          const bool firstIsBullet =
+              colA->layer == Collider::CollisionLayer::PlayerProjectile;
+          const std::size_t bulletEnt =
+              firstIsBullet ? event.firstEntity : event.secondEntity;
+          const std::size_t enemyEnt =
+              firstIsBullet ? event.secondEntity : event.firstEntity;
 
-          deads.insert_at(event.firstEntity, {});
-          deads.insert_at(event.secondEntity, {});
+          auto *bulletComp = bullets.get(bulletEnt);
+          if (bulletComp && bulletComp->piercing) {
+            if (std::find(bulletComp->hitEntities.begin(),
+                          bulletComp->hitEntities.end(),
+                          enemyEnt) != bulletComp->hitEntities.end()) {
+              return;
+            }
+            bulletComp->hitEntities.push_back(enemyEnt);
+          } else {
+            deads.insert_at(bulletEnt, {});
+          }
+
+          auto &enemies = _context.registry.get_components<component::Enemy>();
+          auto *enemyComp = enemies.get(enemyEnt);
+          auto *healthComp = healths.get(enemyEnt);
+
+          const float damage = bulletComp ? bulletComp->damage : 10.0f;
+          if (enemyComp) {
+            enemyComp->health -= damage;
+            if (enemyComp->health <= 0.0f) {
+              deads.insert_at(enemyEnt, {});
+            }
+          } else if (healthComp) {
+            healthComp->current -= damage;
+            if (healthComp->current <= 0.0f) {
+              deads.insert_at(enemyEnt, {});
+            }
+          } else {
+            deads.insert_at(enemyEnt, {});
+          }
 
         } else if (collisionPair == bulletVsEnv) {
 
@@ -489,6 +563,10 @@ void GameInstance::subscribeEvents(Server &server) {
               (colA->layer == Collider::CollisionLayer::PowerUp)
                   ? event.firstEntity
                   : event.secondEntity;
+
+          if (deads.get(powerupEnt) != nullptr)
+            return;
+
           deads.insert_at(powerupEnt, {});
 
           std::cout << "[SERVER] Player take a powerUp" << std::endl;
@@ -518,7 +596,33 @@ void GameInstance::subscribeEvents(Server &server) {
                   _context.registry.get_components<component::Controllable>()
                       .get(playerEnt);
               if (speedComp) {
-                speedComp->speed += powerupComp->value;
+                constexpr float MAX_SPEED = 440.0f;
+                speedComp->speed = std::min(
+                    speedComp->speed + powerupComp->value, MAX_SPEED);
+              }
+              break;
+            }
+            case component::powerUpType::WeaponSpread: {
+              auto *ctrl =
+                  _context.registry.get_components<component::Controllable>()
+                      .get(playerEnt);
+              if (ctrl) {
+                ctrl->weaponType = 1;
+                ctrl->weaponTimer =
+                    (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
+                ctrl->weaponMaxDuration = ctrl->weaponTimer;
+              }
+              break;
+            }
+            case component::powerUpType::WeaponPlasma: {
+              auto *ctrl =
+                  _context.registry.get_components<component::Controllable>()
+                      .get(playerEnt);
+              if (ctrl) {
+                ctrl->weaponType = 2;
+                ctrl->weaponTimer =
+                    (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
+                ctrl->weaponMaxDuration = ctrl->weaponTimer;
               }
               break;
             }
@@ -570,31 +674,92 @@ void GameInstance::processInput(const Server::InputEvent &inputEvent,
   const bool isShoot =
       rtype::protocol::hasAction(actions, rtype::protocol::InputAction::Shoot);
   if (isShoot) {
-    controllable->isChargingShoot = true;
+    if (!controllable->isChargingShoot) {
+      controllable->isChargingShoot = true;
+      controllable->chargeTimer = 0.0f;
+    }
   } else if (controllable->isChargingShoot) {
+    const float charge = controllable->chargeTimer;
     controllable->isChargingShoot = false;
-
-    std::uint32_t bulletNetId =
-        rtype::server::NetworkIdGenerator::getInstance().getNextId();
-
+    controllable->chargeTimer = 0.0f;
+    // Creating an entity can reallocate the components: `transform` dangles.
     const auto shooterPosition = transform->position;
-    auto bulletEntity = _context._entityFactory.createNetwork(
-        _context.registry, "bullet", bulletNetId);
-    auto *bulletTransform =
-        _context.registry.get_components<component::Transform>().get(
-            bulletEntity);
 
-    if (bulletTransform) {
-      bulletTransform->position = {shooterPosition.x + 50.0f,
-                                   shooterPosition.y};
-      const auto payload = protocol::createEntityPayload(
-          _serverTick, bulletNetId,
-          _context._entityFactory.getArchetypeID("bullet"),
-          bulletTransform->position.x, bulletTransform->position.y);
+    auto spawnSingleProjectile = [&](const std::string &archetypeName,
+                                     float xOffset, float yOffset) {
+      std::uint32_t bulletNetId =
+          rtype::server::NetworkIdGenerator::getInstance().getNextId();
 
-      for (const auto &[connectedClientId, entity] : _players) {
-        server.sendCreateEntity(connectedClientId, payload);
+      auto bulletEntity = _context._entityFactory.createNetwork(
+          _context.registry, archetypeName, bulletNetId);
+      auto *bulletTransform =
+          _context.registry.get_components<component::Transform>().get(
+              bulletEntity);
+
+      if (bulletTransform) {
+        bulletTransform->position = {shooterPosition.x + xOffset,
+                                     shooterPosition.y + yOffset};
+        const auto payload = protocol::createEntityPayload(
+            _serverTick, bulletNetId,
+            _context._entityFactory.getArchetypeID(archetypeName),
+            bulletTransform->position.x, bulletTransform->position.y);
+
+        for (const auto &[connectedClientId, entity] : _players) {
+          server.sendCreateEntity(connectedClientId, payload);
+        }
       }
+    };
+
+    if (charge >= 2.2f) {
+      spawnSingleProjectile("bullet_beam_lvl3", 60.0f, -18.0f);
+    } else if (charge >= 1.4f) {
+      spawnSingleProjectile("bullet_beam_lvl2", 55.0f, -9.0f);
+    } else if (charge >= 0.6f) {
+      spawnSingleProjectile("bullet_beam_lvl1", 50.0f, -2.0f);
+    } else if (controllable->weaponType == 1) {
+      const float angles[3] = {0.0f, -0.22f, 0.22f};
+      const float yOffsets[3] = {0.0f, -10.0f, 10.0f};
+      const std::uint16_t archId =
+          _context._entityFactory.getArchetypeID("bullet");
+
+      for (int i = 0; i < 3; ++i) {
+        std::uint32_t bulletNetId =
+            rtype::server::NetworkIdGenerator::getInstance().getNextId();
+
+        auto bulletEntity = _context._entityFactory.createNetwork(
+            _context.registry, "bullet", bulletNetId);
+        auto *bulletTransform =
+            _context.registry.get_components<component::Transform>().get(
+                bulletEntity);
+        auto *bulletVel =
+            _context.registry.get_components<component::Velocity>().get(
+                bulletEntity);
+
+        if (bulletTransform) {
+          bulletTransform->position = {shooterPosition.x + 50.0f,
+                                       shooterPosition.y + yOffsets[i]};
+          bulletTransform->rotation = angles[i];
+
+          if (bulletVel) {
+            constexpr float speed = 800.0f;
+            bulletVel->x = speed * std::cos(angles[i]);
+            bulletVel->y = speed * std::sin(angles[i]);
+          }
+
+          const auto payload = protocol::createEntityPayload(
+              _serverTick, bulletNetId, archId,
+              bulletTransform->position.x, bulletTransform->position.y,
+              angles[i]);
+
+          for (const auto &[connectedClientId, entity] : _players) {
+            server.sendCreateEntity(connectedClientId, payload);
+          }
+        }
+      }
+    } else if (controllable->weaponType == 2) {
+      spawnSingleProjectile("bullet_plasma", 55.0f, 0.0f);
+    } else {
+      spawnSingleProjectile("bullet", 50.0f, 0.0f);
     }
   }
 }

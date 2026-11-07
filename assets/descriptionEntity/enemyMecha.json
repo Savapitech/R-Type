@@ -76,7 +76,7 @@
             "blueprintName": "explosion"
         },
         "dropPowerUp": {
-            "blueprintName": "powerup_speed"
+            "blueprintName": "powerup_plasma"
         }
     }
 }

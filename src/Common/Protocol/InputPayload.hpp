@@ -14,12 +14,13 @@ namespace rtype::protocol {
  * @brief Bit flags of the actions held by a player.
  */
 enum class InputAction : std::uint8_t {
-  NoneAction = 0x00, ///< No action held.
-  Up = 0x01,         ///< Move up.
-  Down = 0x02,       ///< Move down.
-  Left = 0x04,       ///< Move left.
-  Right = 0x08,      ///< Move right.
-  Shoot = 0x10       ///< Shoot button held.
+  NoneAction = 0x00,   ///< No action held.
+  Up = 0x01,           ///< Move up.
+  Down = 0x02,         ///< Move down.
+  Left = 0x04,         ///< Move left.
+  Right = 0x08,        ///< Move right.
+  Shoot = 0x10,        ///< Shoot button held.
+  SwitchWeapon = 0x20  ///< Switch active weapon.
 };
 
 /**
