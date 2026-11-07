@@ -212,10 +212,7 @@ void NetworkServer::doSend(std::uint32_t connectionId,
   if (it == _connections.end())
     return;
 
-  if (!it->second->getTracker().enqueue(payload, priority))
-    return;
-
-  flush(connectionId);
+  it->second->getTracker().enqueue(payload, priority);
 }
 
 void NetworkServer::flush(std::uint32_t connectionId) {
@@ -314,6 +311,19 @@ void NetworkServer::send(std::uint32_t connectionId,
   });
 }
 
+void NetworkServer::flushAll() {
+  if (!_running.load())
+    return;
+  asio::post(_io, [this]() {
+    std::vector<std::uint32_t> ids;
+    ids.reserve(_connections.size());
+    for (const auto &[id, _] : _connections)
+      ids.push_back(id);
+    for (std::uint32_t id : ids)
+      flush(id);
+  });
+}
+
 void NetworkServer::disconnectClient(std::uint32_t connectionId) {
   if (_connections.erase(connectionId) == 0)
     return;
@@ -344,6 +354,7 @@ void NetworkServer::handleMessage(std::uint32_t connectionId,
       return;
 
     doSend(connectionId, writer.getData(), PacketPriority::Unreliable);
+    flush(connectionId); // Pong leaves at once to keep the RTT accurate.
     break;
   }
 

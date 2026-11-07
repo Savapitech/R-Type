@@ -176,6 +176,12 @@ PacketTracker::collectOutgoing(TimePoint now, std::uint32_t connectionId) {
 
       std::vector<std::uint8_t> body = std::move(queue.front());
       queue.pop_front();
+      while (!queue.empty() &&
+             body.size() + queue.front().size() <= MAX_MESSAGE_SIZE) {
+        const auto &next = queue.front();
+        body.insert(body.end(), next.begin(), next.end());
+        queue.pop_front();
+      }
 
       std::uint16_t reliableId = 0;
       if (priority != PacketPriority::Unreliable) {

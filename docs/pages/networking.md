@@ -79,8 +79,10 @@ loop never touches the socket directly:
   rtype::server::Server::setQueryEntityHandler(), which hand them to the room of
   the client (see @ref room_threads).
 - **Sending.** NetworkServer::send() can be called from any thread. It posts a
-  task to the network thread, which builds the packet header and hands the
-  datagram to the transport.
+  task to the network thread, which only queues the messages. They leave when
+  NetworkServer::flushAll() runs at the end of a room tick (or when the flush
+  timer fires), grouped in as few datagrams as possible, see
+  @ref networking_batching.
 
 The client follows the same model: rtype::client::NetworkClient pushes
 connection events and decoded replication messages into queues read with
@@ -147,6 +149,42 @@ The client sends only its intentions: an `Input` message with the actions held
 during the frame. The server turns them into a velocity and fires a missile when
 the shoot button is released. The client never creates or destroys a networked
 entity on its own authority.
+
+## Packet batching {#networking_batching}
+
+Every datagram costs a fixed overhead whatever its content: 20 bytes of IPv4
+header, 8 bytes of UDP header and the 19 bytes of PacketHeader, that is 47 bytes
+before the first message. Most messages of the game are small (a `Pong` is 12
+bytes, a `DestroyEntity` a few more), so sending each one alone would spend more
+bytes on headers than on data, and would cost one system call per message.
+
+The server therefore does not send a message when the game asks for it. It
+appends the message to the outgoing queue of its priority and sends the queues
+later, all at once:
+
+1. During a tick, the game calls rtype::server::Server::send() as often as it
+   needs. NetworkServer only queues the encoded messages.
+2. At the end of the tick, rtype::server::RoomWorker calls
+   rtype::server::Server::flushAll(), which runs NetworkServer::flush() for every
+   connection on the network thread.
+3. PacketTracker::collectOutgoing() takes the queued bodies of a priority one
+   after the other and concatenates them in a single packet as long as the result
+   fits in `MAX_MESSAGE_SIZE` (529 bytes). The next body starts a new packet.
+   A message is never split between two packets.
+
+Nothing waits for a fixed delay: the messages produced during a tick are the
+messages sent together, so batching adds no latency. The flush timer
+(`FLUSH_INTERVAL`, 5 ms) stays as a safety net for resends, acknowledgements and
+messages queued outside a tick. A `Pong` is the exception, it is flushed at once
+so that the round trip time stays accurate.
+
+Messages are grouped **by priority**, never across priorities, because a packet
+has a single `priority` and a single `reliableId`. A batch of `Critical` or
+`Reliable` messages is one packet for the tracker: it is acknowledged as a
+whole and, when no ack arrives, resent as a whole with the same `reliableId`,
+so the receiver still delivers it once. The wire format does not change: a
+receiver already reads every message of a packet in a loop (see section 5.3 of
+the @ref protocol).
 
 ## Reliability
 
