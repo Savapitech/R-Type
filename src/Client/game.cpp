@@ -175,6 +175,9 @@ void Game::loadEntityBluePrint(rtk::EngineContext &context) {
   context._entityFactory.loadBlueprintFromPath(
       "dobkeratops_alien_bullet",
       "assets/descriptionEntity/dobkeratops_alien_bullet.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "dobkeratops_bottom_hitbox",
+      "assets/descriptionEntity/dobkeratops_bottom_hitbox.json");
 }
 
 void Game::registerBuilders(rtk::EngineContext &context) {

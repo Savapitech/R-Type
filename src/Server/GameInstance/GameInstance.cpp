@@ -310,6 +310,9 @@ void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
   context._entityFactory.loadBlueprintFromPath(
       "dobkeratops_alien_bullet",
       "assets/descriptionEntity/dobkeratops_alien_bullet.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "dobkeratops_bottom_hitbox",
+      "assets/descriptionEntity/dobkeratops_bottom_hitbox.json");
 }
 
 const std::array<std::uint16_t, 4> &GameInstance::getPlayerArchetypes() const {
@@ -1253,12 +1256,13 @@ bool GameInstance::isBossDefeated(rtk::EngineContext &context) const {
 
   for (auto entity : view) {
     const auto *net = netEntities.get(entity);
-    if (net && net->id == _bossNetId)
+    if (net && net->id == _bossNetId) {
       if (deads.get(entity) != nullptr) {
         return true;
       } else {
         return false;
       }
+    }
   }
   return true;
 }
@@ -1366,6 +1370,16 @@ void GameInstance::updateStage(float dt) {
             bodyNetId, bossTransform->position.x, bossTransform->position.y,
             "dobkeratops_body"});
 
+        std::uint32_t hitboxNetId =
+            NetworkIdGenerator::getInstance().getNextId();
+        auto bottomHitbox = context._entityFactory.createNetwork(
+            context.registry, "dobkeratops_bottom_hitbox", hitboxNetId);
+        if (auto *hitboxTransform = transforms.get(bottomHitbox)) {
+          hitboxTransform->position = bossTransform->position;
+          _eventBus.publish(rtype::events::EnemySpawnedEvent{
+              hitboxNetId, hitboxTransform->position.x,
+              hitboxTransform->position.y, "dobkeratops_bottom_hitbox"});
+        }
         std::uint32_t alienNetId =
             NetworkIdGenerator::getInstance().getNextId();
         auto alienEntity = context._entityFactory.createNetwork(

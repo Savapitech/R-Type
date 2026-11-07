@@ -51,10 +51,10 @@
             "paddingY": 0
         },
         "collider": {
-            "offsetX": 6.0,
-            "offsetY": 6.0,
-            "width": 20.0,
-            "height": 20.0,
+            "offsetX": -3.0,
+            "offsetY": 0.0,
+            "width": 46.0,
+            "height": 32.0,
             "layer": "Enemy",
             "mask": [
                 "PlayerProjectile",
