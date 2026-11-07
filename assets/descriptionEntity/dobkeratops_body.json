@@ -64,7 +64,9 @@
         "enemy": {
             "health": 99999.0,
             "fireRate": 3.0,
-            "blueprintName": "mecha_bullet"
+            "blueprintName": "dobkeratops_bullet",
+            "offsetX": -5.0,
+            "offsetY": 200.0
         },
         "networkEntity": {},
         "deathEffect": {

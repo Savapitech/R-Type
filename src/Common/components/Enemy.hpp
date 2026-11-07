@@ -19,7 +19,9 @@ struct Enemy {
   float fireTimer{0.0f}; ///< Timer to open fire
   float fireRate{2.0f};  ///< Fire rate in second
   std::string blueprintName{
-      "enemy_bullet"}; ///< Blueprint of the enemy's bullet
+      "enemy_bullet"};   ///< Blueprint of the enemy's bullet
+  float offsetX{-20.0f}; ///< OffsetX for the spawn of the bullet.
+  float offsetY{16.0f};  ///< OffsetY for the spawn of the bullet.
 };
 
 /**
@@ -35,6 +37,8 @@ inline void enemyFromJson(rtk::ecs::Registry &reg, std::size_t entity,
   enemy.fireRate = data.value("fireRate", 2.0f);
   enemy.fireTimer = enemy.fireRate;
   enemy.blueprintName = data.value("blueprintName", "enemy_bullet");
+  enemy.offsetX = data.value("offsetX", -20.0f);
+  enemy.offsetY = data.value("offsetY", 16.0f);
   reg.get_components<component::Enemy>().insert_at(entity, enemy);
 }
 

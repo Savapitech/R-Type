@@ -98,8 +98,8 @@ public:
       if (enemy->fireTimer <= 0.0f) {
         enemy->fireTimer = enemy->fireRate;
 
-        const float spawnX = transform->position.x - 20.0f;
-        const float spawnY = transform->position.y + 16.0f;
+        const float spawnX = transform->position.x + enemy->offsetX;
+        const float spawnY = transform->position.y + enemy->offsetY;
 
         float closestDistSq = std::numeric_limits<float>::max();
         const component::Transform *targetPlayer = nullptr;
