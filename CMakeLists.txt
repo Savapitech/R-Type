@@ -6,6 +6,11 @@ if(RTYPE_BUILD_CLIENT)
     list(APPEND VCPKG_MANIFEST_FEATURES "client")
 endif()
 
+option(RTYPE_BUILD_BENCH "Build tools/compression_bench (needs zstd, lz4, brotli, lzma, zlib)" OFF)
+if(RTYPE_BUILD_BENCH)
+    list(APPEND VCPKG_MANIFEST_FEATURES "bench")
+endif()
+
 list(APPEND VCPKG_INSTALL_OPTIONS "--no-print-usage")
 list(REMOVE_DUPLICATES VCPKG_INSTALL_OPTIONS)
 
@@ -164,6 +169,7 @@ add_library(Network STATIC
     lib/Network/src/protocol/MessageParser.cpp
     lib/Network/src/protocol/PingMessage.cpp
     lib/Network/src/protocol/PongMessage.cpp
+    lib/Network/src/protocol/Capture.cpp
 
     lib/Network/src/tracking/PacketTracker.cpp
     lib/Network/src/connection/Connection.cpp
@@ -349,4 +355,21 @@ option(RTYPE_BUILD_TESTS "Build the unit tests, run them with ctest" OFF)
 if(RTYPE_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+endif()
+
+# Compression benchmark (cmake -DRTYPE_BUILD_BENCH=ON), see tools/compression_bench
+if(RTYPE_BUILD_BENCH)
+    find_package(zstd CONFIG REQUIRED)
+    find_package(lz4 CONFIG REQUIRED)
+    find_package(unofficial-brotli CONFIG REQUIRED)
+    find_package(LibLZMA REQUIRED)
+    find_package(ZLIB REQUIRED)
+    add_executable(compression_bench tools/compression_bench/main.cpp)
+    target_link_libraries(compression_bench PRIVATE
+        $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>
+        lz4::lz4
+        unofficial::brotli::brotlienc
+        unofficial::brotli::brotlidec
+        LibLZMA::LibLZMA
+        ZLIB::ZLIB)
 endif()
