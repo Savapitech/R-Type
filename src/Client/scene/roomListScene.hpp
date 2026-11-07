@@ -28,7 +28,7 @@ class RoomListScene {
 public:
   /**
    * @brief Creates the scene.
-   * @param window Window used to load textures.
+   * @param dep Client dependencies reference.
    */
   explicit RoomListScene(clientDependancy &dep);
   ~RoomListScene() = default;

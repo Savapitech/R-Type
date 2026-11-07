@@ -174,19 +174,35 @@ public:
     _isBeamCharging = isCharging;
   }
 
+  /**
+   * @brief Returns the current beam charge progress ratio (0.0f to 1.0f).
+   * @return Charge ratio.
+   */
   [[nodiscard]] float getBeamChargeRatio() const noexcept {
     return _beamChargeRatio;
   }
 
+  /**
+   * @brief Returns the discrete charge level (0, 1, 2, or 3).
+   * @return Active charge level index.
+   */
   [[nodiscard]] int getBeamChargeLevel() const noexcept {
     return _beamChargeLevel;
   }
 
+  /**
+   * @brief Checks if the beam weapon is currently charging.
+   * @return True if actively charging, false otherwise.
+   */
   [[nodiscard]] bool isBeamCharging() const noexcept { return _isBeamCharging; }
 
+  /// Maximum number of speed bonus levels attainable.
   static constexpr int MAX_SPEED_LEVEL = 4;
+  /// Base player movement speed in pixels per second.
   static constexpr float BASE_SPEED = 300.0f;
+  /// Speed increment per speed bonus level.
   static constexpr float SPEED_STEP = 35.0f;
+  /// Maximum theoretical player speed.
   static constexpr float MAX_SPEED = BASE_SPEED + MAX_SPEED_LEVEL * SPEED_STEP;
 
   /**
@@ -254,12 +270,24 @@ public:
    */
   [[nodiscard]] float getWeaponTimer() const noexcept { return _weaponTimer; }
 
+  /**
+   * @brief Returns whether the HUD is configured as visible.
+   * @return True if visible, false otherwise.
+   */
   [[nodiscard]] bool isVisible() const noexcept { return _visible; }
 
+  /**
+   * @brief Checks if the HUD should currently be rendered.
+   * @return True if in game scene and visible, false otherwise.
+   */
   [[nodiscard]] bool shouldDisplay() const noexcept {
     return _inGameScene && _visible;
   }
 
+  /**
+   * @brief Returns the HUD background entity if spawned.
+   * @return Optional entity handle.
+   */
   [[nodiscard]] std::optional<std::size_t> getHudEntity() const noexcept {
     return _hudEntity;
   }

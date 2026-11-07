@@ -17,9 +17,9 @@ namespace rtype::client {
  * @brief Internal entry tracking an initialized miniaudio sound.
  */
 struct SoundEntry {
-  ma_sound sound{};
-  std::string path{};
-  bool isLoaded{false};
+  ma_sound sound{};     ///< Low-level miniaudio sound object.
+  std::string path{};   ///< File path to the loaded audio asset.
+  bool isLoaded{false}; ///< Whether the sound has been initialized and loaded.
 
   SoundEntry() = default;
   ~SoundEntry() {

@@ -24,11 +24,17 @@ public:
   LuaScriptSystem() = default;
   ~LuaScriptSystem() override { closeLua(); }
 
+  /**
+   * @brief Initializes the Lua state and runtime environment.
+   */
   void onStart(rtk::ecs::Registry &) override {
     LOG_INFO("Load Lua Script System");
     initLua();
   }
 
+  /**
+   * @brief Closes the Lua state and releases resources.
+   */
   void onStop(rtk::ecs::Registry &) override { closeLua(); }
 
   /**
