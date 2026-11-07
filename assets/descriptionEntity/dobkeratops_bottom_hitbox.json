@@ -12,10 +12,10 @@
             "rotation": 0.0
         },
         "collider": {
-            "offsetX": 88.0,
-            "offsetY": 157.0,
-            "width": 54.0,
-            "height": 30.0,
+            "offsetX": 70.0,
+            "offsetY": 126.0,
+            "width": 80.0,
+            "height": 80.0,
             "layer": "Enemy",
             "mask": [
                 "PlayerProjectile",
