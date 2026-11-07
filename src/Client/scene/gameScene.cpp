@@ -34,6 +34,9 @@ std::optional<SceneType> GameScene::onUpdate(rtk::EngineContext &context,
 }
 
 void GameScene::onExit(rtk::EngineContext &context) {
+  _dependency.game.setGameStarting(false);
+  _dependency.game.clearNetworkEntities(context);
+
   for (const auto entity : _entities)
     context.registry.kill_entity(entity);
 

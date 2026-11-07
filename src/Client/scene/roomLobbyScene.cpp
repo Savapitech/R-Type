@@ -89,6 +89,9 @@ void RoomLobbyScene::createPreviewBackground(rtk::EngineContext &context) {
 }
 
 void RoomLobbyScene::onEnter(rtk::EngineContext &context) {
+  _dependency.game.setGameStarting(false);
+  _dependency.game.clearNetworkEntities(context);
+
   _font = _dependency.game.getFont();
   _previousActionMask = 0;
   _leaveRequested = false;

@@ -128,6 +128,12 @@ public:
   bool isGameStarting() const;
 
   /**
+   * @brief Sets whether the current room game has started.
+   * @param starting Game starting status.
+   */
+  void setGameStarting(bool starting);
+
+  /**
    * @brief Requests a ready-state change for the local player.
    * @param ready Desired ready state.
    * @return True if a request was initiated.
@@ -196,6 +202,105 @@ public:
   }
 
   /**
+   * @brief Plays a sound by its identifier.
+   */
+  void playSound(size_t soundId) {
+    _adapterAudioManager.playSound(soundId);
+  }
+
+  /**
+   * @brief Stops a specific dedicated sound by its identifier.
+   */
+  void stopSound(size_t soundId) {
+    _adapterAudioManager.stopSound(soundId);
+  }
+
+  /**
+   * @brief Checks if a specific sound is currently playing.
+   */
+  [[nodiscard]] bool isSoundPlaying(size_t soundId) const {
+    return _adapterAudioManager.isSoundPlaying(soundId);
+  }
+
+  /**
+   * @brief Configures looping for a specific sound.
+   */
+  void setSoundLooping(size_t soundId, bool loop) {
+    _adapterAudioManager.setSoundLooping(soundId, loop);
+  }
+
+  /**
+   * @brief Sets volume of a specific sound.
+   */
+  void setSoundVolume(size_t soundId, float volume) {
+    _adapterAudioManager.setSoundVolume(soundId, volume);
+  }
+
+  /**
+   * @brief Starts dedicated background music (looping by default).
+   */
+  void playMusic(const std::string &path, bool loop = true) {
+    _adapterAudioManager.playMusic(path, loop);
+  }
+
+  /**
+   * @brief Stops current background music immediately.
+   */
+  void stopMusic() {
+    _adapterAudioManager.stopMusic();
+  }
+
+  /**
+   * @brief Pauses background music.
+   */
+  void pauseMusic() {
+    _adapterAudioManager.pauseMusic();
+  }
+
+  /**
+   * @brief Resumes paused background music.
+   */
+  void resumeMusic() {
+    _adapterAudioManager.resumeMusic();
+  }
+
+  /**
+   * @brief Checks if background music is currently playing.
+   */
+  [[nodiscard]] bool isMusicPlaying() const {
+    return _adapterAudioManager.isMusicPlaying();
+  }
+
+  /**
+   * @brief Stops all active sounds and music.
+   */
+  void stopAllSounds() {
+    _adapterAudioManager.stopAllSounds();
+  }
+
+  /**
+   * @brief Sets whether all sound output is muted.
+   */
+  void setMuted(bool muted) {
+    _adapterAudioManager.setMuted(muted);
+  }
+
+  /**
+   * @brief Returns whether audio is currently muted.
+   */
+  [[nodiscard]] bool isMuted() const noexcept {
+    return _adapterAudioManager.isMuted();
+  }
+
+  /**
+   * @brief Toggles mute state of all audio output.
+   * @return New mute state (true if muted).
+   */
+  bool toggleMute() {
+    return _adapterAudioManager.toggleMute();
+  }
+
+  /**
    * @brief Destroys every replicated entity, the server does not send
    * DestroyEntity to a player who leaves the room.
    * @param context Engine services.
@@ -242,6 +347,7 @@ private:
   rtk::systems::CollisionFlashSystem *_collisionFlashSystem = nullptr;
   rtk::systems::HudSystem *_hudSystem = nullptr;
   bool _shouldQuit = false;
+  bool _previousMuteKey = false;
   std::string _host = "127.0.0.1";
   std::string _port = "4242";
   ClientNetworkStats _networkStats{};
