@@ -65,6 +65,7 @@ void GameInstance::addPlayer(std::uint32_t connectionId, std::size_t entity) {
 
 bool GameInstance::removePlayer(std::uint32_t connectionId) {
   _inputRuns.erase(connectionId);
+  _snapshotRates.erase(connectionId);
   return _players.erase(connectionId) > 0;
 }
 
@@ -870,6 +871,7 @@ bool GameInstance::removeConnectedPlayer(std::uint32_t connectionId,
   if (entity == NO_ENTITY) {
     _players.erase(it);
     _inputRuns.erase(connectionId);
+    _snapshotRates.erase(connectionId);
     return true;
   }
 
@@ -891,7 +893,50 @@ bool GameInstance::removeConnectedPlayer(std::uint32_t connectionId,
   registry.kill_entity(entity);
   _players.erase(it);
   _inputRuns.erase(connectionId);
+  _snapshotRates.erase(connectionId);
   return true;
+}
+
+namespace {
+/// Snapshot periods between two checks of the link of the clients (0.5 s).
+constexpr std::uint32_t RATE_CHECK_PERIOD = 10;
+/// Growth of the smallest RTT, in ms, above which a link counts as congested.
+constexpr float CONGESTION_MARGIN_MS = 60.0f;
+/// Growth above which the queue is already long: go to the slowest rate at once.
+constexpr float SEVERE_CONGESTION_MS = 300.0f;
+/// Slowest rate: one snapshot out of this many (5 per second).
+constexpr std::uint32_t MAX_SNAPSHOT_DIVISOR = 4;
+/// Checks without congestion before the rate goes up one step (6 s): trying a
+/// faster rate on a link that cannot carry it fills the queue again.
+constexpr std::uint32_t CLEAN_CHECKS_TO_SPEED_UP = 12;
+} // namespace
+
+void GameInstance::updateSnapshotRates(Server &server) {
+  const auto metrics = server.getAllClientMetrics();
+  for (const auto &[connectionId, entity] : _players) {
+    (void)entity;
+    const auto client = metrics.find(connectionId);
+    if (client == metrics.end() || client->second.windowMinRtt <= 0.0f)
+      continue;
+
+    SnapshotRate &rate = _snapshotRates[connectionId];
+    const float rtt = client->second.windowMinRtt;
+    if (rate.baseRtt == 0.0f || rtt < rate.baseRtt)
+      rate.baseRtt = rtt;
+
+    const float queueDelay = rtt - rate.baseRtt;
+    if (queueDelay > CONGESTION_MARGIN_MS) {
+      rate.cleanChecks = 0;
+      if (queueDelay > SEVERE_CONGESTION_MS)
+        rate.divisor = MAX_SNAPSHOT_DIVISOR;
+      else if (rate.divisor < MAX_SNAPSHOT_DIVISOR)
+        ++rate.divisor;
+    } else if (++rate.cleanChecks >= CLEAN_CHECKS_TO_SPEED_UP &&
+               rate.divisor > 1) {
+      --rate.divisor;
+      rate.cleanChecks = 0;
+    }
+  }
 }
 
 std::uint32_t GameInstance::ackedInputTick(std::uint32_t connectionId) const {
@@ -909,11 +954,19 @@ void GameInstance::sendSnapshots(Server &server) {
   protocol::SnapshotPayload snapshot;
   snapshot.serverTick = _serverTick;
 
+  ++_snapshotCount;
+  if (_snapshotCount % RATE_CHECK_PERIOD == 0)
+    updateSnapshotRates(server);
+
   const auto flush = [&]() {
     if (snapshot.entities.empty())
       return;
 
     for (const auto &[connectionId, entity] : _players) {
+      const auto rate = _snapshotRates.find(connectionId);
+      if (rate != _snapshotRates.end() &&
+          _snapshotCount % rate->second.divisor != 0)
+        continue;
       snapshot.ackedInputTick = ackedInputTick(connectionId);
       snapshot.ownNetworkId = 0;
       if (entity != NO_ENTITY) {

@@ -247,9 +247,29 @@ private:
   /// Client tick the ship of a player is simulated up to, 0 if no input yet.
   std::uint32_t ackedInputTick(std::uint32_t connectionId) const;
 
+  /**
+   * @brief How often one client receives snapshots.
+   *
+   * A client whose link is saturated gets fewer snapshots, otherwise the queue
+   * of the link grows and everything arrives late. The client is detected by
+   * the round trip time: when its smallest RTT of the last half second is well
+   * above the smallest ever seen (the RTT of an empty link), packets are
+   * waiting in a queue.
+   */
+  struct SnapshotRate {
+    std::uint32_t divisor = 1; ///< Send one snapshot out of `divisor`.
+    float baseRtt = 0.0f;      ///< Smallest RTT seen, in ms, 0 if none yet.
+    std::uint32_t cleanChecks = 0; ///< Checks in a row without congestion.
+  };
+
+  /// Lowers or raises the snapshot rate of every client, once per second.
+  void updateSnapshotRates(Server &server);
+
   std::uint32_t _roomId;
   std::unordered_map<std::uint32_t, std::size_t> _players;
   std::unordered_map<std::uint32_t, InputRun> _inputRuns;
+  std::unordered_map<std::uint32_t, SnapshotRate> _snapshotRates;
+  std::uint32_t _snapshotCount = 0; ///< Snapshot periods since the start.
   std::uint32_t _serverTick = 0;
   bool _isActive = false;
   bool _gameStartRequested = false;
