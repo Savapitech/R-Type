@@ -31,6 +31,16 @@ public:
    * @return True if the whole body was valid, false otherwise.
    */
   static bool parse(PacketReader &reader, std::vector<ParsedMessage> &messages);
+
+  /**
+   * @brief Parses the body of a connected packet, decompressing it if needed.
+   * @param compressed True if PacketHeader::compressed was set.
+   * @param reader Positioned just after the PacketHeader.
+   * @param messages Receives the messages on success.
+   * @return True on success, false on invalid compression or framing.
+   */
+  static bool parseBody(bool compressed, PacketReader &reader,
+                        std::vector<ParsedMessage> &messages);
 };
 
 /** @} */

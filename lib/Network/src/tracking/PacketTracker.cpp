@@ -1,5 +1,7 @@
 #include "PacketTracker.hpp"
 #include "../config/NetworkConfig.hpp"
+#include "../protocol/Capture.hpp"
+#include "../protocol/Compression.hpp"
 #include "../protocol/PacketWriter.hpp"
 #include <algorithm>
 #include <cstdint>
@@ -91,7 +93,7 @@ bool PacketTracker::enqueue(std::vector<std::uint8_t> payload,
 std::vector<std::uint8_t>
 PacketTracker::buildPacket(std::uint32_t connectionId, PacketPriority priority,
                            std::uint16_t reliableId,
-                           const std::vector<std::uint8_t> &body,
+                           const std::vector<std::uint8_t> &body, bool compressed,
                            std::uint32_t &sequence) {
   PacketHeader header;
   header.connectionId = connectionId;
@@ -100,6 +102,7 @@ PacketTracker::buildPacket(std::uint32_t connectionId, PacketPriority priority,
   header.ackBits = getAckBits();
   header.priority = priority;
   header.reliableId = reliableId;
+  header.compressed = compressed;
   sequence = header.sequence;
 
   PacketWriter writer;
@@ -154,7 +157,8 @@ PacketTracker::collectOutgoing(TimePoint now, std::uint32_t connectionId) {
 
         std::uint32_t sequence = 0;
         auto packet = buildPacket(connectionId, priority, pending->reliableId,
-                                  pending->payload, sequence);
+                                  pending->payload, pending->compressed,
+                                  sequence);
         if (packet.empty())
           continue;
 
@@ -176,6 +180,12 @@ PacketTracker::collectOutgoing(TimePoint now, std::uint32_t connectionId) {
 
       std::vector<std::uint8_t> body = std::move(queue.front());
       queue.pop_front();
+      while (!queue.empty() &&
+             body.size() + queue.front().size() <= MAX_MESSAGE_SIZE) {
+        const auto &next = queue.front();
+        body.insert(body.end(), next.begin(), next.end());
+        queue.pop_front();
+      }
 
       std::uint16_t reliableId = 0;
       if (priority != PacketPriority::Unreliable) {
@@ -184,15 +194,23 @@ PacketTracker::collectOutgoing(TimePoint now, std::uint32_t connectionId) {
           _nextReliableId = 1;
       }
 
+      captureBody(body);
+      bool compressed = false;
+      if (auto packed = compressBody(body)) {
+        body = std::move(*packed);
+        compressed = true;
+      }
+
       std::uint32_t sequence = 0;
-      auto packet =
-          buildPacket(connectionId, priority, reliableId, body, sequence);
+      auto packet = buildPacket(connectionId, priority, reliableId, body,
+                                compressed, sequence);
       if (packet.empty())
         continue;
 
       if (priority != PacketPriority::Unreliable) {
         Pending pending;
         pending.payload = std::move(body);
+        pending.compressed = compressed;
         pending.priority = priority;
         pending.reliableId = reliableId;
         pending.order = _nextOrder++;
@@ -209,7 +227,7 @@ PacketTracker::collectOutgoing(TimePoint now, std::uint32_t connectionId) {
   } else if (_ackDue && now - _ackDueSince >= ACK_ONLY_DELAY) {
     std::uint32_t sequence = 0;
     auto packet =
-        buildPacket(connectionId, PacketPriority::Unreliable, 0, {}, sequence);
+        buildPacket(connectionId, PacketPriority::Unreliable, 0, {}, false, sequence);
     if (!packet.empty())
       out.push_back(std::move(packet));
     _ackDue = false;

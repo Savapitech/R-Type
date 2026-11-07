@@ -79,8 +79,10 @@ loop never touches the socket directly:
   rtype::server::Server::setQueryEntityHandler(), which hand them to the room of
   the client (see @ref room_threads).
 - **Sending.** NetworkServer::send() can be called from any thread. It posts a
-  task to the network thread, which builds the packet header and hands the
-  datagram to the transport.
+  task to the network thread, which only queues the messages. They leave when
+  NetworkServer::flushAll() runs at the end of a room tick (or when the flush
+  timer fires), grouped in as few datagrams as possible, see
+  @ref networking_batching.
 
 The client follows the same model: rtype::client::NetworkClient pushes
 connection events and decoded replication messages into queues read with
@@ -147,6 +149,76 @@ The client sends only its intentions: an `Input` message with the actions held
 during the frame. The server turns them into a velocity and fires a missile when
 the shoot button is released. The client never creates or destroys a networked
 entity on its own authority.
+
+## Packet batching {#networking_batching}
+
+Every datagram costs a fixed overhead whatever its content: 20 bytes of IPv4
+header, 8 bytes of UDP header and the 19 bytes of PacketHeader, that is 47 bytes
+before the first message. Most messages of the game are small (a `Pong` is 12
+bytes, a `DestroyEntity` a few more), so sending each one alone would spend more
+bytes on headers than on data, and would cost one system call per message.
+
+The server therefore does not send a message when the game asks for it. It
+appends the message to the outgoing queue of its priority and sends the queues
+later, all at once:
+
+1. During a tick, the game calls rtype::server::Server::send() as often as it
+   needs. NetworkServer only queues the encoded messages.
+2. At the end of the tick, rtype::server::RoomWorker calls
+   rtype::server::Server::flushAll(), which runs NetworkServer::flush() for every
+   connection on the network thread.
+3. PacketTracker::collectOutgoing() takes the queued bodies of a priority one
+   after the other and concatenates them in a single packet as long as the result
+   fits in `MAX_MESSAGE_SIZE` (529 bytes). The next body starts a new packet.
+   A message is never split between two packets.
+
+Nothing waits for a fixed delay: the messages produced during a tick are the
+messages sent together, so batching adds no latency. The flush timer
+(`FLUSH_INTERVAL`, 5 ms) stays as a safety net for resends, acknowledgements and
+messages queued outside a tick. A `Pong` is the exception, it is flushed at once
+so that the round trip time stays accurate.
+
+Messages are grouped **by priority**, never across priorities, because a packet
+has a single `priority` and a single `reliableId`. A batch of `Critical` or
+`Reliable` messages is one packet for the tracker: it is acknowledged as a
+whole and, when no ack arrives, resent as a whole with the same `reliableId`,
+so the receiver still delivers it once. The wire format does not change: a
+receiver already reads every message of a packet in a loop (see section 5.3 of
+the @ref protocol).
+
+## Compression {#networking_compression}
+
+After batching, the body of a packet (all its messages) is compressed with zstd
+before the PacketHeader is put in front of it. The algorithm and its measured
+results are justified in @ref technical_study, section 6.4.
+
+- **What is compressed.** The body only. The PacketHeader stays in clear because
+  the receiver needs `connectionId`, `sequence`, `ack` and `reliableId` to
+  accept the packet before spending time on its content.
+- **When.** Once, when PacketTracker::collectOutgoing() takes the packet out of
+  the queue. A resend of a `Critical` or `Reliable` packet sends the same bytes
+  again and does not compress a second time.
+- **Only if it helps.** The compressed body is used only if it is strictly
+  smaller. Otherwise the packet is sent as it is. Tiny bodies such as an
+  `Input` or a `Pong` are therefore never compressed.
+- **Flag.** Bit 7 of the `priority` byte of the PacketHeader is set when the
+  body is compressed. The priority is in bits 0 to 6.
+- **Format.** A zstd frame at level 1 without magic number, checksum, content
+  size or dictionary id, compressed with a 4 KiB dictionary embedded in both the
+  client and the server (`lib/Network/src/protocol/zstd_dict.bin`,
+  embedded at build time by `cmake/EmbedDictionary.cmake`, like the assets). See compressBody() and
+  decompressBody().
+- **On reception.** MessageParser::parseBody() decompresses the body, then reads
+  the messages exactly as for an uncompressed packet. It runs after the
+  PacketTracker accepted the packet, so duplicates and packets of an unknown
+  connection never cost a decompression. The output is capped at
+  `MAX_MESSAGE_SIZE` bytes, a larger frame is rejected and the packet dropped.
+- **Threads.** zstd contexts are not thread safe, so each thread owns its own.
+  The digested dictionaries are shared, they are read only.
+
+To tune it, capture packets with `RTYPE_CAPTURE_FILE=<file>` while playing (or
+with `rtype_bot`, a headless client built with `-DRTYPE_BUILD_BOT=ON`), then run
+`compression_bench <file> <dictionary>` (built with `-DRTYPE_BUILD_BENCH=ON`).
 
 ## Reliability
 

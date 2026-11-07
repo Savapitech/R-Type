@@ -1,4 +1,5 @@
 #include "MessageParser.hpp"
+#include "Compression.hpp"
 #include "MessageHeader.hpp"
 
 bool MessageParser::parse(PacketReader &reader,
@@ -27,4 +28,21 @@ bool MessageParser::parse(PacketReader &reader,
   }
   messages = std::move(parsed);
   return true;
+}
+
+bool MessageParser::parseBody(bool compressed, PacketReader &reader,
+                              std::vector<ParsedMessage> &messages) {
+  if (!compressed)
+    return parse(reader, messages);
+
+  std::vector<std::uint8_t> packed(reader.getRemaining());
+  if (!reader.readBytes(packed.data(), packed.size()))
+    return false;
+
+  std::vector<std::uint8_t> body;
+  if (!decompressBody(packed.data(), packed.size(), body))
+    return false;
+
+  PacketReader bodyReader(body);
+  return parse(bodyReader, messages);
 }

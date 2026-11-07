@@ -6,6 +6,11 @@ if(RTYPE_BUILD_CLIENT)
     list(APPEND VCPKG_MANIFEST_FEATURES "client")
 endif()
 
+option(RTYPE_BUILD_BENCH "Build tools/compression_bench (needs zstd, lz4, brotli, lzma, zlib)" OFF)
+if(RTYPE_BUILD_BENCH)
+    list(APPEND VCPKG_MANIFEST_FEATURES "bench")
+endif()
+
 list(APPEND VCPKG_INSTALL_OPTIONS "--no-print-usage")
 list(REMOVE_DUPLICATES VCPKG_INSTALL_OPTIONS)
 
@@ -152,6 +157,21 @@ target_include_directories(ECSLib INTERFACE "${ecslib_SOURCE_DIR}/include")
 #Network
 find_package(Threads REQUIRED)
 find_package(asio CONFIG REQUIRED)
+find_package(zstd CONFIG REQUIRED)
+
+set(COMPRESSION_DICTIONARY ${CMAKE_CURRENT_SOURCE_DIR}/lib/Network/src/protocol/zstd_dict.bin)
+set(COMPRESSION_DICTIONARY_CPP ${CMAKE_BINARY_DIR}/generated/CompressionDictionary.cpp)
+
+add_custom_command(
+    OUTPUT ${COMPRESSION_DICTIONARY_CPP}
+    COMMAND ${CMAKE_COMMAND}
+        -DDICTIONARY=${COMPRESSION_DICTIONARY}
+        -DOUTPUT=${COMPRESSION_DICTIONARY_CPP}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedDictionary.cmake
+    DEPENDS ${COMPRESSION_DICTIONARY} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedDictionary.cmake
+    COMMENT "Embedding the zstd dictionary"
+    VERBATIM
+)
 
 add_library(Network STATIC
     lib/Network/src/metrics/Metrics.cpp
@@ -164,6 +184,9 @@ add_library(Network STATIC
     lib/Network/src/protocol/MessageParser.cpp
     lib/Network/src/protocol/PingMessage.cpp
     lib/Network/src/protocol/PongMessage.cpp
+    lib/Network/src/protocol/Capture.cpp
+    lib/Network/src/protocol/Compression.cpp
+    ${COMPRESSION_DICTIONARY_CPP}
 
     lib/Network/src/tracking/PacketTracker.cpp
     lib/Network/src/connection/Connection.cpp
@@ -190,6 +213,7 @@ target_link_libraries(Network
     PUBLIC
         Threads::Threads
         asio::asio
+        $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>
 )
 
 #JSON LOADER
@@ -344,241 +368,33 @@ if(WIN32 AND RTYPE_BUILD_CLIENT)
     endforeach()
 endif()
 
-# #Test LIB NETWORK
-# include(CTest)
+# Unit tests (cmake -DRTYPE_BUILD_TESTS=ON, or make tests), see tests/
+option(RTYPE_BUILD_TESTS "Build the unit tests, run them with ctest" OFF)
+if(RTYPE_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
-# if(BUILD_TESTING)
+# Compression benchmark (cmake -DRTYPE_BUILD_BENCH=ON), see tools/compression_bench
+if(RTYPE_BUILD_BENCH)
+    find_package(zstd CONFIG REQUIRED)
+    find_package(lz4 CONFIG REQUIRED)
+    find_package(unofficial-brotli CONFIG REQUIRED)
+    find_package(LibLZMA REQUIRED)
+    find_package(ZLIB REQUIRED)
+    add_executable(compression_bench tools/compression_bench/main.cpp)
+    target_link_libraries(compression_bench PRIVATE
+        $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>
+        lz4::lz4
+        unofficial::brotli::brotlienc
+        unofficial::brotli::brotlidec
+        LibLZMA::LibLZMA
+        ZLIB::ZLIB)
+endif()
 
-#     add_executable(test_tracking
-#         tests/network/testTracking.cpp
-#     )
-#     target_link_libraries(test_tracking PRIVATE Network)
-
-#     add_executable(test_connection
-#         tests/network/testConnection.cpp
-#     )
-#     target_link_libraries(test_connection PRIVATE Network)
-
-#     add_executable(test_message_header
-#         tests/network/testMessageHeader.cpp
-#     )
-#     target_link_libraries(test_message_header PRIVATE Network)
-
-#     add_executable(test_message_parser
-#         tests/network/testMessageParser.cpp
-#     )
-#     target_link_libraries(test_message_parser PRIVATE Network)
-
-#     add_executable(test_server_handshake
-#         tests/network/testServerHandshake.cpp
-#     )
-#     target_link_libraries(test_server_handshake PRIVATE Network)
-
-#     add_executable(test_connected_packet
-#         tests/network/testConnectedPacket.cpp
-#     )
-#     target_link_libraries(test_connected_packet PRIVATE Network)
-
-
-#     add_test(
-#         NAME PacketTracking
-#         COMMAND test_tracking
-#     )
-
-#     add_test(
-#         NAME Connection
-#         COMMAND test_connection
-#     )
-
-#     add_test(
-#         NAME MessageHeader
-#         COMMAND test_message_header
-#     )
-
-#     add_test(
-#         NAME MessageParser
-#         COMMAND test_message_parser
-#     )
-
-#     add_test(
-#         NAME ServerHandshake
-#         COMMAND test_server_handshake
-#     )
-
-#     add_test(
-#         NAME ConnectedPacket
-#         COMMAND test_connected_packet
-#     )
-
-
-#     set_tests_properties(
-#         ServerHandshake
-#         ConnectedPacket
-#         PROPERTIES
-#             RUN_SERIAL TRUE
-#     )
-
-# add_executable(test_network_client
-#     tests/network/testNetworkClient.cpp
-#     src/Server/Server.cpp
-# )
-
-# target_include_directories(test_network_client
-#     PRIVATE
-#         ${CMAKE_CURRENT_SOURCE_DIR}/src/Server
-# )
-
-# target_compile_features(test_network_client
-#     PRIVATE
-#         cxx_std_20
-# )
-
-# target_link_libraries(test_network_client
-#     PRIVATE
-#         NetworkClientLib
-#         Network
-#         CommonProtocole
-# )
-
-# add_test(
-#     NAME NetworkClientIntegration
-#     COMMAND test_network_client
-# )
-
-# set_tests_properties(
-#     NetworkClientIntegration
-#     PROPERTIES
-#         RUN_SERIAL TRUE
-#         TIMEOUT 15
-# )
-
-# set_target_properties(
-#     test_network_client
-#     PROPERTIES
-#         RUNTIME_OUTPUT_DIRECTORY
-#             "${CMAKE_BINARY_DIR}/tests"
-# )
-
-# add_executable(test_input_queue
-#     tests/network/testInputQueue.cpp
-#     src/Server/Server.cpp
-# )
-
-# target_include_directories(test_input_queue
-#     PRIVATE
-#         "${CMAKE_CURRENT_SOURCE_DIR}/src/Server"
-# )
-
-# target_compile_features(test_input_queue
-#     PRIVATE
-#         cxx_std_20
-# )
-
-# target_link_libraries(test_input_queue
-#     PRIVATE
-#         Network
-#         CommonProtocole
-# )
-
-# set_target_properties(test_input_queue
-#     PROPERTIES
-#         RUNTIME_OUTPUT_DIRECTORY
-#             "${CMAKE_BINARY_DIR}/tests"
-# )
-
-# add_test(
-#     NAME InputQueue
-#     COMMAND test_input_queue
-# )
-
-# set_tests_properties(
-#     InputQueue
-#     PROPERTIES
-#         RUN_SERIAL TRUE
-#         TIMEOUT 15
-# )
-
-# add_executable(test_replication_payload
-#     tests/network/testReplicationPayload.cpp
-# )
-
-# target_compile_features(test_replication_payload
-#     PRIVATE
-#         cxx_std_20
-# )
-
-# target_link_libraries(test_replication_payload
-#     PRIVATE
-#         CommonProtocole
-#         Network
-# )
-
-# set_target_properties(test_replication_payload
-#     PROPERTIES
-#         RUNTIME_OUTPUT_DIRECTORY
-#             "${CMAKE_BINARY_DIR}/tests"
-# )
-
-# add_test(
-#     NAME ReplicationPayload
-#     COMMAND test_replication_payload
-# )
-
-# set_tests_properties(
-#     ReplicationPayload
-#     PROPERTIES
-#         TIMEOUT 15
-# )
-
-# add_executable(test_replication_integration
-#     tests/network/testReplicationIntegration.cpp
-#     src/Server/Server.cpp
-# )
-
-# target_include_directories(test_replication_integration
-#     PRIVATE
-#         "${CMAKE_CURRENT_SOURCE_DIR}/src/Server"
-# )
-
-# target_compile_features(test_replication_integration
-#     PRIVATE
-#         cxx_std_20
-# )
-
-# target_link_libraries(test_replication_integration
-#     PRIVATE
-#         NetworkClientLib
-#         Network
-#         CommonProtocole
-# )
-
-# set_target_properties(test_replication_integration
-#     PROPERTIES
-#         RUNTIME_OUTPUT_DIRECTORY
-#             "${CMAKE_BINARY_DIR}/tests"
-# )
-
-# add_test(
-#     NAME ReplicationIntegration
-#     COMMAND test_replication_integration
-# )
-
-# set_tests_properties(
-#     ReplicationIntegration
-#     PROPERTIES
-#         RUN_SERIAL TRUE
-#         TIMEOUT 15
-# )
-
-#     function(enable_test_assertions target)
-#       target_compile_options(${target} PRIVATE -UNDEBUG)
-#     endfunction()
-
-#     enable_test_assertions(test_tracking)
-#     enable_test_assertions(test_connection)
-#     enable_test_assertions(test_message_header)
-#     enable_test_assertions(test_message_parser)
-#     enable_test_assertions(test_server_handshake)
-#     enable_test_assertions(test_connected_packet)
-
-# endif()
+# Headless load-test bot (cmake -DRTYPE_BUILD_BOT=ON), see tools/bot
+option(RTYPE_BUILD_BOT "Build tools/bot, a headless client for load tests" OFF)
+if(RTYPE_BUILD_BOT)
+    add_executable(rtype_bot tools/bot/main.cpp)
+    target_link_libraries(rtype_bot PRIVATE NetworkClientLib Network CommonProtocole Threads::Threads)
+endif()
