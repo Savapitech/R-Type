@@ -21,6 +21,7 @@ code is available from the navigation tree on the left.
 | Add content or features step by step | @ref tutorials |
 | Build levels and entities without writing JSON by hand | @ref editor |
 | Understand our technical choices | @ref technical_study |
+| See how the game behaves with lag and packet loss | @ref network_benchmark |
 | Know how the project handles accessibility | @ref accessibility |
 | Contribute to the project | @ref contributing and @ref coding_conventions |
 | Browse the code reference | @ref api_libraries and @ref api_game |
@@ -64,6 +65,7 @@ The flat lists of namespaces, classes and source files follow.
 - @subpage tutorials
 - @subpage editor
 - @subpage technical_study
+- @subpage network_benchmark
 - @subpage accessibility
 - @subpage contributing
 - @subpage coding_conventions
