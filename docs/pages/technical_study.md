@@ -181,6 +181,117 @@ of eight messages.
 encoding saves 35 percent. One `Snapshot` message carries up to 47 entities in
 a 548 byte datagram.
 
+### 6.4 Compression
+
+Every packet pays 47 bytes of headers (IPv4, UDP and our PacketHeader) and then
+carries a few hundred bytes of messages, mostly snapshots of quantized
+positions. Compressing the body is the last lever once messages are batched
+(see @ref networking_batching). The constraints are particular:
+
+- **Tiny, independent inputs.** A body is between a few bytes and 529 bytes.
+  UDP loses and reorders packets, so each one must be decodable alone: a
+  streaming compressor that keeps history from one packet to the next cannot be
+  used.
+- **No history, so the context must be shipped with the program.** The only way
+  to give a compressor something to match against on a 100 byte input is a
+  dictionary known by both sides.
+- **Fixed overhead matters.** A container that adds 20 bytes to a 100 byte
+  packet is a loss before any compression happens.
+- **Speed.** The network thread compresses every outgoing packet and
+  decompresses every incoming one, and a server with 32 clients sends about 900
+  packets per second (28 packets per second per client were measured).
+- **Untrusted input.** The decoder reads data coming from the network and its
+  output must be bounded.
+
+**Method.** We captured the body of every packet sent by the real server
+(`RTYPE_CAPTURE_FILE`) during three sessions of 8 bots playing 25 seconds in two
+rooms: 16 992 packets, 5.0 MB, 296 bytes on average. The first 80 percent of the
+corpus (in time order) trains the dictionary, the last 20 percent (3 399
+packets) is the test set. A random split would have been wrong: consecutive
+snapshots are nearly identical, so neighbours of a test packet in the training
+set flatter the dictionary. The tool is `tools/compression_bench`, the dictionary
+is 4 KiB, and every result was checked by a decompression round trip.
+
+| Algorithm | Output / input | Packets not smaller | Compress | Decompress |
+| --------- | -------------: | ------------------: | -------: | ---------: |
+| LZMA in an xz container | 76.0 % | 59.0 % | 546 µs | 7.1 µs |
+| LZMA raw (lzma1, no header) | 56.7 % | 28.1 % | 23.6 µs | 2.8 µs |
+| LZMA raw with a preset dictionary | **52.2 %** | 21.5 % | 94.5 µs | 3.3 µs |
+| Brotli quality 1 | 70.6 % | 59.0 % | 3.7 µs | 1.2 µs |
+| Brotli quality 5 | 58.7 % | 30.5 % | 11.3 µs | 1.6 µs |
+| Brotli quality 11 | 62.2 % | 44.8 % | 474 µs | 4.3 µs |
+| deflate 9 (raw) | 61.2 % | 19.7 % | 7.8 µs | 1.2 µs |
+| LZ4 | 71.5 % | 21.4 % | 0.3 µs | 0.1 µs |
+| zstd level 1, no dictionary | 67.1 % | 34.8 % | 3.6 µs | 1.2 µs |
+| zstd level 19, no dictionary | 62.1 % | 42.1 % | 20.2 µs | 1.8 µs |
+| zstd level 19 with dictionary, standard frame | 59.2 % | 30.8 % | 18.4 µs | 0.8 µs |
+| **zstd level 1 with dictionary, minimal frame** | 60.0 % | 26.3 % | **1.0 µs** | **0.5 µs** |
+
+"Packets not smaller" counts the packets for which the output is not smaller
+than the input; those are sent uncompressed, so compression never makes a packet
+bigger.
+
+**What the numbers say.**
+
+1. *Containers cost more than they save on small inputs.* The xz container is
+   19 points worse than raw LZMA, because of its headers and footers. For the
+   same reason we remove everything optional from the zstd frame (magic number,
+   checksum, content size, dictionary id), which is worth 3 points.
+2. *A dictionary is worth about 4 points.* Without history, a general purpose
+   compressor starts every packet blind. zstd goes from 67.1 % to 63.3 % with the
+   standard frame, LZMA from 56.7 % to 52.2 %.
+3. *Nothing compresses these packets below about half.* Positions are
+   quantized to 16 bits and probably carry little redundancy in their low bits
+   (we did not analyse it), and the algorithms that do best, with a dictionary or
+   a strong entropy coder, all end between 52 % and 62 %. The choice is therefore about cost, not about a miracle ratio.
+
+**Choice: zstd level 1 with a trained dictionary and a minimal frame.**
+
+- LZMA with a preset dictionary is the smallest (52.2 %), 8 points better than
+  our choice, but it costs 94 µs per packet against 1 µs. At 900 packets per
+  second that is 85 ms of every second on the network thread, which also reads,
+  writes and tracks every connection, against about 1 ms. Eight points of a body
+  that is already 40 percent smaller is not worth almost a tenth of the thread.
+  This is the closest call of the study: with few clients, or on a dedicated
+  thread, LZMA would be a valid choice.
+- Brotli quality 5 (58.7 %) beats zstd without dictionary and is 1.3 points
+  from our choice, but it is 11 times slower (11.3 µs) and cannot be given a
+  dictionary of our own in the standard API, while its built-in one is made of
+  web text. Quality 11 costs 474 µs and is worse on small inputs.
+- LZ4 is the fastest, but only reaches 71.5 %.
+- deflate (61.2 %) is 8 times slower than zstd for a worse ratio. We did not
+  measure it with a preset dictionary, which zlib supports.
+- Higher zstd levels bring little: level 19 is 18 times slower for 0.8 points
+  with a dictionary. Level 1 is also marginally better than level 3 on this
+  corpus (60.0 % against 60.5 %).
+- zstd is widely deployed, maintained, available in vcpkg, and its dictionary
+  support was designed for exactly this case: small messages of a known format.
+
+**Where it sits.** Messages are batched first, then the body of each packet is
+compressed once (a resend sends the same bytes again), then the PacketHeader is
+written in clear, because the receiver needs `connectionId`, the sequence and
+the acks before it decides to decompress. A bit of the `priority` byte tells the
+receiver that the body is compressed. See @ref networking_compression.
+
+**Measured effect.** On the same 8 bot test, the average datagram sent by the
+server went from 314 to 183 bytes (minus 42 percent) once compression was
+enabled, with no loss and no retransmission. Packets sent by the clients stay at
+31 bytes: they carry one 13 byte `Input` message per frame, which is too small
+to compress, and the 19 byte header is the real cost there.
+
+**Limits and follow-ups.**
+
+- The corpus comes from bots with random inputs on a debug build. The
+  dictionary should be trained again on captures of human games before a
+  release, with `compression_bench`, by replacing
+  `lib/Network/src/protocol/zstd_dict.bin`. The dictionary is part
+  of the protocol: changing it requires a new protocol version.
+- Compression saves bytes, not packets, and the 47 bytes of headers remain.
+- A general purpose compressor is the wrong tool for the snapshot itself.
+  Sending only what changed since the last acknowledged snapshot (delta
+  compression) would remove more than any algorithm above, and is the next step
+  if bandwidth becomes a problem.
+
 ## 7. Build and dependencies
 
 | Option | Integration with CMake | Binary cache | Notes |
@@ -234,6 +345,7 @@ in a single file without running a database server.
 | C++ | Buffer overflow, out of bounds read, use after free | All network reads go through PacketReader, which checks the remaining size before every read. Payloads are copied into fixed size structs, never cast in place. Owned memory uses containers and smart pointers. |
 | Custom binary protocol | Lying length fields, truncated messages, huge counts that trigger large allocations | Declared sizes are compared to the received bytes, packets with trailing bytes are dropped, fixed payloads must match their exact size, and `entityCount` is capped at 47 before any allocation. |
 | UDP | Source address spoofing, replay, flooding | Connected packets must carry the connection id bound to their source address. Duplicate and old packets are dropped. Old inputs are rejected by input sequence. Invalid datagrams get no answer, so the server cannot be used to amplify traffic. Datagrams larger than 548 bytes are dropped by the transport. |
+| Compression | Decompression bomb: a few bytes that expand to megabytes, or a malformed frame | The decoder writes into a buffer of `MAX_MESSAGE_SIZE` (529) bytes and fails instead of growing, the frame has no declared size to trust, and decompression only happens after the packet passed the connection and sequence checks, so spoofed and duplicate packets cost nothing. |
 | Asio asynchronous I/O | Handler running after the object it uses was destroyed | Send buffers are kept alive by shared pointers captured in the handler, and the network thread is joined before the server object is destroyed. |
 | Multithreading | Data races | Only the network thread touches the socket and the connection table. Data crosses threads through mutex protected queues, and flags are atomic. |
 | JSON blueprints | Malformed file, unexpected types | Files ship with the game and are read only. Parse errors throw at startup, and missing fields fall back to defaults. |
@@ -283,6 +395,7 @@ in a single file without running a database server.
 | Transport | UDP only |
 | Network library | Standalone Asio |
 | Serialization | Fixed layout big-endian structs, quantized positions |
+| Packet size | Batching per priority, zstd level 1 with a trained dictionary |
 | Reliability | Sequence and ack bitfield, full snapshots, query based repair |
 | Build | CMake and vcpkg |
 | Storage | Versioned plain files for assets, memory for live state |
