@@ -41,12 +41,7 @@
             "width": 476.0,
             "height": 240.0,
             "layer": "BossRoom",
-            "mask": [
-                "Player",
-                "Enemy",
-                "PlayerProjectile",
-                "EnemyProjectile"
-            ]
+            "mask": []
         },
         "velocity": {
             "x": -50.0,

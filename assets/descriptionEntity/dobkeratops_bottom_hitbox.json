@@ -1,0 +1,31 @@
+{
+    "components": {
+        "transform": {
+            "position": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "scale": {
+                "x": 3.0,
+                "y": 3.0
+            },
+            "rotation": 0.0
+        },
+        "collider": {
+            "offsetX": 70.0,
+            "offsetY": 126.0,
+            "width": 80.0,
+            "height": 80.0,
+            "layer": "Enemy",
+            "mask": [
+                "PlayerProjectile",
+                "Player"
+            ]
+        },
+        "enemy": {
+            "health": 99999.0,
+            "fireRate": 99999.0
+        },
+        "networkEntity": {}
+    }
+}
