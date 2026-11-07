@@ -7,10 +7,15 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <stdexcept>
 #include <string>
+#include <system_error>
+#include <variant>
+#include <vector>
 
-#include "GameInstance/GameInstance.hpp"
+#include "GameInstance/RoomChannels.hpp"
+#include "GameInstance/RoomWorker.hpp"
 #include "NetworkIdGenerator.hpp"
 #include "Protocol/RoomPayload.hpp"
 #include "Room/Room.hpp"
@@ -33,6 +38,7 @@
 #include "components/EnemyEvent.hpp"
 #include "components/Health.hpp"
 #include "components/WaveMovement.hpp"
+#include "components/LuaScript.hpp"
 #include "components/dropPowerUp.hpp"
 #include "components/powerUp.hpp"
 
@@ -45,23 +51,33 @@
 #include "systems/EnemySpawnerSystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/WaveMovementSystem.hpp"
+#include "systems/LuaScriptSystem.hpp"
 
 namespace rtype::server {
 
-Game::Game(std::uint16_t port) : _server(port) {}
+Game::Game(std::uint16_t port) : _server(port) {
+  _server.setInputHandler([this](const Server::InputEvent &event) {
+    if (auto mailbox = _roomRouter.find(event.connectionId))
+      mailbox->postInput(event);
+  });
+  _server.setQueryEntityHandler([this](const Server::QueryEntityEvent &event) {
+    if (auto mailbox = _roomRouter.find(event.connectionId))
+      mailbox->postQuery(event);
+  });
+}
 
 Game::~Game() = default;
 
 void Game::onLoad(rtk::EngineContext &) {
 
   _server.start();
-  _defaultRoomId = _roomManager.createRoom("Default Room");
-  GameInstance *instance = createGameInstance(_defaultRoomId, _server);
+  _defaultRoomId = _roomManager.createRoom("Default Room", true);
+  RoomWorker *worker = createRoomWorker(_defaultRoomId);
 
-  if (!instance)
+  if (!worker)
     throw std::runtime_error("Failed to create default game Instance.");
 
-  instance->start(_server);
+  worker->waitUntilStarted();
   std::cout << "[Server] Game simulation started" << std::endl;
 }
 
@@ -78,6 +94,7 @@ void Game::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::Health>();
   context.registry.register_component<component::DestroyableTile>();
   context.registry.register_component<component::WaveMovement>();
+  context.registry.register_component<component::LuaScript>();
   context.registry.register_component<component::powerUp>();
   context.registry.register_component<component::DropPowerUp>();
 }
@@ -131,6 +148,10 @@ void Game::registerBuilders(rtk::EngineContext &context) {
                                          component::waveMovementFromJson);
   context._entityFactory.registerBuilder("WaveMovement",
                                          component::waveMovementFromJson);
+  context._entityFactory.registerBuilder("luaScript",
+                                         component::luaScriptFromJson);
+  context._entityFactory.registerBuilder("LuaScript",
+                                         component::luaScriptFromJson);
   context._entityFactory.registerBuilder("powerUp", component::powerupFromJson);
   context._entityFactory.registerBuilder("powerup", component::powerupFromJson);
   context._entityFactory.registerBuilder("Powerup", component::powerupFromJson);
@@ -207,13 +228,22 @@ void Game::subscribeEvents(rtk::EngineContext &context) {
                   ? event.firstEntity
                   : event.secondEntity;
 
-          deads.insert_at(bulletEnt, {});
-
           auto &enemies = context.registry.get_components<component::Enemy>();
           auto &healths = context.registry.get_components<component::Health>();
           auto &bullets = context.registry.get_components<component::Bullet>();
 
           auto *bulletComp = bullets.get(bulletEnt);
+          if (bulletComp && bulletComp->piercing) {
+            if (std::find(bulletComp->hitEntities.begin(),
+                          bulletComp->hitEntities.end(),
+                          enemyEnt) != bulletComp->hitEntities.end()) {
+              return;
+            }
+            bulletComp->hitEntities.push_back(enemyEnt);
+          } else {
+            deads.insert_at(bulletEnt, {});
+          }
+
           const float damage = bulletComp ? bulletComp->damage : 10.0f;
 
           auto *enemyComp = enemies.get(enemyEnt);
@@ -321,6 +351,8 @@ void Game::addSystems(rtk::EngineContext &context) {
       std::cref(_serverTick), std::ref(context._entityFactory));
   context.scheduler.add<rtk::systems::WaveMovementSystem>(
       rtk::ecs::Order::Update);
+  context.scheduler.add<rtk::systems::LuaScriptSystem>(
+      rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
   context.scheduler.add<rtk::systems::ColliderSystem>(
       rtk::ecs::Order::Physics, _collisionBuffer, 64.f, context.eventBus);
@@ -338,7 +370,7 @@ void Game::handleConnections(rtk::EngineContext &) {
       std::cout << "[Server] Client " << connectionId
                 << " connected. Waiting for room selection." << std::endl;
     } else if (event.type == Server::ConnectionEvent::Type::Disconnected) {
-      removePlayerFromRoom(connectionId);
+      removePlayerFromRoom(connectionId, false);
       std::cout << "[Server] Client " << connectionId << " disconnected"
                 << std::endl;
     }
@@ -363,48 +395,19 @@ void Game::broadcastGameEnded(rtk::EngineContext &context) {
   }
 }
 
-void Game::handleInputs(rtk::EngineContext &) {
-  Server::InputEvent inputEvent;
-
-  while (_server.pollInput(inputEvent)) {
-    auto roomId = _roomManager.getRoomId(inputEvent.connectionId);
-    if (!roomId)
-      continue;
-
-    auto *instance = getGameInstance(*roomId);
-    if (!instance)
-      continue;
-    instance->processInput(inputEvent, _server);
-  }
-}
-
-void Game::onUpdate(rtk::EngineContext &context, float dt) {
+void Game::onUpdate(rtk::EngineContext &context, float) {
   handleConnections(context);
   handleRoomRequests();
-  handleInputs(context);
-  handleEntityQueries(context);
-
-  for (auto &[_, instance] : _gameInstances) {
-
-    instance->update(dt);
-
-    if (instance->isActive()) {
-      instance->incrementServerTick();
-      if (instance->getServerTick() % 3 == 0)
-        instance->sendSnapshots(_server);
-    }
-  }
+  handleRoomEvents();
   updateNetworkMetrics();
 }
 bool Game::shouldContinue() const { return _running; }
 
 void Game::onUnload(rtk::EngineContext &) {
+  for (auto &[roomId, worker] : _roomWorkers)
+    worker->requestStop();
 
-  for (auto &[roomId, instance] : _gameInstances) {
-    instance->stop();
-  }
-
-  _gameInstances.clear();
+  _roomWorkers.clear();
   _server.stop();
   std::cout << "[Server] Multiples instances stopped" << std::endl;
 }
@@ -436,20 +439,6 @@ void Game::sendExistingEntities(std::uint32_t connectionId,
         _serverTick, netEnt->id, netEnt->archetypeId, transform->position.x,
         transform->position.y, transform->rotation);
     _server.sendCreateEntity(connectionId, payload);
-  }
-}
-
-void Game::handleEntityQueries(rtk::EngineContext &) {
-
-  Server::QueryEntityEvent queryEvent;
-  while (_server.pollQueryEntity(queryEvent)) {
-    auto roomId = _roomManager.getRoomId(queryEvent.connectionId);
-    if (!roomId)
-      continue;
-    GameInstance *instance = getGameInstance(*roomId);
-    if (!instance)
-      continue;
-    instance->processEntityQuery(queryEvent, _server);
   }
 }
 
@@ -555,54 +544,203 @@ void Game::cleanupOffscreenEnvironment(rtk::EngineContext &context) {
   }
 }
 
-GameInstance *Game::createGameInstance(std::uint32_t roomId, Server &server) {
+RoomWorker *Game::createRoomWorker(std::uint32_t roomId) {
   if (_roomManager.getRoom(roomId) == nullptr)
     return nullptr;
 
-  auto it = _gameInstances.find(roomId);
-  if (it != _gameInstances.end())
+  auto it = _roomWorkers.find(roomId);
+  if (it != _roomWorkers.end())
     return it->second.get();
 
-  auto instance = std::make_unique<GameInstance>(roomId, server, _roomManager);
-  GameInstance *ptr = instance.get();
-  _gameInstances.emplace(roomId, std::move(instance));
-  return ptr;
+  try {
+    auto worker = std::make_unique<RoomWorker>(roomId, _server, _roomEvents);
+    RoomWorker *ptr = worker.get();
+    _roomWorkers.emplace(roomId, std::move(worker));
+    return ptr;
+  } catch (const std::system_error &error) {
+    std::cerr << "[Server] Failed to start room " << roomId << ": "
+              << error.what() << std::endl;
+    return nullptr;
+  }
 }
 
-GameInstance *Game::getGameInstance(std::uint32_t roomId) {
-  auto it = _gameInstances.find(roomId);
-  if (it == _gameInstances.end())
+RoomWorker *Game::getRoomWorker(std::uint32_t roomId) {
+  auto it = _roomWorkers.find(roomId);
+  if (it == _roomWorkers.end())
     return nullptr;
 
   return it->second.get();
 }
 
-bool Game::destroyGameInstance(std::uint32_t roomId) {
-  auto it = _gameInstances.find(roomId);
-  if (it == _gameInstances.end())
-    return false;
-
-  it->second->stop();
-  _gameInstances.erase(it);
-  return true;
+bool Game::destroyRoomWorker(std::uint32_t roomId) {
+  return _roomWorkers.erase(roomId) > 0;
 }
 
-bool Game::removePlayerFromRoom(std::uint32_t connectionId) {
+void Game::beginJoin(std::uint32_t connectionId, std::uint32_t roomId,
+                     RoomWorker &worker, JoinKind kind) {
+  const std::uint64_t requestId = _nextJoinRequestId++;
+
+  _pendingJoins.insert_or_assign(connectionId,
+                                 PendingJoin{roomId, requestId, kind});
+  _roomRouter.bind(connectionId, worker.mailbox());
+  worker.mailbox()->post(AddPlayerCommand{connectionId, requestId});
+}
+
+void Game::sendJoinResult(std::uint32_t connectionId, JoinKind kind,
+                          const protocol::RoomResultPayload &result) {
+  if (kind == JoinKind::Create)
+    _server.sendRoomCreated(connectionId, result);
+  else
+    _server.sendRoomJoined(connectionId, result);
+}
+
+bool Game::removePlayerFromRoom(std::uint32_t connectionId, bool notifyClient) {
   auto roomId = _roomManager.getRoomId(connectionId);
   if (!roomId)
     return false;
   const std::uint32_t id = *roomId;
-  if (auto *instance = getGameInstance(id)) {
-    instance->removeConnectedPlayer(connectionId, _server);
-  }
+
+  _pendingJoins.erase(connectionId);
+  _roomRouter.unbind(connectionId);
+  if (auto *worker = getRoomWorker(id))
+    worker->mailbox()->post(RemovePlayerCommand{connectionId, notifyClient});
   _roomManager.leaveRoom(connectionId);
-  if (!_roomManager.getRoom(id)) {
-    destroyGameInstance(id);
-  } else
-    broadcastRoomState(id);
+  broadcastRoomState(id);
   std::cout << "[Server] Player " << connectionId << " left room " << id
             << std::endl;
+  startRoomIfReady(id);
   return true;
+}
+
+void Game::freeRoomListSlot() {
+  while (_roomManager.listRooms().size() >= protocol::MAX_ROOMS_PER_LIST) {
+    const auto roomId = _roomManager.deleteOldestEmptyRoom();
+    if (!roomId)
+      return;
+    destroyRoomWorker(*roomId);
+    std::cout << "[Server] Removed empty room " << *roomId << std::endl;
+  }
+}
+
+void Game::startRoomIfReady(std::uint32_t roomId) {
+  auto *room = _roomManager.getRoom(roomId);
+  auto *worker = getRoomWorker(roomId);
+
+  if (!room || !worker || room->getState() != RoomState::Waiting ||
+      !_roomManager.areAllPlayersReady(roomId))
+    return;
+
+  room->setState(RoomState::Playing);
+  protocol::GameStartingPayload payload{};
+  payload.roomId = roomId;
+  for (const auto connectionId : room->getPlayers())
+    _server.sendGameStarting(connectionId, payload);
+  worker->mailbox()->post(StartGameCommand{});
+  std::cout << "[Room " << roomId << "] All players ready. Starting game!"
+            << std::endl;
+}
+
+void Game::handleRoomEvents() {
+  RoomEvent event{};
+
+  while (_roomEvents.poll(event)) {
+    switch (event.type) {
+    case RoomEvent::Type::PlayerAdded:
+      finishJoin(event);
+      break;
+    case RoomEvent::Type::GameEnded:
+      finishGame(event.roomId);
+      break;
+    case RoomEvent::Type::Crashed:
+      handleRoomCrash(event);
+      break;
+    }
+  }
+}
+
+void Game::finishJoin(const RoomEvent &event) {
+  const auto it = _pendingJoins.find(event.connectionId);
+  if (it == _pendingJoins.end() || it->second.requestId != event.requestId)
+    return;
+
+  const auto [roomId, requestId, kind] = it->second;
+  _pendingJoins.erase(it);
+
+  protocol::RoomResultPayload result{};
+  result.roomId = roomId;
+  if (event.success) {
+    result.result = protocol::RoomResult::Success;
+    sendJoinResult(event.connectionId, kind, result);
+    broadcastRoomState(roomId);
+    std::cout << "[Server] Player " << event.connectionId
+              << (kind == JoinKind::Create ? " created room " : " joined room ")
+              << roomId << std::endl;
+    return;
+  }
+
+  _roomRouter.unbind(event.connectionId);
+  _roomManager.leaveRoom(event.connectionId);
+  if (kind == JoinKind::Create && _roomManager.deleteRoom(roomId))
+    destroyRoomWorker(roomId);
+  result.result = protocol::RoomResult::InternalError;
+  sendJoinResult(event.connectionId, kind, result);
+  broadcastRoomState(roomId);
+  startRoomIfReady(roomId);
+}
+
+void Game::finishGame(std::uint32_t roomId) {
+  auto *room = _roomManager.getRoom(roomId);
+  if (!room)
+    return;
+
+  room->setState(RoomState::Waiting);
+  _roomManager.resetReadyStates(roomId);
+  broadcastRoomState(roomId);
+}
+
+void Game::handleRoomCrash(const RoomEvent &event) {
+  const std::uint32_t roomId = event.roomId;
+  std::cerr << "[Server] Room " << roomId << " crashed: " << event.error
+            << std::endl;
+
+  // Requests posted after the crash will never be answered by the room.
+  RoomMailbox::Batch unanswered;
+  if (auto *worker = getRoomWorker(roomId)) {
+    worker->stop();
+    worker->mailbox()->drain(unanswered);
+  }
+  protocol::RoomResultPayload left{};
+  left.result = protocol::RoomResult::Success;
+  left.roomId = roomId;
+  for (const auto &command : unanswered.commands) {
+    const auto *remove = std::get_if<RemovePlayerCommand>(&command);
+    if (remove && remove->notifyClient)
+      _server.sendRoomLeft(remove->connectionId, left);
+  }
+
+  auto *room = _roomManager.getRoom(roomId);
+  if (room) {
+    const std::vector<std::uint32_t> players = room->getPlayers();
+    for (const auto connectionId : players) {
+      _roomRouter.unbind(connectionId);
+      _roomManager.leaveRoom(connectionId);
+
+      const auto pending = _pendingJoins.find(connectionId);
+      if (pending == _pendingJoins.end()) {
+        _server.sendRoomLeft(connectionId, left);
+        continue;
+      }
+      protocol::RoomResultPayload failure{};
+      failure.result = protocol::RoomResult::InternalError;
+      failure.roomId = roomId;
+      sendJoinResult(connectionId, pending->second.kind, failure);
+      _pendingJoins.erase(pending);
+    }
+    room->setState(RoomState::Waiting);
+    _roomManager.deleteRoom(roomId);
+  }
+  // A persistent room stays listed, its worker is recreated at the next join.
+  destroyRoomWorker(roomId);
 }
 
 void Game::broadcastRoomState(std::uint32_t roomId) {
@@ -653,6 +791,7 @@ void Game::handleRoomRequests() {
         _server.sendRoomCreated(connectionId, res);
         break;
       }
+      freeRoomListSlot();
       const auto roomId = _roomManager.createRoom(event.roomName);
       if (!_roomManager.joinRoom(connectionId, roomId)) {
         _roomManager.deleteRoom(roomId);
@@ -660,28 +799,15 @@ void Game::handleRoomRequests() {
         _server.sendRoomCreated(connectionId, res);
         break;
       }
-      auto *instance = createGameInstance(roomId, _server);
-      if (!instance) {
+      auto *worker = createRoomWorker(roomId);
+      if (!worker) {
         _roomManager.leaveRoom(connectionId);
+        _roomManager.deleteRoom(roomId);
         res.result = protocol::RoomResult::InternalError;
         _server.sendRoomCreated(connectionId, res);
         break;
       }
-      instance->start(_server);
-      if (!instance->addConnectedPlayer(connectionId, _server)) {
-        _roomManager.leaveRoom(connectionId);
-        if (!_roomManager.getRoom(roomId))
-          destroyGameInstance(roomId);
-        res.result = protocol::RoomResult::InternalError;
-        _server.sendRoomCreated(connectionId, res);
-        break;
-      }
-      res.result = protocol::RoomResult::Success;
-      res.roomId = roomId;
-      _server.sendRoomCreated(connectionId, res);
-      broadcastRoomState(roomId);
-      std::cout << "[Server] Player " << connectionId << " created room "
-                << roomId << std::endl;
+      beginJoin(connectionId, roomId, *worker, JoinKind::Create);
       break;
     }
     case Server::RoomRequestEvent::Type::JoinRoom: {
@@ -714,27 +840,14 @@ void Game::handleRoomRequests() {
         _server.sendRoomJoined(connectionId, res);
         break;
       }
-      auto *instance = getGameInstance(event.roomId);
-      if (!instance)
-        instance = createGameInstance(event.roomId, _server);
-      if (!instance) {
+      auto *worker = createRoomWorker(event.roomId);
+      if (!worker) {
         _roomManager.leaveRoom(connectionId);
         res.result = protocol::RoomResult::InternalError;
         _server.sendRoomJoined(connectionId, res);
         break;
       }
-      instance->start(_server);
-      if (!instance->addConnectedPlayer(connectionId, _server)) {
-        _roomManager.leaveRoom(connectionId);
-        res.result = protocol::RoomResult::InternalError;
-        _server.sendRoomJoined(connectionId, res);
-        break;
-      }
-      res.result = protocol::RoomResult::Success;
-      _server.sendRoomJoined(connectionId, res);
-      broadcastRoomState(event.roomId);
-      std::cout << "[Server] Player " << connectionId << " joined room "
-                << event.roomId << std::endl;
+      beginJoin(connectionId, event.roomId, *worker, JoinKind::Join);
       break;
     }
     case Server::RoomRequestEvent::Type::LeaveRoom: {
@@ -746,13 +859,10 @@ void Game::handleRoomRequests() {
         break;
       }
       res.roomId = *roomId;
-      if (!removePlayerFromRoom(connectionId)) {
+      if (!removePlayerFromRoom(connectionId, true)) {
         res.result = protocol::RoomResult::InternalError;
         _server.sendRoomLeft(connectionId, res);
-        break;
       }
-      res.result = protocol::RoomResult::Success;
-      _server.sendRoomLeft(connectionId, res);
       break;
     }
     case Server::RoomRequestEvent::Type::SetReady: {
@@ -764,6 +874,7 @@ void Game::handleRoomRequests() {
       std::cout << "[Room " << *roomId << "] Player " << connectionId
                 << (event.ready ? " READY" : " NOT READY") << std::endl;
       broadcastRoomState(*roomId);
+      startRoomIfReady(*roomId);
       break;
     }
     }
@@ -808,8 +919,9 @@ void Game::updateNetworkMetrics() {
   const double bandwidthOut = static_cast<double>(bytesOut) / elapsed / 1024.0;
   const double packetsInPerSecond = static_cast<double>(packetsIn) / elapsed;
   const double packetsOutPerSecond = static_cast<double>(packetsOut) / elapsed;
-  std::cout << std::fixed << std::setprecision(2);
-  std::cout
+  std::ostringstream report;
+  report << std::fixed << std::setprecision(2);
+  report
 
       << "Bandwidth IN: " << bandwidthIn << " KiB/s\n"
       << "Bandwidth OUT: " << bandwidthOut << " KiB/s\n"
@@ -861,20 +973,19 @@ void Game::updateNetworkMetrics() {
         static_cast<std::uint64_t>(metrics.retransmissions) -
         previous.retransmissions;
 
-    std::cout << std::fixed << std::setprecision(2);
-
-    std::cout << "\n CLIENT " << connectionId << ":\n"
-              << "Bandwidth IN  : " << bandwidthIn << " KiB/s\n"
-              << "Bandwidth OUT : " << bandwidthOut << " KiB/s\n"
-              << "Packets IN    : " << packetsIn << " pkt/s\n"
-              << "Packets OUT   : " << packetsOut << " pkt/s\n"
-              << "RTT           : " << metrics.rtt << " ms\n"
-              << "Smooth RTT    : " << metrics.smoothRtt << " ms\n"
-              << "Jitter        : " << metrics.jitter << " ms\n"
-              << "Retransmits   : " << retransmissions << "\n"
-              << "Duplicates    : " << metrics.packetsDuplicated << "\n"
-              << "Out of order  : " << metrics.packetsOut << "\n\n\n";
+    report << "\n CLIENT " << connectionId << ":\n"
+           << "Bandwidth IN  : " << bandwidthIn << " KiB/s\n"
+           << "Bandwidth OUT : " << bandwidthOut << " KiB/s\n"
+           << "Packets IN    : " << packetsIn << " pkt/s\n"
+           << "Packets OUT   : " << packetsOut << " pkt/s\n"
+           << "RTT           : " << metrics.rtt << " ms\n"
+           << "Smooth RTT    : " << metrics.smoothRtt << " ms\n"
+           << "Jitter        : " << metrics.jitter << " ms\n"
+           << "Retransmits   : " << retransmissions << "\n"
+           << "Duplicates    : " << metrics.packetsDuplicated << "\n"
+           << "Out of order  : " << metrics.packetsOut << "\n\n\n";
   }
+  std::cout << report.str();
   _previousClientMetrics = clients;
 
   _previousMetrics = metrics;

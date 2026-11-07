@@ -306,28 +306,20 @@ std::chrono::milliseconds PacketTracker::getRoundTripTime() const {
   return std::chrono::duration_cast<std::chrono::milliseconds>(_roundTrip);
 }
 
-std::uint64_t PacketTracker::getDuplicateCount() const
-{
-    return _duplicateCount;
+std::uint64_t PacketTracker::getDuplicateCount() const {
+  return _duplicateCount;
 }
 
-std::uint64_t PacketTracker::getOutOfOrderCount() const
-{
-    return _outOfOrderCount;
+std::uint64_t PacketTracker::getOutOfOrderCount() const {
+  return _outOfOrderCount;
 }
 
-std::uint64_t PacketTracker::getTooOldCount() const
-{
-    return _tooOldCount;
+std::uint64_t PacketTracker::getTooOldCount() const { return _tooOldCount; }
+
+std::chrono::microseconds PacketTracker::getLastRttSample() const {
+  return _lastRttSample;
 }
 
-std::chrono::microseconds
-PacketTracker::getLastRttSample() const
-{
-    return _lastRttSample;
-}
-
-std::uint64_t PacketTracker::getRttSampleCount() const
-{
-    return _rttSampleCount;
+std::uint64_t PacketTracker::getRttSampleCount() const {
+  return _rttSampleCount;
 }

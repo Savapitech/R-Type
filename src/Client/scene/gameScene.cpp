@@ -5,6 +5,7 @@
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
 
+#include "game.hpp"
 #include "scene/clientDependency.hpp"
 #include "systems/AnimationSystem.hpp"
 #include "systems/RenderConcept.hpp"
@@ -22,7 +23,13 @@ void GameScene::onEnter(rtk::EngineContext &context) {
 std::optional<SceneType> GameScene::onUpdate(rtk::EngineContext &context,
                                              const rtk::InputState &inputState,
                                              float dt) {
+  if (!_dependency.game.isGameStarting())
+    return SceneType::GameOver;
 
+  if (_dependency.game.isKeyPressed(rtk::ecs::concepts::Key::Escape) ||
+      rtype::Input::hasAction(inputState.actionMask, rtype::Action::LeaveRoom)) {
+    return SceneType::GameOver;
+  }
   return std::nullopt;
 }
 

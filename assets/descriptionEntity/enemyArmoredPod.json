@@ -1,0 +1,82 @@
+{
+    "components": {
+        "transform": {
+            "position": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "scale": {
+                "x": 2.0,
+                "y": 2.0
+            },
+            "rotation": 0.0
+        },
+        "sprite": {
+            "texture": "assets/entityTexture/armored_pod.png",
+            "size": {
+                "w": 48.0,
+                "h": 48.0
+            },
+            "origin": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "textureRect": {
+                "x": 0,
+                "y": 0,
+                "w": 48,
+                "h": 48
+            },
+            "color": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 255
+            },
+            "layer": 0,
+            "flags": 0
+        },
+        "collider": {
+            "width": 40.0,
+            "height": 38.0,
+            "offsetX": 4.0,
+            "offsetY": 5.0,
+            "layer": "Enemy",
+            "mask": [
+                "PlayerProjectile",
+                "Player",
+                "Environment"
+            ]
+        },
+        "velocity": {
+            "x": -120.0,
+            "y": 0.0
+        },
+        "animation": {
+            "frameDuration": 0.15,
+            "currentFrame": 0,
+            "totalFrames": 5,
+            "frameWidth": 48,
+            "frameHeight": 48,
+            "startX": 0,
+            "startY": 0,
+            "loop": true,
+            "playing": true,
+            "columns": 5,
+            "paddingX": 0,
+            "paddingY": 0
+        },
+        "enemy": {
+            "health": 12.0,
+            "fireRate": 2.0,
+            "blueprintName": "mecha_bullet"
+        },
+        "networkEntity": {},
+        "deathEffect": {
+            "blueprintName": "explosion"
+        },
+        "dropPowerUp": {
+            "blueprintName": "powerup_spread"
+        }
+    }
+}

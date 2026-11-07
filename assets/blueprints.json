@@ -93,8 +93,64 @@
       "file": "assets/descriptionEntity/bidos_death_effect.json"
     },
     {
-      "name": "new_entity",
-      "file": "assets/descriptionEntity/new_entity.json"
+      "name": "bullet_plasma",
+      "file": "assets/descriptionEntity/bullet_plasma.json"
+    },
+    {
+      "name": "bullet_beam_lvl1",
+      "file": "assets/descriptionEntity/bullet_beam_lvl1.json"
+    },
+    {
+      "name": "bullet_beam_lvl2",
+      "file": "assets/descriptionEntity/bullet_beam_lvl2.json"
+    },
+    {
+      "name": "bullet_beam_lvl3",
+      "file": "assets/descriptionEntity/bullet_beam_lvl3.json"
+    },
+    {
+      "name": "beam_charge_effect",
+      "file": "assets/descriptionEntity/beam_charge_effect.json"
+    },
+    {
+      "name": "powerup_spread",
+      "file": "assets/powerUp/powerUp_spread.json"
+    },
+    {
+      "name": "powerup_plasma",
+      "file": "assets/powerUp/powerUp_plasma.json"
+    },
+    {
+      "name": "boss_room",
+      "file": "assets/descriptionEntity/boss_room.json"
+    },
+    {
+      "name": "enemySpinner",
+      "file": "assets/descriptionEntity/enemySpinner.json"
+    },
+    {
+      "name": "enemyPod",
+      "file": "assets/descriptionEntity/enemyPod.json"
+    },
+    {
+      "name": "enemyDart",
+      "file": "assets/descriptionEntity/enemyDart.json"
+    },
+    {
+      "name": "enemyArmoredPod",
+      "file": "assets/descriptionEntity/enemyArmoredPod.json"
+    },
+    {
+      "name": "enemyCargo",
+      "file": "assets/descriptionEntity/enemyCargo.json"
+    },
+    {
+      "name": "enemyGreenMecha",
+      "file": "assets/descriptionEntity/enemyGreenMecha.json"
+    },
+    {
+      "name": "green_mecha_bullet",
+      "file": "assets/descriptionEntity/green_mecha_bullet.json"
     }
   ]
 }

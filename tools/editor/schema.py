@@ -4,7 +4,7 @@ import copy
 from typing import Any
 
 LAYERS = ["Player", "Enemy", "PlayerProjectile", "EnemyProjectile",
-          "Environment", "PowerUp"]
+          "Environment", "PowerUp", "BossRoom"]
 ANIM_STATES = ["IDLE", "UP", "DOWN", "DIE", "SHOOT"]
 POWERUP_TYPES = ["heal", "speed", "shield"]
 
@@ -93,16 +93,19 @@ COMPONENTS: dict[str, dict] = {
         field("isTriggered", "bool", False)]},
     "enemyEvent": {"fields": [field("entityId", "int", 0, optional=True)]},
     "soundRequest": {"fields": [field("soundId", "int", 0)]},
+    "luaScript": {"fields": [field("script", "str", ""),
+                             field("time", "float", 0.0, optional=True)]},
     "destroyAnimEnd": {"fields": []},
     "networkEntity": {"fields": []},
     "dead": {"fields": []},
 }
 
 _BY_LOWER = {name.lower(): name for name in COMPONENTS}
+ALIASES = {"aabbcollider": "collider", "enemyescapedevent": "enemyEvent"}
 
 
 def canonical(name: str) -> str | None:
-    return _BY_LOWER.get(name.lower())
+    return _BY_LOWER.get(name.lower()) or ALIASES.get(name.lower())
 
 
 def fields_of(name: str) -> list[dict] | None:

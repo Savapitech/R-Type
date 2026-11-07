@@ -123,6 +123,11 @@
       "blueprint": "high_ground",
       "symmetric": true,
       "spacing": 128.0
+    },
+    {
+      "blueprint": "boss_room",
+      "symmetric": false,
+      "spacing": 1428.0
     }
   ]
 }

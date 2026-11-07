@@ -1,0 +1,60 @@
+{
+  "components": {
+    "transform": {
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "scale": {
+        "x": 2.2,
+        "y": 2.2
+      },
+      "rotation": 0.0
+    },
+    "sprite": {
+      "texture": "assets/entityTexture/green_mecha_bullet.png",
+      "size": {
+        "w": 16.0,
+        "h": 16.0
+      },
+      "origin": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "textureRect": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "color": {
+        "r": 255,
+        "g": 50,
+        "b": 50,
+        "a": 255
+      },
+      "layer": 0
+    },
+    "collider": {
+      "width": 32.0,
+      "height": 32.0,
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "layer": "PlayerProjectile",
+      "mask": [
+        "EnemyProjectile",
+        "Enemy",
+        "Environment"
+      ]
+    },
+    "velocity": {
+      "x": 950.0,
+      "y": 0.0
+    },
+    "bullet": {
+      "damage": 30.0,
+      "piercing": true
+    },
+    "networkEntity": {}
+  }
+}

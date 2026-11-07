@@ -71,7 +71,8 @@ found in `src/Common`. The network library only depends on Asio.
 
 ## Runtime view
 
-Each program runs two threads.
+The client runs two threads. The server runs a main thread, a network thread
+and one thread per room.
 
 \dot "Threads and data flow between the client and the server" width=100%
 digraph runtime {
@@ -88,15 +89,23 @@ digraph runtime {
 
   subgraph cluster_s {
     label="Server process"; style="rounded";
-    smain [label="Main thread\nengine loop, 60 ticks/s\nsimulation, snapshots"];
+    smain [label="Main thread\nengine loop, 60 ticks/s\nconnections, rooms"];
     sio   [label="Network thread\nAsio io_context"];
-    sq    [label="Input, connection and\nquery queues (mutex)", shape=cylinder, fillcolor="#ffffff"];
+    sq    [label="Connection and room\nrequest queues (mutex)", shape=cylinder, fillcolor="#ffffff"];
+    sbox  [label="Room mailboxes\n(mutex)", shape=cylinder, fillcolor="#ffffff"];
+    sroom [label="Room threads, one per room\n60 ticks/s\nsimulation, snapshots"];
+    sevt  [label="Room event queue\n(mutex)", shape=cylinder, fillcolor="#ffffff"];
   }
 
   cmain -> cio [label="post sends"];
   cio -> cq [label="push"]; cq -> cmain [label="poll"];
   smain -> sio [label="post sends"];
+  sroom -> sio [label="post sends"];
   sio -> sq [label="push"]; sq -> smain [label="poll"];
+  sio -> sbox [label="inputs, queries"];
+  smain -> sbox [label="commands"];
+  sbox -> sroom [label="drain"];
+  sroom -> sevt [label="push"]; sevt -> smain [label="poll"];
   cio -> sio [label="Hello, Input, QueryEntity\n(UDP)"];
   sio -> cio [label="Welcome, CreateEntity,\nDestroyEntity, Snapshot (UDP)"];
 }
@@ -111,6 +120,50 @@ send, the main thread posts a task to the network thread, which owns the
 socket. The client sends `Hello`, `Input` and `QueryEntity` messages. The
 server answers with `Welcome`, then replicates the world with `CreateEntity`,
 `DestroyEntity` and `Snapshot` messages.
+
+On the server, the main thread does not simulate anything: it handles
+connections and owns the rooms. Each room simulates its own world on its own
+thread, as described in @ref room_threads.
+
+## Room threads {#room_threads}
+
+A rtype::server::RoomWorker owns the rtype::server::GameInstance of one room
+and runs it at 60 ticks per second. Rooms share no gameplay state, so a slow
+room does not slow the others down, and an exception only stops the room that
+threw it: its players go back to the room list while the other rooms keep
+playing.
+
+Threads never call each other. Each piece of state has one owner, and the other
+threads send it messages:
+
+| State | Owner | How the other threads reach it |
+| ----- | ----- | ------------------------------ |
+| rtype::server::GameInstance and its ECS world | Room thread | rtype::server::RoomMailbox |
+| rtype::server::RoomManager and ready states | Main thread | rtype::server::RoomEventQueue |
+| Sockets and connections | Network thread | NetworkServer::send() |
+
+- **Inputs and entity queries** go straight from the network thread to the
+  mailbox of the room, found with rtype::server::RoomRouter. They are bounded
+  per room, so a flooding client can only delay its own room.
+- **Joining** is asynchronous. The main thread adds the player to the room and
+  sends a command. The room creates the entity and answers with an event, then
+  the main thread sends `RoomCreated` or `RoomJoined`.
+- **Leaving** is answered by the room thread: `RoomLeft` is sent once the room
+  stopped replicating to the client, so that no entity shows up afterwards.
+- **Starting a round** is decided by the main thread when every player is ready.
+  The end of a round comes back as an event.
+
+To check the threading after a change, build the server with ThreadSanitizer
+and play a few rounds in several rooms, joining and leaving them:
+
+```sh
+make server_tsan
+setarch -R build-tsan/bin/r-type_server -p 4242
+```
+
+`setarch -R` turns off address randomization, which makes ThreadSanitizer crash
+at startup on recent Linux kernels. Every data race is printed as a
+`WARNING: ThreadSanitizer` report.
 
 ## Frame loop
 
@@ -167,4 +220,5 @@ offset from that corner and scaled with the entity.
 | Concepts for backends | The engine has no dependency on the renderer or the audio library. | @ref engine |
 | UDP with a custom binary protocol | Low latency, compact packets, full control over validation. | @ref protocol |
 | Dedicated network thread | The game loop never blocks on the network. | @ref networking |
+| One thread per room | A slow or crashing room does not affect the others. | @ref room_threads |
 | JSON blueprints | New entities without recompiling. | @ref tutorials |

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Room/RoomManager.hpp"
 namespace rtype::server {
 /**
  * @addtogroup api_server
@@ -32,17 +31,17 @@ struct ServerDependency {
 
 class GameInstance;
 class Server;
+class RoomEventQueue;
 
 /** @brief Dependencies provided to scenes belonging to a game instance. */
 struct GameInstanceDependency {
-    /** @brief Instance owning the scene and its ECS world. */
-    GameInstance& instance;
-    /** @brief Shared UDP server used for network messages. */
-    Server& server;
-    /** @brief Manager owning the rooms and player ready states. */
-    RoomManager &roomManager;
+  /** @brief Instance owning the scene and its ECS world. */
+  GameInstance &instance;
+  /** @brief Shared UDP server used for network messages. */
+  Server &server;
+  /** @brief Queue used to notify the main thread. */
+  RoomEventQueue &events;
 };
 
 /** @} */
 } // namespace rtype::server
-

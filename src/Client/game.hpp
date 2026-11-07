@@ -22,34 +22,20 @@
 #include "NetworkClient.hpp"
 #include "Protocol/RoomPayload.hpp"
 #include "metrics/Metrics.hpp"
+#include "scene/gameOverScene.hpp"
 #include "scene/gameScene.hpp"
 #include "scene/introScene.hpp"
 #include "scene/menuScene.hpp"
-#include "scene/roomLobbyScene.hpp"
 #include "scene/networkConnectionScene.hpp"
+#include "scene/roomLobbyScene.hpp"
+#include "scene/settingScene.hpp"
+
+#include "events/GameEvents.hpp"
 
 namespace rtk::systems {
 class CollisionFlashSystem;
-}
-
-namespace rtype::events {
-/**
- * @addtogroup api_client
- * @{
- */
-
-/**
- * @brief Published when the local player releases the shoot button.
- */
-struct PlayerShotEvent {};
-
-/**
- * @brief Published when a quit request is triggered from the menu or game.
- */
-struct QuitGameEvent {};
-
-/** @} */
-} // namespace rtype::events
+class HudSystem;
+} // namespace rtk::systems
 
 namespace rtype::client {
 /**
@@ -121,8 +107,7 @@ public:
    * @brief Returns the players currently present in the room.
    * @return List of players with their connection IDs and ready states.
    */
-  const std::vector<protocol::RoomPlayerState> &
-  getRoomPlayers() const;
+  const std::vector<protocol::RoomPlayerState> &getRoomPlayers() const;
 
   /**
    * @brief Returns whether the local player is ready.
@@ -161,6 +146,62 @@ public:
    */
   const rtk::Font &getFont() const;
 
+  /**
+   * @brief Checks if a specific key is pressed in the window.
+   * @param key Candidate key.
+   * @return True if currently pressed.
+   */
+  [[nodiscard]] bool isKeyPressed(rtk::ecs::concepts::Key key) const {
+    return _adapter.isKeyPressed(key);
+  }
+
+  /**
+   * @brief Returns the first key currently pressed, if any.
+   * @return Pressed key or nullopt.
+   */
+  [[nodiscard]] std::optional<rtk::ecs::concepts::Key> getAnyKeyPressed() const {
+    return _adapter.getAnyKeyPressed();
+  }
+
+  /**
+   * @brief Returns the mutable client input mapping.
+   * @return Reference to the input mapping.
+   */
+  [[nodiscard]] rtk::Input::InputMapping &getInputMapping() noexcept {
+    return _inputMapping;
+  }
+
+  /**
+   * @brief Returns the const client input mapping.
+   * @return Const reference to the input mapping.
+   */
+  [[nodiscard]] const rtk::Input::InputMapping &getInputMapping() const noexcept {
+    return _inputMapping;
+  }
+
+  /**
+   * @brief Resets input bindings to default controls.
+   */
+  void resetDefaultBindings() {
+    createBindings();
+  }
+
+  /**
+   * @brief Plays the UI / shoot selection sound effect.
+   */
+  void playSelectSound() {
+    if (_shootSoundId != 0) {
+      _adapterAudioManager.playSound(_shootSoundId);
+    }
+  }
+
+  /**
+   * @brief Destroys every replicated entity, the server does not send
+   * DestroyEntity to a player who leaves the room.
+   * @param context Engine services.
+   */
+  void clearNetworkEntities(rtk::EngineContext &context);
+
 private:
   void registerBuilders(rtk::EngineContext &context);
   void registerComponents(rtk::EngineContext &context);
@@ -185,17 +226,21 @@ private:
   rtk::RenderWindow _window;
   RtkWindowAdapter _adapter;
   RtkAudioAdapter _adapterAudioManager;
+  std::uint32_t _shootSoundId = 0;
   rtk::InputState _inputState{};
+  std::uint32_t _previousActionMask = 0;
   rtk::collision::CollisionBuffer _collisionBuffer;
   rtk::Input::InputMapping _inputMapping;
   rtype::client::NetworkClient _networkClient;
   clientDependancy _dependency;
   rtk::SceneManager<SceneType, clientDependancy, rtk::InputState, IntroScene,
-                    MenuScene, NetworkConnectionScene, RoomListScene, RoomLobbyScene, GameScene>
+                    MenuScene, NetworkConnectionScene, RoomListScene,
+                    RoomLobbyScene, GameScene, SettingScene, GameOverScene>
       _sceneManager;
 
   rtk::Font _fontRtype;
   rtk::systems::CollisionFlashSystem *_collisionFlashSystem = nullptr;
+  rtk::systems::HudSystem *_hudSystem = nullptr;
   bool _shouldQuit = false;
   std::string _host = "127.0.0.1";
   std::string _port = "4242";

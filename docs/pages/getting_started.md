@@ -217,7 +217,9 @@ player joined.
 | Move | Arrow keys | D-pad or left stick |
 | Shoot | Space | Right trigger |
 | Confirm in menus | Enter | Cross or A |
-| Quit | Escape | |
+| Toggle ready in a room | R | |
+| Leave the room, or quit from any other screen | Escape | |
+| Toggle the HUD | H | |
 | Show collision boxes | Hold F3 and press B | |
 
 ## Building the documentation

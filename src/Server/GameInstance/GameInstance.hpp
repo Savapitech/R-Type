@@ -18,6 +18,9 @@ namespace rtype::server {
 
 /**
  * @brief Owns an isolated ECS world and scene lifecycle for one room.
+ *
+ * Not thread safe: once started, it is only used by the thread of its
+ * RoomWorker.
  */
 class GameInstance {
 public:
@@ -28,10 +31,10 @@ public:
    * @brief Constructs an isolated simulation for a room.
    * @param roomId Identifier of the room.
    * @param server Shared network server.
-   * @param roomManager Manager containing the room and its ready states.
+   * @param events Queue used to notify the main thread.
    */
   explicit GameInstance(std::uint32_t roomId, Server &server,
-                        RoomManager &roomManager);
+                        RoomEventQueue &events);
 
   /** @brief Instances cannot be copied. */
   GameInstance(const GameInstance &) = delete;
@@ -97,6 +100,15 @@ public:
    * @brief Resets the per-round state of the instance.
    */
   void resetGameState();
+  /**
+   * @brief Asks the lobby scene to start a round at its next update.
+   */
+  void requestGameStart();
+  /**
+   * @brief Reads and clears the request made with requestGameStart().
+   * @return True if a round must start.
+   */
+  bool consumeGameStartRequest();
   /**
    * @brief Accesses the isolated ECS engine context.
    * @return Reference to the instance context.
@@ -220,6 +232,7 @@ private:
   std::unordered_map<std::uint32_t, std::size_t> _players;
   std::uint32_t _serverTick = 0;
   bool _isActive = false;
+  bool _gameStartRequested = false;
   bool _systemsStarted = false;
   bool _initialized = false;
   rtk::ecs::Registry _registry;
@@ -272,6 +285,7 @@ private:
    */
   void spawnDueStageEntities(rtk::EngineContext &context);
 
+  bool _bossSpawned = false;
   /**
    * @brief Registers components in the instance registry.
    * @param context Instance engine context.

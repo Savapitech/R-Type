@@ -74,6 +74,7 @@ private:
   uint32_t _previousActionMask = 0;
   std::vector<std::size_t> _roomsDynamicEntities;
   std::vector<std::size_t> _textDynamicEntites;
+  std::vector<std::uint32_t> _displayedRoomIds;
   rtk::Font _font;
 };
 

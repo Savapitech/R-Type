@@ -25,6 +25,7 @@
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
 #include "components/WaveMovement.hpp"
+#include "components/LuaScript.hpp"
 #include "components/dropPowerUp.hpp"
 #include "components/powerUp.hpp"
 
@@ -39,6 +40,7 @@
 #include "systems/CollisionFlashSystem.hpp"
 #include "systems/DeadSystem.hpp"
 #include "systems/DebugCollisionSystem.hpp"
+#include "systems/HudSystem.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/ParallaxSystem.hpp"
@@ -78,9 +80,9 @@ void Game::onLoad(rtk::EngineContext &context) {
 
   _networkClient.connect(_host, _port);
 
-  uint32_t shootSoundId = _adapterAudioManager.addSound("assets/shoot.wav");
+  _shootSoundId = _adapterAudioManager.addSound("assets/shoot.wav");
 
-  subscribeEvents(context, shootSoundId);
+  subscribeEvents(context, _shootSoundId);
   addSystems(context);
 
   _sceneManager.start(context);
@@ -156,6 +158,10 @@ void Game::registerBuilders(rtk::EngineContext &context) {
                                          component::waveMovementFromJson);
   context._entityFactory.registerBuilder("WaveMovement",
                                          component::waveMovementFromJson);
+  context._entityFactory.registerBuilder("luaScript",
+                                         component::luaScriptFromJson);
+  context._entityFactory.registerBuilder("LuaScript",
+                                         component::luaScriptFromJson);
 
   context._entityFactory.registerBuilder(
       "sprite", [this](rtk::ecs::Registry &reg, std::size_t entity,
@@ -229,6 +235,7 @@ void Game::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::Health>();
   context.registry.register_component<component::DestroyableTile>();
   context.registry.register_component<component::WaveMovement>();
+  context.registry.register_component<component::LuaScript>();
   context.registry.register_component<component::powerUp>();
   context.registry.register_component<component::DropPowerUp>();
   context.registry.register_component<component::DestroyAnimEnd>();
@@ -236,6 +243,8 @@ void Game::registerComponents(rtk::EngineContext &context) {
 }
 
 void Game::createBindings() {
+  _inputMapping = rtk::Input::InputMapping();
+
   _inputMapping.bindKey(0, rtk::ecs::concepts::Key::Up);
   _inputMapping.bindKey(0, rtk::ecs::concepts::Key::Z);
   _inputMapping.bindGamepad(0, rtk::ecs::concepts::GamepadButton::DpadUp);
@@ -249,11 +258,13 @@ void Game::createBindings() {
                                 0.30f);
 
   _inputMapping.bindKey(2, rtk::ecs::concepts::Key::Left);
+  _inputMapping.bindKey(2, rtk::ecs::concepts::Key::Q);
   _inputMapping.bindGamepad(2, rtk::ecs::concepts::GamepadButton::DpadLeft);
   _inputMapping.bindGamepadAxis(2, rtk::ecs::concepts::GamepadAxis::LeftX,
                                 -0.30f);
 
   _inputMapping.bindKey(3, rtk::ecs::concepts::Key::Right);
+  _inputMapping.bindKey(3, rtk::ecs::concepts::Key::D);
   _inputMapping.bindGamepad(3, rtk::ecs::concepts::GamepadButton::DpadRight);
   _inputMapping.bindGamepadAxis(3, rtk::ecs::concepts::GamepadAxis::LeftX,
                                 0.30f);
@@ -267,8 +278,13 @@ void Game::createBindings() {
 
   _inputMapping.bindKey(6, rtk::ecs::concepts::Key::F3);
   _inputMapping.bindGamepad(6, rtk::ecs::concepts::GamepadButton::Select);
-  _inputMapping.bindKey(7, rtk::ecs::concepts::Key::R);
-  _inputMapping.bindKey(8, rtk::ecs::concepts::Key::Escape);
+
+  _inputMapping.bindKey(7, rtk::ecs::concepts::Key::H);
+  _inputMapping.bindKey(8, rtk::ecs::concepts::Key::R);
+  _inputMapping.bindKey(9, rtk::ecs::concepts::Key::Escape);
+  _inputMapping.bindKey(10, rtk::ecs::concepts::Key::E);
+  _inputMapping.bindKey(10, rtk::ecs::concepts::Key::Tab);
+  _inputMapping.bindGamepad(10, rtk::ecs::concepts::GamepadButton::Y);
 }
 
 void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
@@ -280,6 +296,17 @@ void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
   context.eventBus.subscribe<rtype::events::PlayerShotEvent>(
       [this, shootSoundId](const rtype::events::PlayerShotEvent &) {
         _adapterAudioManager.playSound(shootSoundId);
+        if (_hudSystem) {
+          _hudSystem->incrementShotCount();
+        }
+      });
+
+  context.eventBus.subscribe<rtype::events::BeamChargeEvent>(
+      [this](const rtype::events::BeamChargeEvent &event) {
+        if (_hudSystem) {
+          _hudSystem->setBeamCharge(event.chargeRatio, event.chargeLevel,
+                                    event.isCharging);
+        }
       });
 
   context.eventBus.subscribe<rtype::events::EnemyEscapedEvent>(
@@ -292,6 +319,87 @@ void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
         _shouldQuit = true;
         _inputState.closeRequested = true;
       });
+
+  context.eventBus.subscribe<rtk::collision::Collision>(
+      [this, &context](const rtk::collision::Collision &event) {
+        auto *colA =
+            context.registry.get_components<component::AABBCollider>().get(
+                event.firstEntity);
+        auto *colB =
+            context.registry.get_components<component::AABBCollider>().get(
+                event.secondEntity);
+        if (!colA || !colB)
+          return;
+
+        const std::uint32_t collisionPair = colA->layer | colB->layer;
+        const std::uint32_t playerVsPowerup =
+            Collider::CollisionLayer::Player | Collider::CollisionLayer::PowerUp;
+
+        if (collisionPair == playerVsPowerup) {
+          const std::size_t playerEnt =
+              (colA->layer == Collider::CollisionLayer::Player)
+                  ? event.firstEntity
+                  : event.secondEntity;
+          const std::size_t powerupEnt =
+              (colA->layer == Collider::CollisionLayer::PowerUp)
+                  ? event.firstEntity
+                  : event.secondEntity;
+
+          auto &deads = context.registry.get_components<component::Dead>();
+          if (deads.get(powerupEnt) != nullptr)
+            return;
+          deads.insert_at(powerupEnt, {});
+
+          auto *powerupComp =
+              context.registry.get_components<component::powerUp>().get(
+                  powerupEnt);
+          if (powerupComp) {
+            if (powerupComp->type == component::powerUpType::Speed) {
+              auto *speedComp =
+                  context.registry.get_components<component::Controllable>().get(
+                      playerEnt);
+              constexpr float MAX_SPEED = 440.0f;
+              if (speedComp) {
+                speedComp->speed =
+                    std::min(speedComp->speed + powerupComp->value, MAX_SPEED);
+              }
+              if (_hudSystem) {
+                _hudSystem->addSpeedBonus();
+              }
+            } else if (powerupComp->type ==
+                       component::powerUpType::WeaponSpread) {
+              const float duration =
+                  (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
+              auto *ctrl =
+                  context.registry.get_components<component::Controllable>().get(
+                      playerEnt);
+              if (ctrl) {
+                ctrl->weaponType = 1;
+                ctrl->weaponTimer = duration;
+                ctrl->weaponMaxDuration = duration;
+              }
+              if (_hudSystem) {
+                _hudSystem->setWeaponWithTimer(1, duration);
+              }
+            } else if (powerupComp->type ==
+                       component::powerUpType::WeaponPlasma) {
+              const float duration =
+                  (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
+              auto *ctrl =
+                  context.registry.get_components<component::Controllable>().get(
+                      playerEnt);
+              if (ctrl) {
+                ctrl->weaponType = 2;
+                ctrl->weaponTimer = duration;
+                ctrl->weaponMaxDuration = duration;
+              }
+              if (_hudSystem) {
+                _hudSystem->setWeaponWithTimer(2, duration);
+              }
+            }
+          }
+        }
+      });
 }
 
 void Game::addSystems(rtk::EngineContext &context) {
@@ -301,7 +409,8 @@ void Game::addSystems(rtk::EngineContext &context) {
       std::ref(context.eventBus), std::ref(context._entityFactory),
       std::ref(_networkClient));
   context.scheduler.add<rtk::systems::InputSystem<RtkWindowAdapter>>(
-      rtk::ecs::Order::Input, std::ref(_adapter), _inputState, _inputMapping);
+      rtk::ecs::Order::Input, std::ref(_adapter), std::ref(_inputState),
+      std::ref(_inputMapping), false);
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
   _collisionFlashSystem =
       &context.scheduler.add<rtk::systems::CollisionFlashSystem>(
@@ -321,11 +430,13 @@ void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<rtk::systems::AnimationCleanSystem>(
       rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::DeathSystem>(rtk::ecs::Order::Update);
+  _hudSystem = &context.scheduler.add<rtk::systems::HudSystem>(
+      rtk::ecs::Order::Update, std::ref(_window), std::ref(_inputState),
+      std::ref(context.eventBus), _fontRtype);
 }
 
-bool Game::shouldContinue() const
-{
-    return !_inputState.closeRequested && !_shouldQuit;
+bool Game::shouldContinue() const {
+  return !_inputState.closeRequested && !_shouldQuit;
 }
 
 void Game::onUpdate(rtk::EngineContext &context, float dt) {
@@ -336,6 +447,9 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
       context.eventBus.publish(rtype::events::ConnectedToServerEvent{});
     } else if (netEvent.type == NetworkEventType::Rejected) {
       context.eventBus.publish(rtype::events::ConnectionRejectedEvent{});
+    } else if (netEvent.type == NetworkEventType::Disconnected) {
+      LOG_ERROR("Disconnected from the server");
+      _shouldQuit = true;
     } else if (netEvent.type == NetworkEventType::Message) {
       switch (netEvent.messageType) {
       case rtype::protocol::MessageType::RoomList: {
@@ -406,6 +520,7 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
         _localReady = false;
         _readyRequestPending = false;
         _gameStarting = false;
+        clearNetworkEntities(context);
         _networkClient.sendListRoom();
         break;
       }
@@ -413,25 +528,24 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
         PacketReader reader(netEvent.payload);
         protocol::RoomStateUpdatePayload payload{};
         if (!protocol::readRoomStateUpdate(reader, payload))
-            break;
+          break;
         if (!reader.isEnd())
-            break;
-        if (!_currentRoomId.has_value() ||
-            *_currentRoomId != payload.roomId)
-            break;
+          break;
+        if (!_currentRoomId.has_value() || *_currentRoomId != payload.roomId)
+          break;
         _roomPlayers = std::move(payload.players);
         const auto localConnectionId = _networkClient.getConnectionId();
         bool localPlayerFound = false;
         for (const auto &player : _roomPlayers) {
-            if (player.connectionId != localConnectionId)
-                continue;
-            _localReady = player.ready;
-            _readyRequestPending = false;
-            localPlayerFound = true;
-            break;
+          if (player.connectionId != localConnectionId)
+            continue;
+          _localReady = player.ready;
+          _readyRequestPending = false;
+          localPlayerFound = true;
+          break;
         }
         if (!localPlayerFound) {
-            _localReady = false;
+          _localReady = false;
         }
         break;
       }
@@ -439,12 +553,12 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
         PacketReader reader(netEvent.payload);
         protocol::GameStartingPayload payload{};
         if (!protocol::readPayload(reader, payload))
-            break;
+          break;
         if (!reader.isEnd())
-            break;
+          break;
         if (!_currentRoomId.has_value() ||
             *_currentRoomId != payload.roomId.get())
-            break;
+          break;
         _gameStarting = true;
         _readyRequestPending = false;
         break;
@@ -515,6 +629,36 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           sprite->flags = 1 << 1;
         }
       }
+
+      if (transform && (type == context._entityFactory.getArchetypeID("bullet_plasma") ||
+                        (type == context._entityFactory.getArchetypeID("bullet") &&
+                         std::abs(transform->rotation) > 0.1f))) {
+        const std::uint8_t wType =
+            (type == context._entityFactory.getArchetypeID("bullet_plasma")) ? 2 : 1;
+        for (auto pEnt : context.registry.view<component::Controllable>()) {
+          auto *pTrans =
+              context.registry.get_components<component::Transform>().get(pEnt);
+          if (pTrans &&
+              std::abs(transform->position.y - pTrans->position.y) < 40.0f &&
+              std::abs(transform->position.x - pTrans->position.x) < 100.0f) {
+            auto *ctrl =
+                context.registry.get_components<component::Controllable>().get(
+                    pEnt);
+            if (ctrl) {
+              ctrl->weaponType = wType;
+              if (ctrl->weaponTimer <= 0.0f) {
+                ctrl->weaponTimer = 5.0f;
+                ctrl->weaponMaxDuration = 5.0f;
+              }
+            }
+            if (_hudSystem && (_hudSystem->getWeapon() != wType ||
+                               _hudSystem->getWeaponTimer() <= 0.0f)) {
+              _hudSystem->setWeaponWithTimer(
+                  wType, (ctrl && ctrl->weaponTimer > 0.0f) ? ctrl->weaponTimer : 5.0f);
+            }
+          }
+        }
+      }
     }
 
     else if (std::holds_alternative<protocol::DestroyEntityPayload>(
@@ -525,15 +669,62 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
       _networkEntities.erase(destroyPayload.networkId.get());
       _destroyedEntities.insert(destroyPayload.networkId.get());
 
-if (destroyPayload.reason == protocol::DestroyReason::GameEnded) {
-  LOG_INFO("Game ended");
-}
+      if (destroyPayload.reason == protocol::DestroyReason::GameEnded &&
+          _gameStarting) {
+        LOG_INFO("Game ended");
+        _gameStarting = false;
+      }
 
       auto view = context.registry.view<component::NetworkEntity>();
       for (auto e : view) {
         auto *netEnt =
             context.registry.get_components<component::NetworkEntity>().get(e);
         if (netEnt && netEnt->id == destroyPayload.networkId.get()) {
+          auto *powerupComp =
+              context.registry.get_components<component::powerUp>().get(e);
+          auto &deads = context.registry.get_components<component::Dead>();
+
+          if (powerupComp && deads.get(e) == nullptr) {
+            for (auto pEnt : context.registry.view<component::Controllable>()) {
+              auto *ctrl =
+                  context.registry.get_components<component::Controllable>().get(
+                      pEnt);
+              if (powerupComp->type == component::powerUpType::Speed) {
+                constexpr float MAX_SPEED = 440.0f;
+                if (ctrl) {
+                  ctrl->speed =
+                      std::min(ctrl->speed + powerupComp->value, MAX_SPEED);
+                }
+                if (_hudSystem) {
+                  _hudSystem->addSpeedBonus();
+                }
+              } else if (powerupComp->type ==
+                         component::powerUpType::WeaponSpread) {
+                const float duration =
+                    (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
+                if (ctrl) {
+                  ctrl->weaponType = 1;
+                  ctrl->weaponTimer = duration;
+                  ctrl->weaponMaxDuration = duration;
+                }
+                if (_hudSystem) {
+                  _hudSystem->setWeaponWithTimer(1, duration);
+                }
+              } else if (powerupComp->type ==
+                         component::powerUpType::WeaponPlasma) {
+                const float duration =
+                    (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
+                if (ctrl) {
+                  ctrl->weaponType = 2;
+                  ctrl->weaponTimer = duration;
+                  ctrl->weaponMaxDuration = duration;
+                }
+                if (_hudSystem) {
+                  _hudSystem->setWeaponWithTimer(2, duration);
+                }
+              }
+            }
+          }
           if (destroyPayload.reason == protocol::DestroyReason::Collision &&
               _collisionFlashSystem) {
             auto *bullet =
@@ -658,7 +849,35 @@ if (destroyPayload.reason == protocol::DestroyReason::GameEnded) {
     }
   }
 
+  if (_hudSystem) {
+    _hudSystem->setInGameScene(_sceneManager.get<GameScene>() != nullptr);
+  }
+
+  const bool escapePressed =
+      rtype::Input::hasAction(_inputState.actionMask,
+                              rtype::Action::LeaveRoom) &&
+      !rtype::Input::hasAction(_previousActionMask, rtype::Action::LeaveRoom);
+  _previousActionMask = _inputState.actionMask;
+  if (escapePressed && _sceneManager.get<RoomLobbyScene>() == nullptr &&
+      _sceneManager.get<SettingScene>() == nullptr &&
+      _sceneManager.get<GameOverScene>() == nullptr &&
+      _sceneManager.get<GameScene>() == nullptr)
+    _shouldQuit = true;
+
   _sceneManager.update(context, _inputState, dt);
+}
+
+void Game::clearNetworkEntities(rtk::EngineContext &context) {
+  std::vector<std::size_t> entities;
+  for (auto entity : context.registry.view<component::NetworkEntity>())
+    entities.push_back(entity);
+
+  for (auto entity : entities) {
+    context.registry.remove_entity_from_all_pools(entity);
+    context.registry.kill_entity(entity);
+  }
+  _networkEntities.clear();
+  _pendingEntityQueries.clear();
 }
 
 void Game::onUnload(rtk::EngineContext &context) {
@@ -711,7 +930,51 @@ void Game::destroyReplicatedEntity(
   if (it == _networkEntities.end())
     return;
 
-  context.registry.kill_entity(it->second);
+  const auto entity = it->second;
+  auto &deads = context.registry.get_components<component::Dead>();
+  auto *powerupComp =
+      context.registry.get_components<component::powerUp>().get(entity);
+
+  if (powerupComp && deads.get(entity) == nullptr &&
+      payload.reason == protocol::DestroyReason::Collision) {
+    for (auto pEnt : context.registry.view<component::Controllable>()) {
+      auto *ctrl =
+          context.registry.get_components<component::Controllable>().get(pEnt);
+      if (powerupComp->type == component::powerUpType::Speed) {
+        constexpr float MAX_SPEED = 440.0f;
+        if (ctrl) {
+          ctrl->speed = std::min(ctrl->speed + powerupComp->value, MAX_SPEED);
+        }
+        if (_hudSystem) {
+          _hudSystem->addSpeedBonus();
+        }
+      } else if (powerupComp->type == component::powerUpType::WeaponSpread) {
+        const float duration =
+            (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
+        if (ctrl) {
+          ctrl->weaponType = 1;
+          ctrl->weaponTimer = duration;
+          ctrl->weaponMaxDuration = duration;
+        }
+        if (_hudSystem) {
+          _hudSystem->setWeaponWithTimer(1, duration);
+        }
+      } else if (powerupComp->type == component::powerUpType::WeaponPlasma) {
+        const float duration =
+            (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
+        if (ctrl) {
+          ctrl->weaponType = 2;
+          ctrl->weaponTimer = duration;
+          ctrl->weaponMaxDuration = duration;
+        }
+        if (_hudSystem) {
+          _hudSystem->setWeaponWithTimer(2, duration);
+        }
+      }
+    }
+  }
+
+  context.registry.kill_entity(entity);
   _networkEntities.erase(it);
 }
 
@@ -847,46 +1110,40 @@ const std::optional<std::uint32_t> &Game::getCurrentRoomId() const {
 }
 
 const std::vector<protocol::RoomPlayerState> &Game::getRoomPlayers() const {
-    return _roomPlayers;
+  return _roomPlayers;
 }
 
-bool Game::isLocalReady() const {
-    return _localReady;
-}
+bool Game::isLocalReady() const { return _localReady; }
 
-bool Game::isReadyRequestPending() const {
-    return _readyRequestPending;
-}
+bool Game::isReadyRequestPending() const { return _readyRequestPending; }
 
-bool Game::isGameStarting() const {
-    return _gameStarting;
-}
+bool Game::isGameStarting() const { return _gameStarting; }
 
 bool Game::requestReady(bool ready) {
-    if (!_currentRoomId.has_value())
-        return false;
-    
-    if (_readyRequestPending)
-        return false;
-    
-    if (_gameStarting)
-        return false;
+  if (!_currentRoomId.has_value())
+    return false;
 
-    if (_localReady == ready)
-        return false;
+  if (_readyRequestPending)
+    return false;
 
-    _readyRequestPending = true;
-    _networkClient.sendSetReady(ready);
-    return true;
+  if (_gameStarting)
+    return false;
+
+  if (_localReady == ready)
+    return false;
+
+  _readyRequestPending = true;
+  _networkClient.sendSetReady(ready);
+  return true;
 }
 
 bool Game::requestLeaveRoom() {
-    if (!_currentRoomId.has_value())
-        return false;
-    if (_gameStarting)
-        return false;
-    _networkClient.sendLeaveRoom();
-    return true;
+  if (!_currentRoomId.has_value())
+    return false;
+  if (_gameStarting)
+    return false;
+  _networkClient.sendLeaveRoom();
+  return true;
 }
 
 const rtk::Font &Game::getFont() const { return _fontRtype; }

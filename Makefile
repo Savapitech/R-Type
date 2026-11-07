@@ -56,6 +56,9 @@ server: check_vcpkg
 client: check_vcpkg
 	$(call cmake_build,$(BUILD_DIR),r-type_client,-DRTYPE_BUILD_CLIENT=ON)
 
+server_tsan: check_vcpkg
+	$(call cmake_build,$(BUILD_DIR)-tsan,r-type_server,-DRTYPE_BUILD_CLIENT=OFF -DRTYPE_SANITIZE_THREAD=ON)
+
 # single binary: libs and assets are linked in, no assets/ folder needed
 server_embedded: check_vcpkg
 	$(call cmake_build,$(EMBED_DIR)-server,r-type_server_embedded,-DRTYPE_BUILD_CLIENT=OFF $(if $(EMBED_TRIPLET),-DVCPKG_TARGET_TRIPLET=$(EMBED_TRIPLET)))
@@ -76,7 +79,7 @@ clean:
 	@ $(LOG_TIME) "$(C_YELLOW) RM $(C_PURPLE) cmake generated files $(C_RESET)"
 
 fclean: clean
-	@ cmake -E rm -rf External $(BUILD_DIR) $(BUILD_DIR)-server $(EMBED_DIR)-server $(EMBED_DIR)-client $(BINS)
+	@ cmake -E rm -rf External $(BUILD_DIR) $(BUILD_DIR)-server $(BUILD_DIR)-tsan $(EMBED_DIR)-server $(EMBED_DIR)-client $(BINS)
 	@ $(LOG_TIME) "$(C_YELLOW) RM $(C_PURPLE) External and binaries $(C_RESET)"
 
 .NOTPARALLEL:
@@ -95,4 +98,4 @@ docs: $(DOCS_THEME_DIR)
 	@ doxygen docs/Doxyfile
 	@ $(LOG_TIME) "$(C_BLUE) OK $(C_GREEN) docs written to build/docs/html $(C_RESET)"
 
-.PHONY: all build server client server_embedded client_embedded check_vcpkg debug clean fclean re format docs
+.PHONY: all build server client server_tsan server_embedded client_embedded check_vcpkg debug clean fclean re format docs

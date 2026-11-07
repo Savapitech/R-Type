@@ -22,10 +22,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(RTYPE_SANITIZE_THREAD "Build with ThreadSanitizer to detect data races" OFF)
+if(RTYPE_SANITIZE_THREAD)
+    add_compile_options(-fsanitize=thread -g -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=thread)
+endif()
+
 #Output directory for executable
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+set(RTYPE_OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+if(RTYPE_SANITIZE_THREAD)
+    set(RTYPE_OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin)
+endif()
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${RTYPE_OUTPUT_DIR})
 foreach(CONFIG_NAME DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_NAME} ${RTYPE_OUTPUT_DIR})
 endforeach()
 
 if(MSVC AND VCPKG_TARGET_TRIPLET MATCHES "static")
@@ -210,10 +220,16 @@ target_link_libraries(NetworkClientLib
         CommonProtocole
 )
 
+# Lua Scripting Engine (via vcpkg)
+find_package(Lua REQUIRED)
+
 #Game Engine Lib
 add_library(GameEngine INTERFACE)
-target_link_libraries(GameEngine INTERFACE nlohmann_json::nlohmann_json)
-target_include_directories(GameEngine INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/lib/GameEngine/include")
+target_link_libraries(GameEngine INTERFACE nlohmann_json::nlohmann_json ${LUA_LIBRARIES})
+target_include_directories(GameEngine INTERFACE
+    "${CMAKE_CURRENT_SOURCE_DIR}/lib/GameEngine/include"
+    ${LUA_INCLUDE_DIR}
+)
 
 add_library(CommonProtocole INTERFACE)
 target_include_directories(CommonProtocole  INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/Common/)

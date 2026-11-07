@@ -4,17 +4,17 @@
 #include <functional>
 #include <mutex>
 #include <queue>
+#include <string>
 #include <unordered_map>
 #include <vector>
-#include <string>
 
 #include "Protocol/EntityPayload.hpp"
 #include "Protocol/InputPayload.hpp"
 #include "Protocol/MessageType.hpp"
+#include "Protocol/RoomPayload.hpp"
 #include "Protocol/SnapshotPayload.hpp"
 #include "protocol/MessageHeader.hpp"
 #include "server/NetworkServer.hpp"
-#include "Protocol/RoomPayload.hpp"
 
 namespace rtype::server {
 /**
@@ -26,8 +26,11 @@ namespace rtype::server {
  * @brief Game level layer over NetworkServer that decodes client messages
  * and encodes server messages.
  *
- * Decoded messages are pushed by the network thread into mutex protected
- * queues that the game loop drains with the poll methods.
+ * Connection changes and room requests are pushed by the network thread into
+ * mutex protected queues that the game loop drains with the poll methods.
+ * Inputs and entity queries are handed to the callbacks set with
+ * setInputHandler() and setQueryEntityHandler(), and dropped without one.
+ *
  */
 class Server {
 public:
@@ -81,20 +84,39 @@ public:
     /**
      * @brief Supported room management operations.
      */
-    enum class Type {
-      ListRooms,
-      CreateRoom,
-      JoinRoom,
-      LeaveRoom,
-      SetReady
-    };
+    enum class Type { ListRooms, CreateRoom, JoinRoom, LeaveRoom, SetReady };
 
-    Type type; ///< Requested operation.
+    Type type;                  ///< Requested operation.
     std::uint32_t connectionId; ///< Sender connection.
-    std::string roomName; ///< Requested name for CreateRoom.
-    std::uint32_t roomId = 0; ///< Target room for JoinRoom.
-    bool ready = false; ///< Requested ready state for SetReady.
+    std::string roomName;       ///< Requested name for CreateRoom.
+    std::uint32_t roomId = 0;   ///< Target room for JoinRoom.
+    bool ready = false;         ///< Requested ready state for SetReady.
   };
+
+  /// Receives Input messages on the network thread.
+  using InputHandler = std::function<void(const InputEvent &)>;
+  /// Receives QueryEntity messages on the network thread.
+  using QueryEntityHandler = std::function<void(const QueryEntityEvent &)>;
+
+  /**
+   * @brief Hands Input messages to a callback.
+   *
+   * The callback runs on the network thread and must not block. Must be called
+   * before start().
+   *
+   * @param handler Callback receiving the messages.
+   */
+  void setInputHandler(InputHandler handler);
+
+  /**
+   * @brief Hands QueryEntity messages to a callback.
+   *
+   * The callback runs on the network thread and must not block. Must be called
+   * before start().
+   *
+   * @param handler Callback receiving the messages.
+   */
+  void setQueryEntityHandler(QueryEntityHandler handler);
 
   /**
    * @brief Starts the network thread.
@@ -129,25 +151,12 @@ public:
             PacketPriority priority = PacketPriority::Unreliable);
 
   /**
-   * @brief Pops the oldest Input message.
-   * @param event Receives the message.
-   * @return True if a message was popped.
-   */
-  bool pollInput(InputEvent &event);
-
-  /**
    * @brief Pops the oldest connection change.
    * @param event Receives the change.
    * @return True if a change was popped.
    */
   bool pollConnectionEvent(ConnectionEvent &event);
 
-  /**
-   * @brief Pops the oldest QueryEntity message.
-   * @param event Receives the message.
-   * @return True if a message was popped.
-   */
-  bool pollQueryEntity(QueryEntityEvent &event);
   /**
    * @brief Pops the oldest room management request.
    * @param event Receives the decoded room request.
@@ -187,10 +196,8 @@ public:
    * @param payload List of rooms.
    * @return True if the message was encoded and queued.
    */
-  bool sendRoomList(
-      std::uint32_t connectionId,
-      const protocol::RoomListPayload &payload
-  );
+  bool sendRoomList(std::uint32_t connectionId,
+                    const protocol::RoomListPayload &payload);
 
   /**
    * @brief Sends the result of a room creation request.
@@ -198,10 +205,8 @@ public:
    * @param payload Creation result.
    * @return True if the message was encoded and queued.
    */
-  bool sendRoomCreated(
-      std::uint32_t connectionId,
-      const protocol::RoomResultPayload &payload
-  );
+  bool sendRoomCreated(std::uint32_t connectionId,
+                       const protocol::RoomResultPayload &payload);
 
   /**
    * @brief Sends the result of a room join request.
@@ -209,10 +214,8 @@ public:
    * @param payload Join result.
    * @return True if the message was encoded and queued.
    */
-  bool sendRoomJoined(
-      std::uint32_t connectionId,
-      const protocol::RoomResultPayload &payload
-  );
+  bool sendRoomJoined(std::uint32_t connectionId,
+                      const protocol::RoomResultPayload &payload);
 
   /**
    * @brief Sends the result of a room leave request.
@@ -220,10 +223,8 @@ public:
    * @param payload Leave result.
    * @return True if the message was encoded and queued.
    */
-  bool sendRoomLeft(
-      std::uint32_t connectionId,
-      const protocol::RoomResultPayload &payload
-  );
+  bool sendRoomLeft(std::uint32_t connectionId,
+                    const protocol::RoomResultPayload &payload);
 
   /**
    * @brief Sends updated ready states to a client.
@@ -231,10 +232,8 @@ public:
    * @param payload Current player states in the room.
    * @return True if the message was encoded and queued.
    */
-  bool sendRoomStateUpdate(
-      std::uint32_t connectionId,
-      const protocol::RoomStateUpdatePayload &payload
-  );
+  bool sendRoomStateUpdate(std::uint32_t connectionId,
+                           const protocol::RoomStateUpdatePayload &payload);
 
   /**
    * @brief Notifies a client that its room is starting a game.
@@ -242,10 +241,8 @@ public:
    * @param payload Identifier of the starting room.
    * @return True if the message was encoded and queued.
    */
-  bool sendGameStarting(
-      std::uint32_t connectionId,
-      const protocol::GameStartingPayload &payload
-  );
+  bool sendGameStarting(std::uint32_t connectionId,
+                        const protocol::GameStartingPayload &payload);
 
 private:
   void handleMessage(std::uint32_t connectionId, MessageId type,
@@ -254,15 +251,13 @@ private:
                    const std::vector<std::uint8_t> &payload);
 
   NetworkServer _network;
-  std::mutex _inputMutex;
-  std::queue<InputEvent> _inputQueue;
+  InputHandler _inputHandler;
+  QueryEntityHandler _queryEntityHandler;
   std::unordered_map<std::uint32_t, std::uint32_t> _lastInputSequence;
 
   std::mutex _connectionMutex;
   std::queue<ConnectionEvent> _connectionQueue;
 
-  std::mutex _queryMutex;
-  std::queue<QueryEntityEvent> _queryQueue;
   std::mutex _roomRequestMutex;
   std::queue<RoomRequestEvent> _roomRequestQueue;
 

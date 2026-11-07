@@ -27,7 +27,7 @@ def blank_stage(name: str = "New stage") -> dict:
 def blueprint_kind(data: dict) -> str:
     comps = {k.lower(): v for k, v in data.get("components", {}).items()}
     layer = comps.get("collider", {}).get("layer")
-    if layer == "Environment":
+    if layer in ("Environment", "BossRoom"):
         return KIND_TERRAIN
     if "parallax" in comps:
         return KIND_BACKGROUND

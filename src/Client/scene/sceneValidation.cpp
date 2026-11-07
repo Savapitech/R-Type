@@ -6,6 +6,7 @@
  * much shorter compiler error.
  */
 
+#include "gameOverScene.hpp"
 #include "gameScene.hpp"
 #include "inputAction/InputAction.hpp"
 #include "menuScene.hpp"
@@ -13,6 +14,7 @@
 #include "roomListScene.hpp"
 #include "sceneManager/sceneConcept.hpp"
 #include "sceneType.hpp"
+#include "settingScene.hpp"
 
 namespace rtype::client {
 static_assert(rtk::SceneIdentifier<SceneType>);
@@ -20,5 +22,7 @@ static_assert(rtk::Scene<MenuScene, SceneType, rtk::InputState>);
 static_assert(rtk::Scene<GameScene, SceneType, rtk::InputState>);
 static_assert(rtk::Scene<RoomListScene, SceneType, rtk::InputState>);
 static_assert(rtk::Scene<NetworkConnectionScene, SceneType, rtk::InputState>);
+static_assert(rtk::Scene<SettingScene, SceneType, rtk::InputState>);
+static_assert(rtk::Scene<GameOverScene, SceneType, rtk::InputState>);
 
 } // namespace rtype::client
