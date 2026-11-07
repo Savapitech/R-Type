@@ -151,6 +151,26 @@
     {
       "name": "green_mecha_bullet",
       "file": "assets/descriptionEntity/green_mecha_bullet.json"
+    },
+    {
+      "name": "dobkeratops_body",
+      "file": "assets/descriptionEntity/dobkeratops_body.json"
+    },
+    {
+      "name": "dobkeratops_bullet",
+      "file": "assets/descriptionEntity/dobkeratops_bullet.json"
+    },
+    {
+      "name": "dobkeratops_alien",
+      "file": "assets/descriptionEntity/dobkeratops_alien.json"
+    },
+    {
+      "name": "dobkeratops_alien_bullet",
+      "file": "assets/descriptionEntity/dobkeratops_alien_bullet.json"
+    },
+    {
+      "name": "dobkeratops_bottom_hitbox",
+      "file": "assets/descriptionEntity/dobkeratops_bottom_hitbox.json"
     }
   ]
 }
