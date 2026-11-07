@@ -20,7 +20,8 @@
  * | 4      | 4    | `sequence`     | Sequence number of this packet.          |
  * | 8      | 4    | `ack`          | Latest sequence received from the peer.  |
  * | 12     | 4    | `ackBits`      | Bit i set if `ack - 1 - i` was received. |
- * | 16     | 1    | `priority`     | PacketPriority of the packet (0 to 2).   |
+ * | 16     | 1    | `priority`     | Bits 0-6: PacketPriority (0 to 2).       |
+ * |        |      |                | Bit 7: body is compressed (see below).   |
  * | 17     | 2    | `reliableId`   | Id kept by every resend, 0 if priority 2.
  * |
  */
@@ -32,6 +33,11 @@ struct PacketHeader {
   /// Delivery guarantee requested for the packet.
   PacketPriority priority = PacketPriority::Unreliable;
   std::uint16_t reliableId = 0; ///< Same value on every resend of a packet.
+  /// True if the body that follows is a zstd frame, see Compression.hpp.
+  bool compressed = false;
+
+  /// Bit of the priority byte that tells that the body is compressed.
+  static constexpr std::uint8_t COMPRESSED_FLAG = 0x80;
 
   /// Encoded size of the header, in bytes.
   static constexpr std::size_t HEADER_SIZE = 19;
@@ -48,6 +54,7 @@ struct PacketHeader {
    * @param reader Source buffer.
    * @return True on success, false if fewer than 19 bytes, or if the priority
    * is invalid remain.
+   * The compressed flag is bit 7 of the priority byte.
    */
   bool deserialize(PacketReader &reader);
 };
