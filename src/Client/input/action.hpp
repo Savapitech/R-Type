@@ -12,17 +12,17 @@ namespace rtype {
  * @brief Client actions, one bit of InputState::actionMask each.
  */
 enum class Action : uint32_t {
-  NoneAction = 0,         ///< No action.
-  Up = 1 << 0,            ///< Move up.
-  Down = 1 << 1,          ///< Move down.
-  Left = 1 << 2,          ///< Move left.
-  Right = 1 << 3,         ///< Move right.
-  Shoot = 1 << 4,         ///< Shoot.
-  Confirm = 1 << 5,       ///< Validate a menu.
-  ToggleHud = 1 << 7,     ///< Toggle HUD display.
-  Ready = 1 << 8,         ///< Be ready.
-  LeaveRoom = 1 << 9,     ///< Leave the room.
-  SwitchWeapon = 1 << 10  ///< Switch active weapon.
+  NoneAction = 0,        ///< No action.
+  Up = 1 << 0,           ///< Move up.
+  Down = 1 << 1,         ///< Move down.
+  Left = 1 << 2,         ///< Move left.
+  Right = 1 << 3,        ///< Move right.
+  Shoot = 1 << 4,        ///< Shoot.
+  Confirm = 1 << 5,      ///< Validate a menu.
+  ToggleHud = 1 << 7,    ///< Toggle HUD display.
+  Ready = 1 << 8,        ///< Be ready.
+  LeaveRoom = 1 << 9,    ///< Leave the room.
+  SwitchWeapon = 1 << 10 ///< Switch active weapon.
 };
 
 /**

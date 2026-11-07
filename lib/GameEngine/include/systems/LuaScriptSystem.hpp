@@ -22,21 +22,18 @@ namespace rtk::systems {
 class LuaScriptSystem final : public rtk::ecs::ISystem {
 public:
   LuaScriptSystem() = default;
-  ~LuaScriptSystem() override {
-    closeLua();
-  }
+  ~LuaScriptSystem() override { closeLua(); }
 
   void onStart(rtk::ecs::Registry &) override {
     LOG_INFO("Load Lua Script System");
     initLua();
   }
 
-  void onStop(rtk::ecs::Registry &) override {
-    closeLua();
-  }
+  void onStop(rtk::ecs::Registry &) override { closeLua(); }
 
   /**
-   * @brief Calls update_velocity in each entity's Lua script to update its velocity.
+   * @brief Calls update_velocity in each entity's Lua script to update its
+   * velocity.
    * @param reg ECS Registry.
    * @param dt Frame delta time.
    */

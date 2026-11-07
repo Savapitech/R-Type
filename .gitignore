@@ -17,4 +17,9 @@ vcpkg_installed
 .DS_Store
 build-*
 
+# Python
+__pycache__/
+*.pyc
+.venv/
+
 *.o

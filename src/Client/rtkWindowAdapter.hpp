@@ -90,7 +90,8 @@ public:
     return _rtkEventCache.isKeyPressed(static_cast<rtk::Key>(key));
   }
 
-  [[nodiscard]] std::optional<rtk::ecs::concepts::Key> getAnyKeyPressed() const {
+  [[nodiscard]] std::optional<rtk::ecs::concepts::Key>
+  getAnyKeyPressed() const {
     for (uint16_t k = 1;
          k < static_cast<uint16_t>(rtk::ecs::concepts::Key::KeyCount); ++k) {
       const auto key = static_cast<rtk::ecs::concepts::Key>(k);

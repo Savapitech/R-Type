@@ -30,16 +30,19 @@ Goal: add a new enemy without writing C++ for its data.
    }
    ```
 
-2. Load it on **both** sides, so that both compute the same archetype id. In
-   `rtype::server::Game::loadEntityBlueprints()` and in the client
-   `loadEntityBluePrint()`:
+2. Register it in `assets/blueprints.json`, the manifest loaded by **both**
+   sides so that they compute the same archetype id (see @ref editor):
 
-   ```cpp
-   context._entityFactory.loadBlueprintFromPath(
-       "enemyScout", "assets/descriptionEntity/enemyScout.json");
+   ```json
+   { "name": "enemyScout", "file": "assets/descriptionEntity/enemyScout.json" }
    ```
 
-3. Spawn it on the server with a network id, then tell the clients:
+   Both programs read the manifest in `loadEntityBlueprints()` /
+   `loadEntityBluePrint()`, no C++ change is needed. The level editor does this
+   step for you.
+
+3. Put it in a level with the level editor (@ref editor), or spawn it from C++
+   with a network id and tell the clients:
 
    ```cpp
    const auto netId = rtype::server::NetworkIdGenerator::getInstance().getNextId();

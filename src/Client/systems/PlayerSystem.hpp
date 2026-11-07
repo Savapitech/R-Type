@@ -70,8 +70,7 @@ public:
    */
   void update(rtk::ecs::Registry &reg, float dt) override {
     for (auto ent : reg.view<component::Controllable>()) {
-      if (auto *ctrl =
-              reg.get_components<component::Controllable>().get(ent)) {
+      if (auto *ctrl = reg.get_components<component::Controllable>().get(ent)) {
         if (ctrl->weaponTimer > 0.0f) {
           ctrl->weaponTimer -= dt;
           if (ctrl->weaponTimer <= 0.0f) {
@@ -158,10 +157,10 @@ private:
       const float ratio = std::clamp(_chargeTimer / 2.2f, 0.0f, 1.0f);
 
       if (_chargeEffectEntity.has_value()) {
-        auto *trans =
-            reg.get_components<component::Transform>().get(*_chargeEffectEntity);
-        auto *anim =
-            reg.get_components<component::Animation>().get(*_chargeEffectEntity);
+        auto *trans = reg.get_components<component::Transform>().get(
+            *_chargeEffectEntity);
+        auto *anim = reg.get_components<component::Animation>().get(
+            *_chargeEffectEntity);
         if (trans) {
           float scale = 1.0f;
           if (level == 2) {
@@ -206,7 +205,8 @@ private:
         _chargeEffectEntity.reset();
       }
 
-      _eventBus.publish(rtype::events::PlayerShotEvent{.beamLevel = firedLevel});
+      _eventBus.publish(
+          rtype::events::PlayerShotEvent{.beamLevel = firedLevel});
       _eventBus.publish(rtype::events::BeamChargeEvent{
           .chargeRatio = 0.0f,
           .chargeLevel = 0,

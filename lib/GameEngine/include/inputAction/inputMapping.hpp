@@ -136,7 +136,8 @@ public:
   }
 
   /**
-   * @brief Rebinds an action's keyboard key without destroying gamepad controls.
+   * @brief Rebinds an action's keyboard key without destroying gamepad
+   * controls.
    * @param bitIndex Action index from 0 to 31.
    * @param key New keyboard key to bind.
    */

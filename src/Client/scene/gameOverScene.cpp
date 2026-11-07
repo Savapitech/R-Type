@@ -15,18 +15,19 @@ constexpr float SCREEN_CENTER_X = 640.0f;
 constexpr float NAV_COOLDOWN = 0.22f;
 
 void addCenteredText(rtk::EngineContext &context, rtk::RenderWindow &window,
-                     const rtk::Font &font, const std::string &content,
-                     float y, const rtk::ecs::concepts::ColorRGBA8 &color,
+                     const rtk::Font &font, const std::string &content, float y,
+                     const rtk::ecs::concepts::ColorRGBA8 &color,
                      float scaleFactor, std::vector<std::size_t> &entities) {
   if (!font.isValid() || content.empty())
     return;
 
-  const float textWidth = static_cast<float>(content.length()) * BASE_GLYPH_ADVANCE * scaleFactor;
+  const float textWidth =
+      static_cast<float>(content.length()) * BASE_GLYPH_ADVANCE * scaleFactor;
   const float startX = SCREEN_CENTER_X - (textWidth * 0.5f);
 
-  const rtk::Text text = window.createText(
-      content, font, {startX, y},
-      rtk::ColorRGBA8{color.r, color.g, color.b, color.a});
+  const rtk::Text text =
+      window.createText(content, font, {startX, y},
+                        rtk::ColorRGBA8{color.r, color.g, color.b, color.a});
 
   for (const auto &glyph : text.getSprites()) {
     const auto entity = context.registry.spawn_entity();
@@ -47,7 +48,8 @@ void addCenteredText(rtk::EngineContext &context, rtk::RenderWindow &window,
     component::Transform transform{};
     transform.position.x = startX + (glyph.position.x - startX) * scaleFactor;
     transform.position.y = y + (glyph.position.y - y) * scaleFactor;
-    transform.scale = {glyph.scale.x * scaleFactor, glyph.scale.y * scaleFactor};
+    transform.scale = {glyph.scale.x * scaleFactor,
+                       glyph.scale.y * scaleFactor};
     transform.rotation = 0.0f;
 
     context.registry.get_components<component::Transform>().insert_at(
@@ -58,7 +60,6 @@ void addCenteredText(rtk::EngineContext &context, rtk::RenderWindow &window,
   }
 }
 
-
 GameOverScene::GameOverScene(clientDependancy &dep) : _dependency(dep) {}
 
 void GameOverScene::createBackground(rtk::EngineContext &context) {
@@ -66,8 +67,8 @@ void GameOverScene::createBackground(rtk::EngineContext &context) {
 
   const auto createLayer = [&](const std::string &blueprint) {
     for (int i = 0; i < 3; ++i) {
-      const auto entity =
-          context._entityFactory.createFromBlueprint(context.registry, blueprint);
+      const auto entity = context._entityFactory.createFromBlueprint(
+          context.registry, blueprint);
       auto *transform =
           context.registry.get_components<component::Transform>().get(entity);
       if (transform) {
@@ -135,7 +136,8 @@ void GameOverScene::updateVisuals(rtk::EngineContext &context) {
 
   for (const auto &opt : options) {
     const bool isSelected = (_selectedOption == static_cast<int>(opt.option));
-    const std::string text = isSelected ? (". " + opt.label + " .") : ("  " + opt.label + "  ");
+    const std::string text =
+        isSelected ? (". " + opt.label + " .") : ("  " + opt.label + "  ");
     const float scale = isSelected ? 0.56f : 0.46f;
     const rtk::ecs::concepts::ColorRGBA8 color =
         isSelected ? rtk::ecs::concepts::ColorRGBA8{255, 235, 70, 255}
@@ -147,9 +149,7 @@ void GameOverScene::updateVisuals(rtk::EngineContext &context) {
 
   const auto roomId = _dependency.game.getCurrentRoomId();
   const std::string roomText =
-      roomId.has_value()
-          ? "ROOM " + std::to_string(*roomId)
-          : "OFFLINE";
+      roomId.has_value() ? "ROOM " + std::to_string(*roomId) : "OFFLINE";
   addCenteredText(context, _dependency.window, _font, roomText, 570.0f,
                   {120, 140, 180, 190}, 0.36f, _dynamicEntities);
 

@@ -16,9 +16,10 @@ namespace component {
  * @brief Marks an entity as a projectile.
  */
 struct Bullet {
-  float damage{10.0f};                    ///< Damage dealt on hit.
-  bool piercing{false};                   ///< True if projectile passes through enemies.
-  std::vector<std::size_t> hitEntities{}; ///< Enemies already damaged by this projectile.
+  float damage{10.0f};  ///< Damage dealt on hit.
+  bool piercing{false}; ///< True if projectile passes through enemies.
+  std::vector<std::size_t>
+      hitEntities{}; ///< Enemies already damaged by this projectile.
 };
 
 /**

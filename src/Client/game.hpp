@@ -159,7 +159,8 @@ public:
    * @brief Returns the first key currently pressed, if any.
    * @return Pressed key or nullopt.
    */
-  [[nodiscard]] std::optional<rtk::ecs::concepts::Key> getAnyKeyPressed() const {
+  [[nodiscard]] std::optional<rtk::ecs::concepts::Key>
+  getAnyKeyPressed() const {
     return _adapter.getAnyKeyPressed();
   }
 
@@ -175,16 +176,15 @@ public:
    * @brief Returns the const client input mapping.
    * @return Const reference to the input mapping.
    */
-  [[nodiscard]] const rtk::Input::InputMapping &getInputMapping() const noexcept {
+  [[nodiscard]] const rtk::Input::InputMapping &
+  getInputMapping() const noexcept {
     return _inputMapping;
   }
 
   /**
    * @brief Resets input bindings to default controls.
    */
-  void resetDefaultBindings() {
-    createBindings();
-  }
+  void resetDefaultBindings() { createBindings(); }
 
   /**
    * @brief Plays the UI / shoot selection sound effect.

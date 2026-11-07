@@ -23,8 +23,9 @@ namespace rtype::client {
  * @brief Configurable action binding description.
  */
 struct BindingOption {
-  std::string label;  ///< Display text for the action.
-  uint8_t actionBit;   ///< Action bit index in InputMapping, or 255 for special actions.
+  std::string label; ///< Display text for the action.
+  uint8_t actionBit; ///< Action bit index in InputMapping, or 255 for special
+                     ///< actions.
 };
 
 /**
@@ -56,8 +57,8 @@ public:
    * @return Next scene type or nullopt to stay in settings.
    */
   std::optional<SceneType> onUpdate(rtk::EngineContext &context,
-                                   const rtk::InputState &inputState,
-                                   float dt);
+                                    const rtk::InputState &inputState,
+                                    float dt);
 
   /**
    * @brief Cleans up entities spawned by the settings scene.

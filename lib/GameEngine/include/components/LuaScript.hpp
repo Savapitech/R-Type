@@ -11,7 +11,8 @@ namespace component {
  */
 
 /**
- * @brief References an external Lua script that controls an entity's trajectory and behavior.
+ * @brief References an external Lua script that controls an entity's trajectory
+ * and behavior.
  */
 struct LuaScript {
   std::string scriptPath; ///< Path to the .lua script file.
@@ -25,7 +26,7 @@ struct LuaScript {
  * @param data JSON object containing "script" path and optional "time".
  */
 inline void luaScriptFromJson(rtk::ecs::Registry &reg, std::size_t entity,
-                             const nlohmann::json &data) {
+                              const nlohmann::json &data) {
   component::LuaScript script{};
   script.scriptPath = data.value("script", "");
   script.time = data.value("time", 0.0f);

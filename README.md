@@ -171,6 +171,7 @@ player gets a distinct ship color.
 │   ├── Client/          r-type_client: scenes, input, rendering adapters
 │   ├── Server/          r-type_server: game simulation and replication
 │   └── Common/          Code shared by both sides: protocol payloads, gameplay systems
+├── tools/editor/        Level, blueprint and sprite editor (Python, PySide6)
 ├── docs/                Documentation website: Doxygen configuration and guides
 ├── tests/               Unit and functionnals tests
 ├── CMakeLists.txt       Build definition
@@ -184,6 +185,8 @@ player gets a distinct ship color.
   architecture, engine and network guides, tutorials, technical study and
   API reference. Build it locally with `make docs` (requires Doxygen and
   Graphviz), the result is written to `build/docs/html`.
+- Level and entity editor: `pip install -r tools/editor/requirements.txt`, then
+  `python3 -m tools.editor` (see `docs/pages/editor.md`).
 - [Network protocol specification](https://r-type.savalet.dev/protocol.html):
   every packet and message exchanged between clients and the server.
 - [Issue tracker](https://github.com/Savapitech/R-Type/issues): bug reports

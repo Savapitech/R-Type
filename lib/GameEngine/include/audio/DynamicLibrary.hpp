@@ -5,12 +5,12 @@
 #include <utility>
 
 #if defined(_WIN32)
-  #ifndef WIN32_LEAN_AND_MEAN
-    #define WIN32_LEAN_AND_MEAN
-  #endif
-  #include <windows.h>
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
 #else
-  #include <dlfcn.h>
+#include <dlfcn.h>
 #endif
 
 namespace rtk::audio {
@@ -22,13 +22,9 @@ class DynamicLibrary {
 public:
   DynamicLibrary() = default;
 
-  explicit DynamicLibrary(const std::string &path) {
-    load(path);
-  }
+  explicit DynamicLibrary(const std::string &path) { load(path); }
 
-  ~DynamicLibrary() {
-    unload();
-  }
+  ~DynamicLibrary() { unload(); }
 
   DynamicLibrary(const DynamicLibrary &) = delete;
   DynamicLibrary &operator=(const DynamicLibrary &) = delete;
@@ -53,7 +49,8 @@ public:
 #if defined(_WIN32)
     _handle = LoadLibraryA(path.c_str());
     if (!_handle) {
-      _lastError = "Failed to load library: " + path + " (error " + std::to_string(GetLastError()) + ")";
+      _lastError = "Failed to load library: " + path + " (error " +
+                   std::to_string(GetLastError()) + ")";
       return false;
     }
 #else
@@ -79,16 +76,15 @@ public:
     }
   }
 
-  [[nodiscard]] bool isLoaded() const noexcept {
-    return _handle != nullptr;
-  }
+  [[nodiscard]] bool isLoaded() const noexcept { return _handle != nullptr; }
 
   template <typename T>
   [[nodiscard]] T getSymbol(const std::string &symbolName) const {
     if (!_handle)
       return nullptr;
 #if defined(_WIN32)
-    FARPROC sym = GetProcAddress(static_cast<HMODULE>(_handle), symbolName.c_str());
+    FARPROC sym =
+        GetProcAddress(static_cast<HMODULE>(_handle), symbolName.c_str());
     return reinterpret_cast<T>(sym);
 #else
     void *sym = dlsym(_handle, symbolName.c_str());

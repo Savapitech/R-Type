@@ -37,8 +37,8 @@
 #include "components/Enemy.hpp"
 #include "components/EnemyEvent.hpp"
 #include "components/Health.hpp"
-#include "components/WaveMovement.hpp"
 #include "components/LuaScript.hpp"
+#include "components/WaveMovement.hpp"
 #include "components/dropPowerUp.hpp"
 #include "components/powerUp.hpp"
 
@@ -49,9 +49,9 @@
 #include "systems/EnemyGarbageCollectorSystem.hpp"
 #include "systems/EnemyShootSystem.hpp"
 #include "systems/EnemySpawnerSystem.hpp"
+#include "systems/LuaScriptSystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/WaveMovementSystem.hpp"
-#include "systems/LuaScriptSystem.hpp"
 
 namespace rtype::server {
 
@@ -162,77 +162,13 @@ void Game::registerBuilders(rtk::EngineContext &context) {
 }
 
 void Game::loadEntityBlueprints(rtk::EngineContext &context) {
-  _playerArchetypes[0] = context._entityFactory.loadBlueprintFromPath(
-      "player_blue", "assets/descriptionEntity/player_blue.json");
-  _playerArchetypes[1] = context._entityFactory.loadBlueprintFromPath(
-      "player_green", "assets/descriptionEntity/player_green.json");
+  context._entityFactory.loadBlueprintManifest("assets/blueprints.json");
 
-  _playerArchetypes[2] = context._entityFactory.loadBlueprintFromPath(
-      "player_pink", "assets/descriptionEntity/player_pink.json");
-
-  _playerArchetypes[3] = context._entityFactory.loadBlueprintFromPath(
-      "player_red", "assets/descriptionEntity/player_red.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "player", "assets/descriptionEntity/player.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "bullet", "assets/descriptionEntity/bullet.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "bullet_plasma", "assets/descriptionEntity/bullet_plasma.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "bullet_beam_lvl1", "assets/descriptionEntity/bullet_beam_lvl1.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "bullet_beam_lvl2", "assets/descriptionEntity/bullet_beam_lvl2.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "bullet_beam_lvl3", "assets/descriptionEntity/bullet_beam_lvl3.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "beam_charge_effect", "assets/descriptionEntity/beam_charge_effect.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyBidos", "assets/descriptionEntity/enemyBidos.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyRedShip", "assets/descriptionEntity/enemyRedShip.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "gate", "assets/descriptionEntity/gate.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "ramp", "assets/descriptionEntity/ramp.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "reactor", "assets/descriptionEntity/reactor.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "high_ground", "assets/descriptionEntity/high_ground.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "low_ground", "assets/descriptionEntity/low_ground.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "medium_ground", "assets/descriptionEntity/medium_ground.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "enemy_bullet", "assets/descriptionEntity/enemy_bullet.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "background_stars", "assets/descriptionEntity/background_star.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "background_fast_stars",
-      "assets/descriptionEntity/background_fast_star.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "thruster", "assets/descriptionEntity/thruster.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "explosion", "assets/descriptionEntity/explosion.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "powerup_speed", "assets/powerUp/powerUp_speed.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "powerup_spread", "assets/powerUp/powerUp_spread.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "powerup_plasma", "assets/powerUp/powerUp_plasma.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "bullet_plasma", "assets/descriptionEntity/bullet_plasma.json");
+  const auto &factory = context._entityFactory;
+  _playerArchetypes[0] = factory.getArchetypeID("player_blue");
+  _playerArchetypes[1] = factory.getArchetypeID("player_green");
+  _playerArchetypes[2] = factory.getArchetypeID("player_pink");
+  _playerArchetypes[3] = factory.getArchetypeID("player_red");
 }
 
 void Game::subscribeEvents(rtk::EngineContext &context) {
@@ -414,8 +350,7 @@ void Game::addSystems(rtk::EngineContext &context) {
       std::cref(_serverTick), std::ref(context._entityFactory));
   context.scheduler.add<rtk::systems::WaveMovementSystem>(
       rtk::ecs::Order::Update);
-  context.scheduler.add<rtk::systems::LuaScriptSystem>(
-      rtk::ecs::Order::Update);
+  context.scheduler.add<rtk::systems::LuaScriptSystem>(rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
   context.scheduler.add<rtk::systems::ColliderSystem>(
       rtk::ecs::Order::Physics, _collisionBuffer, 64.f, context.eventBus);

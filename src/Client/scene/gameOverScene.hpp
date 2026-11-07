@@ -59,7 +59,8 @@ public:
   void onEnter(rtk::EngineContext &context);
 
   /**
-   * @brief Handles navigation and transitions to other scenes with input clock cooldown.
+   * @brief Handles navigation and transitions to other scenes with input clock
+   * cooldown.
    * @param context Engine services.
    * @param inputState Input state of the frame.
    * @param dt Elapsed time since the last frame, in seconds.

@@ -33,7 +33,8 @@ public:
    * @brief Creates the HUD system with event bus subscription.
    * @param window Target render window used to load textures and fonts.
    * @param inputState Input state holding player action masks.
-   * @param eventBus Shared bus used to listen to beam charge and gameplay events.
+   * @param eventBus Shared bus used to listen to beam charge and gameplay
+   * events.
    * @param font Font used to render text strings.
    */
   HudSystem(rtk::RenderWindow &window, const rtk::InputState &inputState,
@@ -72,7 +73,8 @@ public:
     }
     ensureWhiteTexture();
     if (!_speedTexture.isValid()) {
-      _speedTexture = _window.loadTexture("assets/entityTexture/speedBoost.png");
+      _speedTexture =
+          _window.loadTexture("assets/entityTexture/speedBoost.png");
     }
     createOrUpdateHudBar(reg);
   }
@@ -180,9 +182,7 @@ public:
     return _beamChargeLevel;
   }
 
-  [[nodiscard]] bool isBeamCharging() const noexcept {
-    return _isBeamCharging;
-  }
+  [[nodiscard]] bool isBeamCharging() const noexcept { return _isBeamCharging; }
 
   static constexpr int MAX_SPEED_LEVEL = 4;
   static constexpr float BASE_SPEED = 300.0f;
@@ -252,9 +252,7 @@ public:
    * @brief Returns the remaining weapon power-up timer in seconds.
    * @return Weapon timer in seconds.
    */
-  [[nodiscard]] float getWeaponTimer() const noexcept {
-    return _weaponTimer;
-  }
+  [[nodiscard]] float getWeaponTimer() const noexcept { return _weaponTimer; }
 
   [[nodiscard]] bool isVisible() const noexcept { return _visible; }
 
@@ -497,9 +495,8 @@ private:
         if (ctrl->isChargingShoot) {
           isCharging = true;
         }
-        if (ctrl->weaponTimer > 0.0f &&
-            (ctrl->weaponType != _currentWeapon ||
-             ctrl->weaponTimer > _weaponTimer)) {
+        if (ctrl->weaponTimer > 0.0f && (ctrl->weaponType != _currentWeapon ||
+                                         ctrl->weaponTimer > _weaponTimer)) {
           _currentWeapon = ctrl->weaponType;
           _weaponTimer = ctrl->weaponTimer;
           _weaponMaxDuration = ctrl->weaponMaxDuration;
@@ -617,7 +614,8 @@ private:
     speedBonus = std::clamp(speedBonus, 0, MAX_SPEED_LEVEL);
 
     if (!_speedTexture.isValid()) {
-      _speedTexture = _window.loadTexture("assets/entityTexture/speedBoost.png");
+      _speedTexture =
+          _window.loadTexture("assets/entityTexture/speedBoost.png");
     }
 
     if (_speedTexture.isValid()) {

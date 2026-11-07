@@ -20,12 +20,12 @@
 #include "components/Enemy.hpp"
 #include "components/EnemyEvent.hpp"
 #include "components/Health.hpp"
+#include "components/LuaScript.hpp"
 #include "components/NetworkEntity.hpp"
 #include "components/SoundRequest.hpp"
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
 #include "components/WaveMovement.hpp"
-#include "components/LuaScript.hpp"
 #include "components/dropPowerUp.hpp"
 #include "components/powerUp.hpp"
 
@@ -89,98 +89,13 @@ void Game::onLoad(rtk::EngineContext &context) {
 }
 
 void Game::loadEntityBluePrint(rtk::EngineContext &context) {
-  _playerArchetypes[0] = context._entityFactory.loadBlueprintFromPath(
-      "player_blue", "assets/descriptionEntity/player_blue.json");
-  _playerArchetypes[1] = context._entityFactory.loadBlueprintFromPath(
-      "player_green", "assets/descriptionEntity/player_green.json");
+  context._entityFactory.loadBlueprintManifest("assets/blueprints.json");
 
-  _playerArchetypes[2] = context._entityFactory.loadBlueprintFromPath(
-      "player_pink", "assets/descriptionEntity/player_pink.json");
-
-  _playerArchetypes[3] = context._entityFactory.loadBlueprintFromPath(
-      "player_red", "assets/descriptionEntity/player_red.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "player", "assets/descriptionEntity/player.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "bullet", "assets/descriptionEntity/bullet.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "bullet_plasma", "assets/descriptionEntity/bullet_plasma.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "bullet_beam_lvl1", "assets/descriptionEntity/bullet_beam_lvl1.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "bullet_beam_lvl2", "assets/descriptionEntity/bullet_beam_lvl2.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "bullet_beam_lvl3", "assets/descriptionEntity/bullet_beam_lvl3.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "beam_charge_effect", "assets/descriptionEntity/beam_charge_effect.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyBidos", "assets/descriptionEntity/enemyBidos.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyRedShip", "assets/descriptionEntity/enemyRedShip.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "gate", "assets/descriptionEntity/gate.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "ramp", "assets/descriptionEntity/ramp.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "reactor", "assets/descriptionEntity/reactor.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "high_ground", "assets/descriptionEntity/high_ground.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "low_ground", "assets/descriptionEntity/low_ground.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "medium_ground", "assets/descriptionEntity/medium_ground.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "enemy_bullet", "assets/descriptionEntity/enemy_bullet.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "background_stars", "assets/descriptionEntity/background_star.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "background_fast_stars",
-      "assets/descriptionEntity/background_fast_star.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "thruster", "assets/descriptionEntity/thruster.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "explosion", "assets/descriptionEntity/explosion.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "powerup_speed", "assets/powerUp/powerUp_speed.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "powerup_spread", "assets/powerUp/powerUp_spread.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "powerup_plasma", "assets/powerUp/powerUp_plasma.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyMecha", "assets/descriptionEntity/enemyMecha.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "mecha_bullet", "assets/descriptionEntity/mecha_bullet.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "bidos_death_effect", "assets/descriptionEntity/bidos_death_effect.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "boss_room", "assets/descriptionEntity/boss_room.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "enemySpinner", "assets/descriptionEntity/enemySpinner.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyPod", "assets/descriptionEntity/enemyPod.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyDart", "assets/descriptionEntity/enemyDart.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyArmoredPod", "assets/descriptionEntity/enemyArmoredPod.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyCargo", "assets/descriptionEntity/enemyCargo.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyGreenMecha", "assets/descriptionEntity/enemyGreenMecha.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "green_mecha_bullet", "assets/descriptionEntity/green_mecha_bullet.json");
+  const auto &factory = context._entityFactory;
+  _playerArchetypes[0] = factory.getArchetypeID("player_blue");
+  _playerArchetypes[1] = factory.getArchetypeID("player_green");
+  _playerArchetypes[2] = factory.getArchetypeID("player_pink");
+  _playerArchetypes[3] = factory.getArchetypeID("player_red");
 }
 
 void Game::registerBuilders(rtk::EngineContext &context) {
@@ -404,86 +319,82 @@ void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
         _inputState.closeRequested = true;
       });
 
-  context.eventBus.subscribe<rtk::collision::Collision>(
-      [this, &context](const rtk::collision::Collision &event) {
-        auto *colA =
-            context.registry.get_components<component::AABBCollider>().get(
-                event.firstEntity);
-        auto *colB =
-            context.registry.get_components<component::AABBCollider>().get(
-                event.secondEntity);
-        if (!colA || !colB)
-          return;
+  context.eventBus.subscribe<
+      rtk::collision::Collision>([this, &context](
+                                     const rtk::collision::Collision &event) {
+    auto *colA = context.registry.get_components<component::AABBCollider>().get(
+        event.firstEntity);
+    auto *colB = context.registry.get_components<component::AABBCollider>().get(
+        event.secondEntity);
+    if (!colA || !colB)
+      return;
 
-        const std::uint32_t collisionPair = colA->layer | colB->layer;
-        const std::uint32_t playerVsPowerup =
-            Collider::CollisionLayer::Player | Collider::CollisionLayer::PowerUp;
+    const std::uint32_t collisionPair = colA->layer | colB->layer;
+    const std::uint32_t playerVsPowerup =
+        Collider::CollisionLayer::Player | Collider::CollisionLayer::PowerUp;
 
-        if (collisionPair == playerVsPowerup) {
-          const std::size_t playerEnt =
-              (colA->layer == Collider::CollisionLayer::Player)
-                  ? event.firstEntity
-                  : event.secondEntity;
-          const std::size_t powerupEnt =
-              (colA->layer == Collider::CollisionLayer::PowerUp)
-                  ? event.firstEntity
-                  : event.secondEntity;
+    if (collisionPair == playerVsPowerup) {
+      const std::size_t playerEnt =
+          (colA->layer == Collider::CollisionLayer::Player)
+              ? event.firstEntity
+              : event.secondEntity;
+      const std::size_t powerupEnt =
+          (colA->layer == Collider::CollisionLayer::PowerUp)
+              ? event.firstEntity
+              : event.secondEntity;
 
-          auto &deads = context.registry.get_components<component::Dead>();
-          if (deads.get(powerupEnt) != nullptr)
-            return;
-          deads.insert_at(powerupEnt, {});
+      auto &deads = context.registry.get_components<component::Dead>();
+      if (deads.get(powerupEnt) != nullptr)
+        return;
+      deads.insert_at(powerupEnt, {});
 
-          auto *powerupComp =
-              context.registry.get_components<component::powerUp>().get(
-                  powerupEnt);
-          if (powerupComp) {
-            if (powerupComp->type == component::powerUpType::Speed) {
-              auto *speedComp =
-                  context.registry.get_components<component::Controllable>().get(
-                      playerEnt);
-              constexpr float MAX_SPEED = 440.0f;
-              if (speedComp) {
-                speedComp->speed =
-                    std::min(speedComp->speed + powerupComp->value, MAX_SPEED);
-              }
-              if (_hudSystem) {
-                _hudSystem->addSpeedBonus();
-              }
-            } else if (powerupComp->type ==
-                       component::powerUpType::WeaponSpread) {
-              const float duration =
-                  (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
-              auto *ctrl =
-                  context.registry.get_components<component::Controllable>().get(
-                      playerEnt);
-              if (ctrl) {
-                ctrl->weaponType = 1;
-                ctrl->weaponTimer = duration;
-                ctrl->weaponMaxDuration = duration;
-              }
-              if (_hudSystem) {
-                _hudSystem->setWeaponWithTimer(1, duration);
-              }
-            } else if (powerupComp->type ==
-                       component::powerUpType::WeaponPlasma) {
-              const float duration =
-                  (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
-              auto *ctrl =
-                  context.registry.get_components<component::Controllable>().get(
-                      playerEnt);
-              if (ctrl) {
-                ctrl->weaponType = 2;
-                ctrl->weaponTimer = duration;
-                ctrl->weaponMaxDuration = duration;
-              }
-              if (_hudSystem) {
-                _hudSystem->setWeaponWithTimer(2, duration);
-              }
-            }
+      auto *powerupComp =
+          context.registry.get_components<component::powerUp>().get(powerupEnt);
+      if (powerupComp) {
+        if (powerupComp->type == component::powerUpType::Speed) {
+          auto *speedComp =
+              context.registry.get_components<component::Controllable>().get(
+                  playerEnt);
+          constexpr float MAX_SPEED = 440.0f;
+          if (speedComp) {
+            speedComp->speed =
+                std::min(speedComp->speed + powerupComp->value, MAX_SPEED);
+          }
+          if (_hudSystem) {
+            _hudSystem->addSpeedBonus();
+          }
+        } else if (powerupComp->type == component::powerUpType::WeaponSpread) {
+          const float duration =
+              (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
+          auto *ctrl =
+              context.registry.get_components<component::Controllable>().get(
+                  playerEnt);
+          if (ctrl) {
+            ctrl->weaponType = 1;
+            ctrl->weaponTimer = duration;
+            ctrl->weaponMaxDuration = duration;
+          }
+          if (_hudSystem) {
+            _hudSystem->setWeaponWithTimer(1, duration);
+          }
+        } else if (powerupComp->type == component::powerUpType::WeaponPlasma) {
+          const float duration =
+              (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
+          auto *ctrl =
+              context.registry.get_components<component::Controllable>().get(
+                  playerEnt);
+          if (ctrl) {
+            ctrl->weaponType = 2;
+            ctrl->weaponTimer = duration;
+            ctrl->weaponMaxDuration = duration;
+          }
+          if (_hudSystem) {
+            _hudSystem->setWeaponWithTimer(2, duration);
           }
         }
-      });
+      }
+    }
+  });
 }
 
 void Game::addSystems(rtk::EngineContext &context) {
@@ -714,11 +625,14 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
         }
       }
 
-      if (transform && (type == context._entityFactory.getArchetypeID("bullet_plasma") ||
-                        (type == context._entityFactory.getArchetypeID("bullet") &&
-                         std::abs(transform->rotation) > 0.1f))) {
+      if (transform &&
+          (type == context._entityFactory.getArchetypeID("bullet_plasma") ||
+           (type == context._entityFactory.getArchetypeID("bullet") &&
+            std::abs(transform->rotation) > 0.1f))) {
         const std::uint8_t wType =
-            (type == context._entityFactory.getArchetypeID("bullet_plasma")) ? 2 : 1;
+            (type == context._entityFactory.getArchetypeID("bullet_plasma"))
+                ? 2
+                : 1;
         for (auto pEnt : context.registry.view<component::Controllable>()) {
           auto *pTrans =
               context.registry.get_components<component::Transform>().get(pEnt);
@@ -738,7 +652,8 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
             if (_hudSystem && (_hudSystem->getWeapon() != wType ||
                                _hudSystem->getWeaponTimer() <= 0.0f)) {
               _hudSystem->setWeaponWithTimer(
-                  wType, (ctrl && ctrl->weaponTimer > 0.0f) ? ctrl->weaponTimer : 5.0f);
+                  wType, (ctrl && ctrl->weaponTimer > 0.0f) ? ctrl->weaponTimer
+                                                            : 5.0f);
             }
           }
         }
@@ -771,8 +686,8 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           if (powerupComp && deads.get(e) == nullptr) {
             for (auto pEnt : context.registry.view<component::Controllable>()) {
               auto *ctrl =
-                  context.registry.get_components<component::Controllable>().get(
-                      pEnt);
+                  context.registry.get_components<component::Controllable>()
+                      .get(pEnt);
               if (powerupComp->type == component::powerUpType::Speed) {
                 constexpr float MAX_SPEED = 440.0f;
                 if (ctrl) {

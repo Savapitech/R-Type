@@ -28,10 +28,12 @@ namespace {
 std::string keyToString(rtk::ecs::concepts::Key key) {
   using Key = rtk::ecs::concepts::Key;
   if (key >= Key::A && key <= Key::Z) {
-    return std::string(1, 'A' + (static_cast<int>(key) - static_cast<int>(Key::A)));
+    return std::string(
+        1, 'A' + (static_cast<int>(key) - static_cast<int>(Key::A)));
   }
   if (key >= Key::Num0 && key <= Key::Num9) {
-    return std::string(1, '0' + (static_cast<int>(key) - static_cast<int>(Key::Num0)));
+    return std::string(
+        1, '0' + (static_cast<int>(key) - static_cast<int>(Key::Num0)));
   }
   switch (key) {
   case Key::Up:
@@ -112,9 +114,9 @@ void addText(rtk::EngineContext &context, rtk::RenderWindow &window,
   if (!font.isValid() || content.empty())
     return;
 
-  const rtk::Text text = window.createText(
-      content, font, {x, y},
-      rtk::ColorRGBA8{color.r, color.g, color.b, color.a});
+  const rtk::Text text =
+      window.createText(content, font, {x, y},
+                        rtk::ColorRGBA8{color.r, color.g, color.b, color.a});
 
   for (const auto &glyph : text.getSprites()) {
     const auto entity = context.registry.spawn_entity();
@@ -135,7 +137,8 @@ void addText(rtk::EngineContext &context, rtk::RenderWindow &window,
     component::Transform transform{};
     transform.position.x = x + (glyph.position.x - x) * scaleFactor;
     transform.position.y = y + (glyph.position.y - y) * scaleFactor;
-    transform.scale = {glyph.scale.x * scaleFactor, glyph.scale.y * scaleFactor};
+    transform.scale = {glyph.scale.x * scaleFactor,
+                       glyph.scale.y * scaleFactor};
     transform.rotation = 0.0f;
 
     context.registry.get_components<component::Transform>().insert_at(
@@ -242,8 +245,8 @@ void SettingScene::updateVisuals(rtk::EngineContext &context) {
       const rtk::ecs::concepts::ColorRGBA8 color =
           isSelected ? rtk::ecs::concepts::ColorRGBA8{255, 200, 60, 255}
                      : rtk::ecs::concepts::ColorRGBA8{220, 140, 40, 200};
-      addText(context, _dependency.window, _font, OPTIONS[i].label,
-              labelX, y, color, textScale, _dynamicTextEntities);
+      addText(context, _dependency.window, _font, OPTIONS[i].label, labelX, y,
+              color, textScale, _dynamicTextEntities);
       continue;
     }
 
@@ -251,8 +254,8 @@ void SettingScene::updateVisuals(rtk::EngineContext &context) {
       const rtk::ecs::concepts::ColorRGBA8 color =
           isSelected ? rtk::ecs::concepts::ColorRGBA8{255, 255, 255, 255}
                      : rtk::ecs::concepts::ColorRGBA8{180, 180, 180, 200};
-      addText(context, _dependency.window, _font, OPTIONS[i].label,
-              labelX, y, color, textScale, _dynamicTextEntities);
+      addText(context, _dependency.window, _font, OPTIONS[i].label, labelX, y,
+              color, textScale, _dynamicTextEntities);
       continue;
     }
 
@@ -260,33 +263,34 @@ void SettingScene::updateVisuals(rtk::EngineContext &context) {
         isSelected ? rtk::ecs::concepts::ColorRGBA8{255, 255, 255, 255}
                    : rtk::ecs::concepts::ColorRGBA8{170, 175, 195, 220};
 
-    addText(context, _dependency.window, _font, OPTIONS[i].label,
-            labelX, y, labelColor, textScale, _dynamicTextEntities);
+    addText(context, _dependency.window, _font, OPTIONS[i].label, labelX, y,
+            labelColor, textScale, _dynamicTextEntities);
 
     if (_isRebinding && isSelected) {
-      addText(context, _dependency.window, _font, "PRESS A KEY",
-              730.0f, y, {255, 60, 60, 255}, 0.44f, _dynamicTextEntities);
+      addText(context, _dependency.window, _font, "PRESS A KEY", 730.0f, y,
+              {255, 60, 60, 255}, 0.44f, _dynamicTextEntities);
     } else {
-      const auto boundKey = _dependency.game.getInputMapping().getPrimaryBoundKey(
-          OPTIONS[i].actionBit);
+      const auto boundKey =
+          _dependency.game.getInputMapping().getPrimaryBoundKey(
+              OPTIONS[i].actionBit);
       const std::string keyLabel = keyToString(boundKey);
       const rtk::ecs::concepts::ColorRGBA8 keyColor =
           isSelected ? rtk::ecs::concepts::ColorRGBA8{255, 230, 80, 255}
                      : rtk::ecs::concepts::ColorRGBA8{80, 220, 255, 240};
 
-      addText(context, _dependency.window, _font, keyLabel, 730.0f, y,
-              keyColor, textScale, _dynamicTextEntities);
+      addText(context, _dependency.window, _font, keyLabel, 730.0f, y, keyColor,
+              textScale, _dynamicTextEntities);
     }
   }
 
   addText(context, _dependency.window, _font,
-          "UP DOWN TO NAVIGATE   ENTER TO SELECT   ESC TO RETURN",
-          240.0f, 630.0f, {130, 130, 160, 200}, 0.34f, _dynamicTextEntities);
+          "UP DOWN TO NAVIGATE   ENTER TO SELECT   ESC TO RETURN", 240.0f,
+          630.0f, {130, 130, 160, 200}, 0.34f, _dynamicTextEntities);
 }
 
-std::optional<SceneType> SettingScene::onUpdate(rtk::EngineContext &context,
-                                               const rtk::InputState &inputState,
-                                               float dt) {
+std::optional<SceneType>
+SettingScene::onUpdate(rtk::EngineContext &context,
+                       const rtk::InputState &inputState, float dt) {
   _flashTimer += dt;
 
   if (_firstFrame) {
@@ -311,7 +315,8 @@ std::optional<SceneType> SettingScene::onUpdate(rtk::EngineContext &context,
     }
 
     const auto pressedKey = _dependency.game.getAnyKeyPressed();
-    if (pressedKey.has_value() && *pressedKey != rtk::ecs::concepts::Key::Unknown &&
+    if (pressedKey.has_value() &&
+        *pressedKey != rtk::ecs::concepts::Key::Unknown &&
         *pressedKey != rtk::ecs::concepts::Key::Escape) {
       const uint8_t actionBit = OPTIONS[_selectedOption].actionBit;
       _dependency.game.getInputMapping().rebindKey(actionBit, *pressedKey);
@@ -334,7 +339,8 @@ std::optional<SceneType> SettingScene::onUpdate(rtk::EngineContext &context,
       !rtype::Input::hasAction(_previousActionMask, rtype::Action::Confirm);
 
   const bool escapePressed =
-      rtype::Input::hasAction(inputState.actionMask, rtype::Action::LeaveRoom) &&
+      rtype::Input::hasAction(inputState.actionMask,
+                              rtype::Action::LeaveRoom) &&
       !rtype::Input::hasAction(_previousActionMask, rtype::Action::LeaveRoom);
 
   _previousActionMask = inputState.actionMask;
