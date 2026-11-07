@@ -19,6 +19,7 @@
 #include "rtkWindowAdapter.hpp"
 
 #include "ClientMetrics.hpp"
+#include "LocalPrediction.hpp"
 #include "NetworkClient.hpp"
 #include "Protocol/RoomPayload.hpp"
 #include "metrics/Metrics.hpp"
@@ -337,6 +338,9 @@ private:
   rtk::collision::CollisionBuffer _collisionBuffer;
   rtk::Input::InputMapping _inputMapping;
   rtype::client::NetworkClient _networkClient;
+  /// Predicted ship of the local player, moved by PlayerSystem and corrected
+  /// by every Snapshot.
+  rtype::client::LocalPrediction _prediction;
   clientDependancy _dependency;
   rtk::SceneManager<SceneType, clientDependancy, rtk::InputState, IntroScene,
                     MenuScene, NetworkConnectionScene, RoomListScene,

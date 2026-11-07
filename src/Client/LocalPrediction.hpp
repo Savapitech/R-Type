@@ -59,6 +59,7 @@ public:
   void reset() {
     _history.clear();
     _ownNetworkId = 0;
+    _lastAckedTick = 0;
     _initialized = false;
     _x = _y = 0.0f;
     _stats = {};
@@ -123,6 +124,11 @@ public:
     }
 
     if (ackedTick != 0) {
+      // A Snapshot that arrives late describes the ship before the one already
+      // used: using it would pull the ship backward.
+      if (_lastAckedTick != 0 && isAfter(_lastAckedTick, ackedTick))
+        return;
+      _lastAckedTick = ackedTick;
       while (!_history.empty() && !isAfter(_history.front().tick, ackedTick))
         _history.pop_front();
     }
@@ -174,6 +180,7 @@ private:
 
   std::deque<Step> _history;
   std::uint32_t _ownNetworkId = 0;
+  std::uint32_t _lastAckedTick = 0;
   bool _initialized = false;
   float _x = 0.0f;
   float _y = 0.0f;

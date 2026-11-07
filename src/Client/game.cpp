@@ -502,7 +502,7 @@ void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<rtk::systems::PlayerSystem>(
       rtk::ecs::Order::Update, std::ref(_inputState),
       std::ref(context.eventBus), std::ref(context._entityFactory),
-      std::ref(_networkClient));
+      std::ref(_networkClient), std::ref(_prediction));
   context.scheduler.add<rtk::systems::InputSystem<RtkWindowAdapter>>(
       rtk::ecs::Order::Input, std::ref(_adapter), std::ref(_inputState),
       std::ref(_inputMapping), false);
@@ -915,13 +915,28 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
       auto &animators = context.registry.get_components<component::animator>();
       auto &velocities = context.registry.get_components<component::Velocity>();
 
+      _prediction.setOwnNetworkId(snapshotPayload.ownNetworkId.get());
+
       for (const auto &netData : snapshotPayload.entities) {
         bool found = false;
         for (auto e : view) {
           auto *netEnt = networkEntities.get(e);
           if (netEnt && netEnt->id == netData.networkId.get()) {
             auto *transform = transforms.get(e);
-            if (transform) {
+            if (transform && netData.networkId.get() ==
+                                 snapshotPayload.ownNetworkId.get()) {
+              // The ship of the local player is predicted: the Snapshot only
+              // corrects the prediction. Its animation follows the held keys
+              // (PlayerSystem).
+              _prediction.reconcile(
+                  protocol::decodePosition(netData.positionX),
+                  protocol::decodePosition(netData.positionY),
+                  snapshotPayload.ackedInputTick.get());
+              if (_prediction.isActive()) {
+                transform->position.x = _prediction.x();
+                transform->position.y = _prediction.y();
+              }
+            } else if (transform) {
               float deltaY = protocol::decodePosition(netData.positionY) -
                              transform->position.y;
               auto *anim = animators.get(e);
@@ -1001,6 +1016,7 @@ void Game::clearNetworkEntities(rtk::EngineContext &context) {
   _pendingEntityQueries.clear();
   _destroyedEntities.clear();
   _lastServerTick = 0;
+  _prediction.reset();
 }
 
 void Game::onUnload(rtk::EngineContext &context) {
