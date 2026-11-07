@@ -1,7 +1,8 @@
 #pragma once
 
 #include "EngineContext.hpp"
-#include "GameInstance/GameInstance.hpp"
+#include "GameInstance/RoomChannels.hpp"
+#include "GameInstance/RoomWorker.hpp"
 #include "Room/RoomManager.hpp"
 #include "Scene/serverGameScene.hpp"
 #include "Scene/serverLobbyScene.hpp"
@@ -134,11 +135,20 @@ private:
   void addSystems(rtk::EngineContext &context);
 
   void handleConnections(rtk::EngineContext &context);
-  void handleInputs(rtk::EngineContext &context);
-  void handleEntityQueries(rtk::EngineContext &context);
   void handleRoomRequests();
+  /**
+   * @brief Applies the notifications sent by the room threads.
+   */
+  void handleRoomEvents();
   void broadcastRoomState(std::uint32_t roomId);
-  bool removePlayerFromRoom(std::uint32_t connectionId);
+  /**
+   * @brief Removes a connection from its room.
+   * @param connectionId Connection to remove.
+   * @param notifyClient True to answer with RoomLeft once the room stopped
+   * replicating to this connection.
+   * @return True if the connection was in a room.
+   */
+  bool removePlayerFromRoom(std::uint32_t connectionId, bool notifyClient);
   /**
    * @brief Deletes the oldest empty rooms until a new room fits in the list.
    */
@@ -157,29 +167,76 @@ private:
    */
   void updateNetworkMetrics();
 
-  /**
-   * @brief Creates an instance for an existing room.
-   * @param roomId Room identifier.
-   * @param server Shared network server.
-   * @return Pointer to the instance, or nullptr on failure.
-   */
-  GameInstance *createGameInstance(std::uint32_t roomId, Server &server);
-  /**
-   * @brief Looks up an instance by room identifier.
-   * @param roomId Room identifier.
-   * @return Pointer to the instance, or nullptr if missing.
-   */
-  GameInstance *getGameInstance(std::uint32_t roomId);
-  /**
-   * @brief Stops and removes an instance.
-   * @param roomId Room identifier.
-   * @return True if the instance was removed.
-   */
-  bool destroyGameInstance(std::uint32_t roomId);
+  /** @brief Request answered with RoomCreated or RoomJoined. */
+  enum class JoinKind { Create, Join };
 
-  std::unordered_map<std::uint32_t, std::unique_ptr<GameInstance>>
-      _gameInstances;
+  /** @brief Join waiting for its room thread to create the player entity. */
+  struct PendingJoin {
+    std::uint32_t roomId;    ///< Room being joined.
+    std::uint64_t requestId; ///< Identifies this join among older ones.
+    JoinKind kind;           ///< Message answering the client.
+  };
 
+  /**
+   * @brief Returns the worker of a room, starting it if needed.
+   * @param roomId Room identifier.
+   * @return Pointer to the worker, or nullptr on failure.
+   */
+  RoomWorker *createRoomWorker(std::uint32_t roomId);
+  /**
+   * @brief Looks up a worker by room identifier.
+   * @param roomId Room identifier.
+   * @return Pointer to the worker, or nullptr if missing.
+   */
+  RoomWorker *getRoomWorker(std::uint32_t roomId);
+  /**
+   * @brief Stops and removes a worker.
+   * @param roomId Room identifier.
+   * @return True if the worker was removed.
+   */
+  bool destroyRoomWorker(std::uint32_t roomId);
+  /**
+   * @brief Routes a connection to its room and asks for its player entity.
+   * @param connectionId Connection joining the room.
+   * @param roomId Room being joined, the connection is already a member.
+   * @param worker Worker of the room.
+   * @param kind Message that will answer the client.
+   */
+  void beginJoin(std::uint32_t connectionId, std::uint32_t roomId,
+                 RoomWorker &worker, JoinKind kind);
+  /**
+   * @brief Answers a create or join request.
+   * @param connectionId Destination connection.
+   * @param kind Message to send.
+   * @param result Outcome of the request.
+   */
+  void sendJoinResult(std::uint32_t connectionId, JoinKind kind,
+                      const protocol::RoomResultPayload &result);
+  /**
+   * @brief Starts a round if every player of a waiting room is ready.
+   * @param roomId Room identifier.
+   */
+  void startRoomIfReady(std::uint32_t roomId);
+  /**
+   * @brief Answers the client once the room processed its join.
+   * @param event PlayerAdded notification.
+   */
+  void finishJoin(const RoomEvent &event);
+  /**
+   * @brief Puts a room back in the waiting state after a round.
+   * @param roomId Room identifier.
+   */
+  void finishGame(std::uint32_t roomId);
+  /**
+   * @brief Sends the players of a crashed room back to the room list.
+   * @param event Crashed notification.
+   */
+  void handleRoomCrash(const RoomEvent &event);
+
+  // The network thread reads the router and room threads push events until
+  // they are joined: both must be destroyed after _server and _roomWorkers.
+  RoomRouter _roomRouter;
+  RoomEventQueue _roomEvents;
   Server _server;
   std::unordered_map<std::uint32_t, std::size_t> _players;
   std::array<std::uint16_t, 4> _playerArchetypes{};
@@ -194,6 +251,10 @@ private:
   NetworkMetrics _previousMetrics{};
   bool _metricsInitialized = false;
   std::unordered_map<std::uint32_t, NetworkMetrics> _previousClientMetrics;
+  std::unordered_map<std::uint32_t, PendingJoin> _pendingJoins;
+  std::uint64_t _nextJoinRequestId = 1;
+  // Declared after _server: room threads must stop before it is destroyed.
+  std::unordered_map<std::uint32_t, std::unique_ptr<RoomWorker>> _roomWorkers;
 };
 
 /** @} */

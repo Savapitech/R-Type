@@ -26,8 +26,11 @@ namespace rtype::server {
  * @brief Game level layer over NetworkServer that decodes client messages
  * and encodes server messages.
  *
- * Decoded messages are pushed by the network thread into mutex protected
- * queues that the game loop drains with the poll methods.
+ * Connection changes and room requests are pushed by the network thread into
+ * mutex protected queues that the game loop drains with the poll methods.
+ * Inputs and entity queries are handed to the callbacks set with
+ * setInputHandler() and setQueryEntityHandler(), and dropped without one.
+ *
  */
 class Server {
 public:
@@ -90,6 +93,31 @@ public:
     bool ready = false;         ///< Requested ready state for SetReady.
   };
 
+  /// Receives Input messages on the network thread.
+  using InputHandler = std::function<void(const InputEvent &)>;
+  /// Receives QueryEntity messages on the network thread.
+  using QueryEntityHandler = std::function<void(const QueryEntityEvent &)>;
+
+  /**
+   * @brief Hands Input messages to a callback.
+   *
+   * The callback runs on the network thread and must not block. Must be called
+   * before start().
+   *
+   * @param handler Callback receiving the messages.
+   */
+  void setInputHandler(InputHandler handler);
+
+  /**
+   * @brief Hands QueryEntity messages to a callback.
+   *
+   * The callback runs on the network thread and must not block. Must be called
+   * before start().
+   *
+   * @param handler Callback receiving the messages.
+   */
+  void setQueryEntityHandler(QueryEntityHandler handler);
+
   /**
    * @brief Starts the network thread.
    */
@@ -123,25 +151,12 @@ public:
             PacketPriority priority = PacketPriority::Unreliable);
 
   /**
-   * @brief Pops the oldest Input message.
-   * @param event Receives the message.
-   * @return True if a message was popped.
-   */
-  bool pollInput(InputEvent &event);
-
-  /**
    * @brief Pops the oldest connection change.
    * @param event Receives the change.
    * @return True if a change was popped.
    */
   bool pollConnectionEvent(ConnectionEvent &event);
 
-  /**
-   * @brief Pops the oldest QueryEntity message.
-   * @param event Receives the message.
-   * @return True if a message was popped.
-   */
-  bool pollQueryEntity(QueryEntityEvent &event);
   /**
    * @brief Pops the oldest room management request.
    * @param event Receives the decoded room request.
@@ -236,15 +251,13 @@ private:
                    const std::vector<std::uint8_t> &payload);
 
   NetworkServer _network;
-  std::mutex _inputMutex;
-  std::queue<InputEvent> _inputQueue;
+  InputHandler _inputHandler;
+  QueryEntityHandler _queryEntityHandler;
   std::unordered_map<std::uint32_t, std::uint32_t> _lastInputSequence;
 
   std::mutex _connectionMutex;
   std::queue<ConnectionEvent> _connectionQueue;
 
-  std::mutex _queryMutex;
-  std::queue<QueryEntityEvent> _queryQueue;
   std::mutex _roomRequestMutex;
   std::queue<RoomRequestEvent> _roomRequestQueue;
 

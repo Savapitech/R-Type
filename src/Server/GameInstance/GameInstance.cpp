@@ -36,15 +36,22 @@
 #include <cstdint>
 #include <fstream>
 #include <functional>
+#include <mutex>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
 #include <utility>
 
 namespace rtype::server {
+namespace {
+// Systems log when they start and the logger calls std::localtime, which is not
+// thread safe. Rooms are created rarely, so they can simply start one by one.
+std::mutex systemsStartMutex;
+} // namespace
+
 GameInstance::GameInstance(std::uint32_t roomId, Server &server,
-                           RoomManager &roomManager)
-    : _roomId(roomId), _dependency{*this, server, roomManager},
+                           RoomEventQueue &events)
+    : _roomId(roomId), _dependency{*this, server, events},
       _sceneManager(_dependency, std::in_place_type<InstanceLobbyScene>) {}
 
 std::uint32_t GameInstance::getRoomId() const { return _roomId; }
@@ -81,6 +88,12 @@ void GameInstance::resetGameState() {
   _serverTick = 0;
 }
 
+void GameInstance::requestGameStart() { _gameStartRequested = true; }
+
+bool GameInstance::consumeGameStartRequest() {
+  return std::exchange(_gameStartRequested, false);
+}
+
 rtk::EngineContext &GameInstance::getContext() { return _context; }
 
 void GameInstance::start(Server &server) {
@@ -90,7 +103,10 @@ void GameInstance::start(Server &server) {
   initialize();
   subscribeEvents(server);
   addSystems(server);
-  _scheduler.start(_registry);
+  {
+    std::lock_guard<std::mutex> lock(systemsStartMutex);
+    _scheduler.start(_registry);
+  }
   _sceneManager.start(_context);
   _systemsStarted = true;
 }
@@ -666,6 +682,8 @@ void GameInstance::processInput(const Server::InputEvent &inputEvent,
     const float charge = controllable->chargeTimer;
     controllable->isChargingShoot = false;
     controllable->chargeTimer = 0.0f;
+    // Creating an entity can reallocate the components: `transform` dangles.
+    const auto shooterPosition = transform->position;
 
     auto spawnSingleProjectile = [&](const std::string &archetypeName,
                                      float xOffset, float yOffset) {
@@ -679,8 +697,8 @@ void GameInstance::processInput(const Server::InputEvent &inputEvent,
               bulletEntity);
 
       if (bulletTransform) {
-        bulletTransform->position = {transform->position.x + xOffset,
-                                     transform->position.y + yOffset};
+        bulletTransform->position = {shooterPosition.x + xOffset,
+                                     shooterPosition.y + yOffset};
         const auto payload = protocol::createEntityPayload(
             _serverTick, bulletNetId,
             _context._entityFactory.getArchetypeID(archetypeName),
@@ -718,8 +736,8 @@ void GameInstance::processInput(const Server::InputEvent &inputEvent,
                 bulletEntity);
 
         if (bulletTransform) {
-          bulletTransform->position = {transform->position.x + 50.0f,
-                                       transform->position.y + yOffsets[i]};
+          bulletTransform->position = {shooterPosition.x + 50.0f,
+                                       shooterPosition.y + yOffsets[i]};
           bulletTransform->rotation = angles[i];
 
           if (bulletVel) {
