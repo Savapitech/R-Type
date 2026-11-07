@@ -419,9 +419,22 @@ void GameInstance::subscribeEvents(Server &server) {
         auto &bullets = _context.registry.get_components<component::Bullet>();
 
         if (collisionPair == bulletVsEnemy) {
-
-          deads.insert_at(event.firstEntity, {});
-          deads.insert_at(event.secondEntity, {});
+          const bool firstIsBullet =
+              colA->layer == Collider::CollisionLayer::PlayerProjectile;
+          const std::size_t bulletEnt =
+              firstIsBullet ? event.firstEntity : event.secondEntity;
+          const std::size_t enemyEnt =
+              firstIsBullet ? event.secondEntity : event.firstEntity;
+          deads.insert_at(bulletEnt, {});
+          auto &enemies = _context.registry.get_components<component::Enemy>();
+          auto *enemyComp = enemies.get(enemyEnt);
+          auto *bulletComp = bullets.get(bulletEnt);
+          if (enemyComp && bulletComp) {
+            enemyComp->health -= bulletComp->damage;
+            if (enemyComp->health <= 0.0f) {
+              deads.insert_at(enemyEnt, {});
+            }
+          }
 
         } else if (collisionPair == bulletVsEnv) {
 
@@ -454,8 +467,22 @@ void GameInstance::subscribeEvents(Server &server) {
 
         } else if (collisionPair == playerVsEnemy) {
 
-          deads.insert_at(event.firstEntity, {});
-          deads.insert_at(event.secondEntity, {});
+          const bool firstIsPlayer =
+              colA->layer == Collider::CollisionLayer::Player;
+          const std::size_t playerEnt =
+              firstIsPlayer ? event.firstEntity : event.secondEntity;
+          const std::size_t enemyEnt =
+              firstIsPlayer ? event.secondEntity : event.firstEntity;
+
+          deads.insert_at(playerEnt, {});
+
+          auto &enemies = _context.registry.get_components<component::Enemy>();
+          auto *enemyComp = enemies.get(enemyEnt);
+          if (enemyComp) {
+            enemyComp->health -= 100.0f;
+            if (enemyComp->health <= 0.0f)
+              deads.insert_at(enemyEnt, {});
+          }
 
           std::cout << "[SERVER] Player died from collision!" << std::endl;
 

@@ -67,7 +67,7 @@
             "paddingY": 0
         },
         "enemy": {
-            "health": 2.0,
+            "health": 20.0,
             "fireRate": 4.0,
             "blueprintName": "enemy_bullet"
         },
