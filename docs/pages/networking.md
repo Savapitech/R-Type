@@ -220,6 +220,85 @@ To tune it, capture packets with `RTYPE_CAPTURE_FILE=<file>` while playing (or
 with `rtype_bot`, a headless client built with `-DRTYPE_BUILD_BOT=ON`), then run
 `compression_bench <file> <dictionary>` (built with `-DRTYPE_BUILD_BENCH=ON`).
 
+## Hiding the latency {#networking_latency}
+
+The server is the authority, so what a player sees comes from the server and
+travels for half a round trip time, and what the player does travels back for
+the other half. Three mechanisms keep the game playable when the network is not
+perfect. They are measured in @ref network_benchmark and compared with the
+alternatives in @ref technical_study, section 6.5.
+
+### Prediction of the local ship
+
+Until a snapshot comes back, the client does not know that the ship moved. It
+used to wait, so the ship reacted one round trip time plus up to 50 ms late.
+rtype::client::LocalPrediction removes the wait:
+
+1. Every frame, rtk::systems::PlayerSystem asks it to move the ship of the local
+   player with the held actions. The movement is protocol::shipVelocity(), the
+   very function the server uses, so both agree. The ship moves in the same
+   frame as the key press.
+2. Every `Snapshot` carries `ownNetworkId` (which ship is mine) and
+   `ackedInputTick` (up to which client tick the server has simulated it). The
+   client takes the position of the server, replays the movements it made after
+   `ackedInputTick`, and obtains where the ship should be now. It moves the
+   displayed ship toward that position, half of the gap at each snapshot.
+   Gaps above 96 pixels, which come from a hit or a lost packet, are corrected
+   at once.
+3. A snapshot older than the last one used is ignored, so reordered packets do
+   not pull the ship back.
+
+The server computes `ackedInputTick` in GameInstance::sendSnapshots(). It keeps,
+for each player, the client tick `c` and the server tick `s` at which the current
+actions started, and answers `c + (now - s)`: the ship has moved with these
+actions for as many client ticks as server ticks since. This only works if a
+client tick is a duration, so ticks follow the clock
+(rtype::client::NetworkClient::inputTick()) and not the number of rendered
+frames.
+
+Only the ship of the local player is predicted. Everything else is the position
+of the last snapshot. Missiles are created by the server at the position of the
+server ship, which is a little behind the ship the player sees.
+
+### Input sending
+
+A snapshot is sent every 50 ms, so an input sent every 16 ms is mostly
+redundant, and each one costs 31 bytes of which 19 are the packet header.
+rtype::client::NetworkClient::sendInput() is called every frame but sends an
+`Input` only:
+
+- when the held actions change, and again in the two following frames, so one
+  lost packet does not delay a key press (`INPUT_REDUNDANT_COPIES`),
+- every 50 ms while they stay the same (`INPUT_HEARTBEAT`), which repairs a
+  change that was lost anyway and tells the server that the client is alive.
+
+The server keeps the last actions it received, so nothing else is needed.
+
+### Snapshot rate
+
+When the link of a client cannot carry the snapshots, a queue grows in front of
+the link, and all the packets, the player ship corrections included, arrive
+later and later. GameInstance::updateSnapshotRates() runs twice per second and
+lowers the rate of such a client.
+
+The signal is the round trip time. PacketTracker::takeMinRttSample() measures
+it on every acknowledged packet, Unreliable ones included, which gives about 20
+samples per second per client. The round trip time used for resends is measured
+on reliable packets only, which are too rare for this: on a saturated test link
+it reported 28 ms on the client while the real delay was 775 ms. A packet is acknowledged by the next packet of the client, up to
+50 ms later because of the input heartbeat, so the controller uses the smallest
+sample of each half second, which ignores that delay.
+
+| Condition | Action |
+| --------- | ------ |
+| Smallest RTT of the last half second more than 60 ms above the smallest RTT seen for this client | Send one snapshot out of 2, then 3, then 4 (20, 10, 6.7 and 5 per second) |
+| More than 300 ms above | Go straight to one out of 4 |
+| 6 seconds without growth | Go back one step |
+
+The smallest RTT ever seen is the RTT of an empty link, because it is measured
+in the lobby where almost nothing is sent. Only snapshots are slowed down.
+Creations, destructions and every reliable message keep their normal rate.
+
 ## Reliability
 
 UDP datagrams can be lost, duplicated or reordered. The protocol handles this as
