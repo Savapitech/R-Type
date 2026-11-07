@@ -21,17 +21,24 @@ namespace rtype::protocol {
  */
 
 /**
- * @brief Fixed part of a Snapshot message, 6 bytes.
+ * @brief Fixed part of a Snapshot message, 14 bytes.
  *
- * | Offset | Size | Field         | Description                         |
- * | -----: | ---: | ------------- | ----------------------------------- |
- * | 0      | 4    | `serverTick`  | Server tick the states belong to.   |
- * | 4      | 2    | `entityCount` | Number of SnapshotEntityState that follow.
- * |
+ * | Offset | Size | Field              | Description                       |
+ * | -----: | ---: | ------------------ | --------------------------------- |
+ * | 0      | 4    | `serverTick`       | Server tick the states belong to. |
+ * | 4      | 2    | `entityCount`      | Number of SnapshotEntityState.    |
+ * | 6      | 4    | `ackedInputTick`   | Client tick the ship state of the |
+ * |        |      |                    | receiver accounts for, 0 if none. |
+ * | 10     | 4    | `ownNetworkId`     | Ship of the receiver, 0 if none.  |
+ *
+ * The last two fields are different for every receiver, they let a client
+ * predict the movement of its own ship and correct it, see LocalPrediction.
  */
 struct SnapshotHeader {
-  be32 serverTick;  ///< Server tick the states belong to.
-  be16 entityCount; ///< Number of entity states that follow.
+  be32 serverTick;     ///< Server tick the states belong to.
+  be16 entityCount;    ///< Number of entity states that follow.
+  be32 ackedInputTick; ///< Client tick the receiver ship state accounts for.
+  be32 ownNetworkId;   ///< Network id of the ship of the receiver, or 0.
 };
 
 /**
@@ -53,7 +60,7 @@ struct SnapshotEntityState {
   be16 rotation;               ///< Rotation, fraction of a full turn.
 };
 
-static_assert(sizeof(SnapshotHeader) == sizeof(be32) + sizeof(be16),
+static_assert(sizeof(SnapshotHeader) == sizeof(be32) * 3 + sizeof(be16),
               "SnapshotHeader must not contain padding");
 static_assert(sizeof(SnapshotEntityState) ==
                   sizeof(be32) + sizeof(std::uint8_t) + sizeof(be16) * 3,
@@ -70,6 +77,9 @@ inline constexpr std::size_t SNAPSHOT_MAX_ENTITIES =
  */
 struct SnapshotPayload {
   be32 serverTick; ///< Server tick the states belong to.
+  /// Client tick the ship of the receiver is simulated up to, 0 if none.
+  be32 ackedInputTick;
+  be32 ownNetworkId; ///< Network id of the ship of the receiver, or 0.
   std::vector<SnapshotEntityState> entities; ///< Entity states.
 };
 
@@ -85,7 +95,8 @@ inline bool writeSnapshot(PacketWriter &writer,
     return false;
 
   const SnapshotHeader header{
-      payload.serverTick, static_cast<std::uint16_t>(payload.entities.size())};
+      payload.serverTick, static_cast<std::uint16_t>(payload.entities.size()),
+      payload.ackedInputTick, payload.ownNetworkId};
 
   if (!writePayload(writer, header))
     return false;
@@ -128,6 +139,8 @@ inline bool readSnapshot(PacketReader &reader, SnapshotPayload &payload) {
   }
 
   payload.serverTick = header.serverTick;
+  payload.ackedInputTick = header.ackedInputTick;
+  payload.ownNetworkId = header.ownNetworkId;
   payload.entities = std::move(states);
   return true;
 }

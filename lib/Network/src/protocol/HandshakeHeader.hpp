@@ -13,7 +13,7 @@
 /// Magic number that starts every handshake datagram, "RTYP" in ASCII.
 constexpr std::uint32_t MAGIC = 0x52545950;
 /// Protocol version announced and expected during the handshake.
-constexpr std::uint8_t VERSION = 2;
+constexpr std::uint8_t VERSION = 3;
 
 /**
  * @brief Kind of handshake datagram.
@@ -30,7 +30,7 @@ enum class HandshakeType : std::uint8_t {
  * | Offset | Size | Field     | Description                          |
  * | -----: | ---: | --------- | ------------------------------------ |
  * | 0      | 4    | `magic`   | Always `0x52545950`.                 |
- * | 4      | 1    | `version` | Protocol version, currently `2`.     |
+ * | 4      | 1    | `version` | Protocol version, currently `3`.     |
  * | 5      | 1    | `type`    | A HandshakeType value.               |
  *
  * A Welcome datagram is followed by the 4 byte connection id.

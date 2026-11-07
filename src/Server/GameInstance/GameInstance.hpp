@@ -2,6 +2,7 @@
 
 #include "EngineContext.hpp"
 #include "GameInstance/Scene/InstanceScenes.hpp"
+#include "Protocol/InputPayload.hpp"
 #include "Server.hpp"
 #include "collision/collisionBuffer.hpp"
 #include "sceneManager/sceneManager.hpp"
@@ -228,8 +229,27 @@ public:
   bool hasAlivePlayers();
 
 private:
+  /**
+   * @brief Actions held by a player, and when they started to be applied.
+   *
+   * It lets a snapshot tell the client which of its ticks the ship state
+   * accounts for: the held actions were applied from the client tick
+   * `clientTick` (server tick `serverTick`) and have been applied for every
+   * server tick since, so the ship state is the one of the client tick
+   * `clientTick + (now - serverTick)`.
+   */
+  struct InputRun {
+    rtype::protocol::InputAction actions = rtype::protocol::InputAction::NoneAction;
+    std::uint32_t clientTick = 0;
+    std::uint32_t serverTick = 0;
+  };
+
+  /// Client tick the ship of a player is simulated up to, 0 if no input yet.
+  std::uint32_t ackedInputTick(std::uint32_t connectionId) const;
+
   std::uint32_t _roomId;
   std::unordered_map<std::uint32_t, std::size_t> _players;
+  std::unordered_map<std::uint32_t, InputRun> _inputRuns;
   std::uint32_t _serverTick = 0;
   bool _isActive = false;
   bool _gameStartRequested = false;

@@ -2,6 +2,7 @@
 #include "EngineContext.hpp"
 #include "NetworkIdGenerator.hpp"
 #include "Protocol/EntityPayload.hpp"
+#include "Protocol/ShipMovement.hpp"
 #include "Scheduler.hpp"
 #include "Server.hpp"
 #include "ServerDeathSystem.hpp"
@@ -63,6 +64,7 @@ void GameInstance::addPlayer(std::uint32_t connectionId, std::size_t entity) {
 }
 
 bool GameInstance::removePlayer(std::uint32_t connectionId) {
+  _inputRuns.erase(connectionId);
   return _players.erase(connectionId) > 0;
 }
 
@@ -670,25 +672,17 @@ void GameInstance::processInput(const Server::InputEvent &inputEvent,
   if (!velocity || !controllable || !transform)
     return;
 
-  velocity->x = 0.0f;
-  velocity->y = 0.0f;
   const auto actions = inputEvent.input.actions;
-  if (rtype::protocol::hasAction(actions, rtype::protocol::InputAction::Up)) {
-    velocity->y = -controllable->speed;
-  }
-  if (rtype::protocol::hasAction(actions, rtype::protocol::InputAction::Down)) {
-    velocity->y = controllable->speed;
-  }
-  if (rtype::protocol::hasAction(actions, rtype::protocol::InputAction::Left)) {
-    velocity->x = -controllable->speed;
-  }
-  if (rtype::protocol::hasAction(actions,
-                                 rtype::protocol::InputAction::Right)) {
-    velocity->x = controllable->speed;
-  }
-  if (velocity->x != 0.0f && velocity->y != 0.0f) {
-    velocity->x *= 0.7071f;
-    velocity->y *= 0.7071f;
+  const auto shipSpeed = rtype::protocol::shipVelocity(actions, controllable->speed);
+  velocity->x = shipSpeed.x;
+  velocity->y = shipSpeed.y;
+
+  // A repeated Input (redundancy, heartbeat) does not restart the run: the
+  // ship has been moving with these actions since the first one.
+  auto run = _inputRuns.find(inputEvent.connectionId);
+  if (run == _inputRuns.end() || run->second.actions != actions) {
+    _inputRuns[inputEvent.connectionId] = {
+        actions, inputEvent.input.clientTick.get(), _serverTick};
   }
   const bool isShoot =
       rtype::protocol::hasAction(actions, rtype::protocol::InputAction::Shoot);
@@ -875,6 +869,7 @@ bool GameInstance::removeConnectedPlayer(std::uint32_t connectionId,
   const auto entity = it->second;
   if (entity == NO_ENTITY) {
     _players.erase(it);
+    _inputRuns.erase(connectionId);
     return true;
   }
 
@@ -895,7 +890,15 @@ bool GameInstance::removeConnectedPlayer(std::uint32_t connectionId,
   registry.remove_entity_from_all_pools(entity);
   registry.kill_entity(entity);
   _players.erase(it);
+  _inputRuns.erase(connectionId);
   return true;
+}
+
+std::uint32_t GameInstance::ackedInputTick(std::uint32_t connectionId) const {
+  const auto run = _inputRuns.find(connectionId);
+  if (run == _inputRuns.end())
+    return 0;
+  return run->second.clientTick + (_serverTick - run->second.serverTick);
 }
 
 void GameInstance::sendSnapshots(Server &server) {
@@ -910,8 +913,15 @@ void GameInstance::sendSnapshots(Server &server) {
     if (snapshot.entities.empty())
       return;
 
-    for (const auto &[connectionId, _] : _players)
+    for (const auto &[connectionId, entity] : _players) {
+      snapshot.ackedInputTick = ackedInputTick(connectionId);
+      snapshot.ownNetworkId = 0;
+      if (entity != NO_ENTITY) {
+        if (const auto *own = networkEntities.get(entity))
+          snapshot.ownNetworkId = own->id;
+      }
       server.sendSnapshot(connectionId, snapshot);
+    }
     snapshot.entities.clear();
   };
 
