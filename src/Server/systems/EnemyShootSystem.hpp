@@ -95,9 +95,25 @@ public:
         continue;
       }
       enemy->fireTimer -= dt;
+      bool shouldFire = false;
       if (enemy->fireTimer <= 0.0f) {
-        enemy->fireTimer = enemy->fireRate;
-
+        enemy->fireTimer += enemy->fireRate;
+        if (enemy->burstNumber > 1) {
+          enemy->burstRemaining = enemy->burstNumber;
+          enemy->burstTimer = 0.0f;
+        } else {
+          shouldFire = true;
+        }
+      }
+      if (enemy->burstRemaining > 0) {
+        enemy->burstTimer -= dt;
+        if (enemy->burstTimer <= 0.0f) {
+          enemy->burstTimer += enemy->burstInterval;
+          enemy->burstRemaining--;
+          shouldFire = true;
+        }
+      }
+      if (shouldFire) {
         const float spawnX = transform->position.x + enemy->offsetX;
         const float spawnY = transform->position.y + enemy->offsetY;
 

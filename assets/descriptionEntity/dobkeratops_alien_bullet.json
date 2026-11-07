@@ -1,0 +1,72 @@
+{
+    "components": {
+        "transform": {
+            "position": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "scale": {
+                "x": 2.0,
+                "y": 2.0
+            },
+            "rotation": 0.0
+        },
+        "sprite": {
+            "texture": "assets/entityTexture/dobkeratops.png",
+            "size": {
+                "w": 24.0,
+                "h": 20.0
+            },
+            "origin": {
+                "x": 12.0,
+                "y": 10.0
+            },
+            "textureRect": {
+                "x": 0,
+                "y": 270,
+                "w": 24,
+                "h": 20
+            },
+            "color": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 255
+            },
+            "layer": 3
+        },
+        "animation": {
+            "frameDuration": 0.08,
+            "currentFrame": 0,
+            "totalFrames": 4,
+            "frameWidth": 24,
+            "frameHeight": 20,
+            "startX": 0,
+            "startY": 270,
+            "loop": true,
+            "playing": true,
+            "columns": 4,
+            "paddingX": 0,
+            "paddingY": 0
+        },
+        "collider": {
+            "offsetX": -7.0,
+            "offsetY": -7.0,
+            "width": 14.0,
+            "height": 14.0,
+            "layer": "EnemyProjectile",
+            "mask": [
+                "Player",
+                "Environment"
+            ]
+        },
+        "velocity": {
+            "x": -350.0,
+            "y": 0.0
+        },
+        "bullet": {
+            "damage": 10.0
+        },
+        "networkEntity": {}
+    }
+}

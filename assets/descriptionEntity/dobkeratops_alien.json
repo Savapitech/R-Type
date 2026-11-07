@@ -63,8 +63,13 @@
         },
         "enemy": {
             "health": 3000.0,
-            "fireRate": 99999.0,
-            "blueprintName": "dobkeratops_bullet"
+            "fireRate": 1.6,
+            "fireDelay": 1.05,
+            "burstNumber": 6,
+            "burstInterval": 0.1,
+            "blueprintName": "dobkeratops_alien_bullet",
+            "offsetX": -16.0,
+            "offsetY": 50.0
         },
         "networkEntity": {},
         "deathEffect": {

@@ -307,6 +307,9 @@ void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
       "dobkeratops_bullet", "assets/descriptionEntity/dobkeratops_bullet.json");
   context._entityFactory.loadBlueprintFromPath(
       "dobkeratops_alien", "assets/descriptionEntity/dobkeratops_alien.json");
+  context._entityFactory.loadBlueprintFromPath(
+      "dobkeratops_alien_bullet",
+      "assets/descriptionEntity/dobkeratops_alien_bullet.json");
 }
 
 const std::array<std::uint16_t, 4> &GameInstance::getPlayerArchetypes() const {
