@@ -45,8 +45,7 @@
         "Enemy",
         "EnemyProjectile",
         "Environment",
-        "PowerUp",
-        "BossRoom"
+        "PowerUp"
       ]
     },
     "animation": {
