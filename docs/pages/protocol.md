@@ -283,10 +283,10 @@ send an `Input`:
 
 - as soon as the actions change, and again in each of the two following frames,
   so that the loss of one packet does not delay the change,
-- then, while the actions stay the same, every 50 ms. This repairs a change that
+- then, while the actions stay the same, every 100 ms. This repairs a change that
   was lost anyway, and tells the server that the client is alive.
 
-A player who holds the same keys sends about 20 `Input` per second instead of
+A player who holds the same keys sends about 10 `Input` per second instead of
 60. Each repetition has its own `inputSequence`.
 
 The server:
@@ -385,6 +385,14 @@ The client sets the position of every known entity to the received values,
 except its own ship, which is predicted (section 10.1).
 Snapshots are not deltas: each one carries the full position of the entities it
 lists. The server normally sends one every 3 ticks, which is about 20 per second.
+
+A `Snapshot` does not list every entity. The stage scenery (the blueprints
+`low_ground`, `medium_ground`, `high_ground`, `ramp`, `reactor` and `gate`) scrolls
+at a constant velocity given by its blueprint, so the server lists a piece of
+scenery in the first `Snapshot` sent to a client after the entity was created,
+and then only every 1.5 to 2.5 seconds, to correct any drift. A client MUST
+keep moving an entity that a `Snapshot` does not list with its last known
+velocity, and MUST NOT remove it: an entity is removed only by `DestroyEntity`.
 
 ### 8.2 CreateEntity (0x0084)
 
@@ -512,7 +520,7 @@ digraph session {
   w  [label="Server: Welcome(connectionId)"];
   ce [label="Server: CreateEntity for each existing entity"];
   sp [label="Server: CreateEntity of the new ship, to every player"];
-  lp [label="Loop:\nClient: Input when the keys change, and every 50 ms\nServer: Snapshot every 3 ticks (less often on a saturated link),\nCreateEntity and DestroyEntity on events"];
+  lp [label="Loop:\nClient: Input when the keys change, and every 100 ms\nServer: Snapshot every 3 ticks (less often on a saturated link),\nCreateEntity and DestroyEntity on events"];
   q  [label="Client: QueryEntity for an unknown id\nServer: CreateEntity answer"];
   d  [label="Client: Disconnect\nServer: DestroyEntity(reason 3) to the others"];
   h -> w -> ce -> sp -> lp -> d;
@@ -524,7 +532,7 @@ digraph session {
 until the server answers with `Welcome`. The server then sends a `CreateEntity`
 for every entity already in the world, spawns the ship of the new player and
 sends its `CreateEntity` to every player. During the game the client sends an
-`Input` when its keys change and every 50 ms, and the server sends a `Snapshot`
+`Input` when its keys change and every 100 ms, and the server sends a `Snapshot`
 every 3 ticks, plus
 `CreateEntity` and `DestroyEntity` when entities appear or disappear. When a
 snapshot lists an unknown entity, the client sends `QueryEntity` and the server
@@ -591,10 +599,11 @@ MUST NOT assume a fixed rate: it uses `serverTick` to order the `Snapshot` and
 to know their age.
 
 The reference server watches the smallest round trip time of each client over
-half a second, measured on every acknowledged packet. If it grows by more than
-60 ms above the smallest value seen for this client, a queue is filling: the
-server sends one `Snapshot` out of 2, 3 or 4 (down to 5 per second), going
-straight to the slowest rate if the growth is above 300 ms. It goes back one
+half a second, measured on every acknowledged packet, four times per second. If
+it stays more than 80 ms above the smallest value seen for this client on two
+checks in a row, a queue is filling: the server sends one `Snapshot` out of 2, 3
+or 4 (down to 5 per second), going straight to the slowest rate if the growth is
+above 300 ms. It goes back one
 step after 6 seconds without growth. Only `Snapshot` are slowed down:
 `CreateEntity`, `DestroyEntity` and every reliable message keep their
 priority.

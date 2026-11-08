@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" role="img" aria-labelledby="t d" width="100%" style="max-width:760px">
-<title id="t">Delay before the ship moves on a narrow link, one player</title><desc id="d">On a 10 KB/s link the delay was 775 ms before and 64 ms after. On a 5 KB/s link the ship waited 149 ms for the server after the changes, and the ship seen by the player moves at once on every link.</desc>
+<title id="t">Delay before the ship moves on a narrow link, one player</title><desc id="d">On a 10 KB/s link the delay was 775 ms before and 40 ms after. On a 5 KB/s link the ship waited 58 ms for the server after the changes, and the ship seen by the player moves at once on every link.</desc>
 <style>text{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:12px}.gr{stroke-width:1}.ax{stroke-width:1.5;fill:none}.line{fill:none;stroke-width:2.2}.cross{stroke-width:2.2}.ref{stroke:#8b949e;fill:none;stroke-width:1.5}.t{fill:#1f2328} .ax{stroke:#57606a} .gr{stroke:#d0d7de} .s0{stroke:#0072B2;fill:#0072B2} .s0.cross,.s0.line{fill:none} .s1{stroke:#D55E00;fill:#D55E00} .s1.cross,.s1.line{fill:none} .s2{stroke:#009E73;fill:#009E73} .s2.cross,.s2.line{fill:none} .s3{stroke:#CC79A7;fill:#CC79A7} .s3.cross,.s3.line{fill:none} .s4{stroke:#B8860B;fill:#B8860B} .s4.cross,.s4.line{fill:none}@media (prefers-color-scheme: dark){.t{fill:#e6edf3} .ax{stroke:#9198a1} .gr{stroke:#3d444d} .s0{stroke:#56B4E9;fill:#56B4E9} .s0.cross,.s0.line{fill:none} .s1{stroke:#F0825A;fill:#F0825A} .s1.cross,.s1.line{fill:none} .s2{stroke:#2FD0A0;fill:#2FD0A0} .s2.cross,.s2.line{fill:none} .s3{stroke:#E8A2CB;fill:#E8A2CB} .s3.cross,.s3.line{fill:none} .s4{stroke:#F0C040;fill:#F0C040} .s4.cross,.s4.line{fill:none}}</style>
 <line x1="70" x2="736" y1="290.0" y2="290.0" class="gr"/>
 <text x="62" y="294.0" text-anchor="end" class="t">0</text>
@@ -33,11 +33,11 @@
 <rect x="288.0" y="286.0" width="8" height="8" class="s1"/>
 <rect x="510.0" y="286.0" width="8" height="8" class="s1"/>
 <rect x="732.0" y="286.0" width="8" height="8" class="s1"/>
-<polyline points="70.0,250.4 292.0,272.9 514.0,277.5 736.0,279.2" class="line s2" stroke-dasharray="2 3"/>
-<polygon points="70.0,245.4 65.0,254.4 75.0,254.4" class="s2"/>
-<polygon points="292.0,267.9 287.0,276.9 297.0,276.9" class="s2"/>
-<polygon points="514.0,272.5 509.0,281.5 519.0,281.5" class="s2"/>
-<polygon points="736.0,274.2 731.0,283.2 741.0,283.2" class="s2"/>
+<polyline points="70.0,274.5 292.0,279.4 514.0,280.0 736.0,280.7" class="line s2" stroke-dasharray="2 3"/>
+<polygon points="70.0,269.5 65.0,278.5 75.0,278.5" class="s2"/>
+<polygon points="292.0,274.4 287.0,283.4 297.0,283.4" class="s2"/>
+<polygon points="514.0,275.0 509.0,284.0 519.0,284.0" class="s2"/>
+<polygon points="736.0,275.7 731.0,284.7 741.0,284.7" class="s2"/>
 <text x="80.0" y="151.7" class="t">before: no movement seen, unplayable</text>
 <text x="80.0" y="162.3" class="t">(0 samples in 2 runs)</text>
 <line x1="70" x2="104" y1="352" y2="352" class="line s0" stroke-dasharray=""/>

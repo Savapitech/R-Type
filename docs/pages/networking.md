@@ -131,7 +131,7 @@ The server owns the world. Clients only display it.
 | A player joins | `CreateEntity` of every entity to the newcomer, then `CreateEntity` of the new ship to everybody |
 | An enemy spawns | `CreateEntity` to everybody |
 | A player shoots | `CreateEntity` of the missile to everybody |
-| Every 3 ticks (about 20 times per second) | `Snapshot` with the position of every replicated entity |
+| Every 3 ticks (about 20 times per second) | `Snapshot` with the position of the replicated entities, without the stage scenery most of the time |
 | An entity is destroyed (hit, killed, out of the screen) | `DestroyEntity` to everybody |
 | A player disconnects | `DestroyEntity` of the ship to the other players |
 
@@ -269,35 +269,61 @@ rtype::client::NetworkClient::sendInput() is called every frame but sends an
 
 - when the held actions change, and again in the two following frames, so one
   lost packet does not delay a key press (`INPUT_REDUNDANT_COPIES`),
-- every 50 ms while they stay the same (`INPUT_HEARTBEAT`), which repairs a
+- every 100 ms while they stay the same (`INPUT_HEARTBEAT`), which repairs a
   change that was lost anyway and tells the server that the client is alive.
 
-The server keeps the last actions it received, so nothing else is needed.
+The server keeps the last actions it received, so nothing else is needed. A
+player who holds the same keys sends about 10 packets per second.
 
 ### Snapshot rate
 
 When the link of a client cannot carry the snapshots, a queue grows in front of
 the link, and all the packets, the player ship corrections included, arrive
-later and later. GameInstance::updateSnapshotRates() runs twice per second and
-lowers the rate of such a client.
+later and later. GameInstance::updateSnapshotRates() runs four times per second
+and lowers the rate of such a client.
 
 The signal is the round trip time. PacketTracker::takeMinRttSample() measures
-it on every acknowledged packet, Unreliable ones included, which gives about 20
-samples per second per client. The round trip time used for resends is measured
-on reliable packets only, which are too rare for this: on a saturated test link
-it reported 28 ms on the client while the real delay was 775 ms. A packet is acknowledged by the next packet of the client, up to
-50 ms later because of the input heartbeat, so the controller uses the smallest
-sample of each half second, which ignores that delay.
+it on every acknowledged packet, Unreliable ones included, which gives about 10
+samples per second per client when the keys do not change. A packet is
+acknowledged by the next packet of the client, up to 100 ms later because of the
+input heartbeat, so the controller uses the smallest sample of each half second,
+which ignores that delay. A window with fewer than 3 samples is ignored.
 
 | Condition | Action |
 | --------- | ------ |
-| Smallest RTT of the last half second more than 60 ms above the smallest RTT seen for this client | Send one snapshot out of 2, then 3, then 4 (20, 10, 6.7 and 5 per second) |
-| More than 300 ms above | Go straight to one out of 4 |
+| Smallest RTT of the last half second more than 80 ms above the smallest RTT seen for this client, on two checks in a row | Send one snapshot out of 2, then 3, then 4 (20, 10, 6.7 and 5 per second) |
+| More than 300 ms above, on one check | Go straight to one out of 4 |
 | 6 seconds without growth | Go back one step |
 
 The smallest RTT ever seen is the RTT of an empty link, because it is measured
 in the lobby where almost nothing is sent. Only snapshots are slowed down.
 Creations, destructions and every reliable message keep their normal rate.
+
+### Resends on a saturated link
+
+A reliable packet that is not acknowledged is sent again after
+`max(RESEND_TIMEOUT, 1.5 x the round trip time)`. That round trip time used to be
+measured only on reliable packets that had never been resent, so while a queue
+filled it stayed at its old small value, and every critical packet was sent again
+every 100 ms for the whole time it waited in the queue: up to 31 resends per
+second were measured on a 5 KB/s link, which made the queue longer. It is now
+measured on every acknowledged packet (each transmission has its own sequence
+number, so a sample is never ambiguous), and the resend delay follows the queue.
+
+### Scenery
+
+Most of the entities of a snapshot are not worth sending. In a capture of a game,
+92 percent of the entries were stage scenery: ground tiles, ramps, reactors and
+gates, about 38 per snapshot. They all scroll at a constant velocity (-50 pixels
+per second) that comes from their blueprint, which the client has too, so the
+client moves them by itself with the same movement system as the server.
+
+GameInstance::sendSnapshots() therefore sends a piece of scenery to a client in
+the first snapshot after the client learns about it, and then only every 1.5 to
+2.5 seconds (`SCENERY_REFRESH_BASE_TICKS` plus a spread that depends on the id,
+so that they do not all come in the same snapshot), to correct any drift. The
+average snapshot went from 442 to 105 bytes. Ships, enemies, missiles and
+everything that is not scenery are still in every snapshot.
 
 ## Reliability
 

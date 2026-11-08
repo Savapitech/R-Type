@@ -1,18 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" role="img" aria-labelledby="t d" width="100%" style="max-width:760px">
-<title id="t">Longest wait between two world updates, by packet loss</title><desc id="d">A world update should arrive every 50 ms. After the changes the 99th percentile wait is 100 ms with 10 percent loss, 150 ms with 30 percent and 231 ms with 50 percent. The longest wait is 450 ms at 50 percent.</desc>
+<title id="t">Longest wait between two world updates, by packet loss</title><desc id="d">A world update should arrive every 50 ms. After the changes the 99th percentile wait is 113 ms with 10 percent loss, 200 ms with 30 percent and 356 ms with 50 percent. The longest wait is 700 ms at 50 percent.</desc>
 <style>text{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:12px}.gr{stroke-width:1}.ax{stroke-width:1.5;fill:none}.line{fill:none;stroke-width:2.2}.cross{stroke-width:2.2}.ref{stroke:#8b949e;fill:none;stroke-width:1.5}.t{fill:#1f2328} .ax{stroke:#57606a} .gr{stroke:#d0d7de} .s0{stroke:#0072B2;fill:#0072B2} .s0.cross,.s0.line{fill:none} .s1{stroke:#D55E00;fill:#D55E00} .s1.cross,.s1.line{fill:none} .s2{stroke:#009E73;fill:#009E73} .s2.cross,.s2.line{fill:none} .s3{stroke:#CC79A7;fill:#CC79A7} .s3.cross,.s3.line{fill:none} .s4{stroke:#B8860B;fill:#B8860B} .s4.cross,.s4.line{fill:none}@media (prefers-color-scheme: dark){.t{fill:#e6edf3} .ax{stroke:#9198a1} .gr{stroke:#3d444d} .s0{stroke:#56B4E9;fill:#56B4E9} .s0.cross,.s0.line{fill:none} .s1{stroke:#F0825A;fill:#F0825A} .s1.cross,.s1.line{fill:none} .s2{stroke:#2FD0A0;fill:#2FD0A0} .s2.cross,.s2.line{fill:none} .s3{stroke:#E8A2CB;fill:#E8A2CB} .s3.cross,.s3.line{fill:none} .s4{stroke:#F0C040;fill:#F0C040} .s4.cross,.s4.line{fill:none}}</style>
 <line x1="70" x2="736" y1="290.0" y2="290.0" class="gr"/>
 <text x="62" y="294.0" text-anchor="end" class="t">0</text>
 <line x1="70" x2="736" y1="236.8" y2="236.8" class="gr"/>
-<text x="62" y="240.8" text-anchor="end" class="t">100</text>
+<text x="62" y="240.8" text-anchor="end" class="t">160</text>
 <line x1="70" x2="736" y1="183.6" y2="183.6" class="gr"/>
-<text x="62" y="187.6" text-anchor="end" class="t">200</text>
+<text x="62" y="187.6" text-anchor="end" class="t">320</text>
 <line x1="70" x2="736" y1="130.4" y2="130.4" class="gr"/>
-<text x="62" y="134.4" text-anchor="end" class="t">300</text>
+<text x="62" y="134.4" text-anchor="end" class="t">480</text>
 <line x1="70" x2="736" y1="77.2" y2="77.2" class="gr"/>
-<text x="62" y="81.2" text-anchor="end" class="t">400</text>
+<text x="62" y="81.2" text-anchor="end" class="t">640</text>
 <line x1="70" x2="736" y1="24.0" y2="24.0" class="gr"/>
-<text x="62" y="28.0" text-anchor="end" class="t">500</text>
+<text x="62" y="28.0" text-anchor="end" class="t">800</text>
 <line x1="70.0" x2="70.0" y1="290" y2="295" class="ax"/>
 <text x="70.0" y="310" text-anchor="middle" class="t">0</text>
 <line x1="83.3" x2="83.3" y1="290" y2="295" class="ax"/>
@@ -32,42 +32,42 @@
 <path d="M70,24V290H736" class="ax"/>
 <text x="403.0" y="332" text-anchor="middle" class="t">Packets lost in each direction (%)</text>
 <text transform="translate(16,157.0) rotate(-90)" text-anchor="middle" class="t">Wait between two world updates (ms)</text>
-<polyline points="70.0,262.8 83.3,262.8 96.6,259.6 136.6,243.3 203.2,236.7 336.4,220.1 469.6,196.9 736.0,146.9" class="line s0" stroke-dasharray=""/>
-<circle cx="70.0" cy="262.8" r="4" class="s0"/>
-<circle cx="83.3" cy="262.8" r="4" class="s0"/>
-<circle cx="96.6" cy="259.6" r="4" class="s0"/>
-<circle cx="136.6" cy="243.3" r="4" class="s0"/>
-<circle cx="203.2" cy="236.7" r="4" class="s0"/>
-<circle cx="336.4" cy="220.1" r="4" class="s0"/>
-<circle cx="469.6" cy="196.9" r="4" class="s0"/>
-<circle cx="736.0" cy="146.9" r="4" class="s0"/>
-<polyline points="70.0,262.9 83.3,262.8 96.6,253.1 136.6,246.7 203.2,236.8 336.4,226.7 469.6,210.1 736.0,166.9" class="line s1" stroke-dasharray="7 4"/>
-<rect x="66.0" y="258.9" width="8" height="8" class="s1"/>
-<rect x="79.3" y="258.8" width="8" height="8" class="s1"/>
-<rect x="92.6" y="249.1" width="8" height="8" class="s1"/>
-<rect x="132.6" y="242.7" width="8" height="8" class="s1"/>
-<rect x="199.2" y="232.8" width="8" height="8" class="s1"/>
-<rect x="332.4" y="222.7" width="8" height="8" class="s1"/>
-<rect x="465.6" y="206.1" width="8" height="8" class="s1"/>
-<rect x="732.0" y="162.9" width="8" height="8" class="s1"/>
-<polyline points="70.0,262.8 83.3,236.3 96.6,210.2 136.6,210.2 203.2,183.6 336.4,157.1 469.6,130.4 736.0,50.6" class="line s2" stroke-dasharray="2 3"/>
-<polygon points="70.0,257.8 65.0,266.8 75.0,266.8" class="s2"/>
-<polygon points="83.3,231.3 78.3,240.3 88.3,240.3" class="s2"/>
-<polygon points="96.6,205.2 91.6,214.2 101.6,214.2" class="s2"/>
-<polygon points="136.6,205.2 131.6,214.2 141.6,214.2" class="s2"/>
-<polygon points="203.2,178.6 198.2,187.6 208.2,187.6" class="s2"/>
-<polygon points="336.4,152.1 331.4,161.1 341.4,161.1" class="s2"/>
-<polygon points="469.6,125.4 464.6,134.4 474.6,134.4" class="s2"/>
-<polygon points="736.0,45.6 731.0,54.6 741.0,54.6" class="s2"/>
-<polyline points="70.0,262.7 83.3,236.3 96.6,236.3 136.6,210.2 203.2,209.8 336.4,183.9 469.6,156.5 736.0,50.6" class="line s3" stroke-dasharray="10 3 2 3"/>
-<polygon points="70.0,256.7 76.0,262.7 70.0,268.7 64.0,262.7" class="s3"/>
-<polygon points="83.3,230.3 89.3,236.3 83.3,242.3 77.3,236.3" class="s3"/>
-<polygon points="96.6,230.3 102.6,236.3 96.6,242.3 90.6,236.3" class="s3"/>
-<polygon points="136.6,204.2 142.6,210.2 136.6,216.2 130.6,210.2" class="s3"/>
-<polygon points="203.2,203.8 209.2,209.8 203.2,215.8 197.2,209.8" class="s3"/>
-<polygon points="336.4,177.9 342.4,183.9 336.4,189.9 330.4,183.9" class="s3"/>
-<polygon points="469.6,150.5 475.6,156.5 469.6,162.5 463.6,156.5" class="s3"/>
-<polygon points="736.0,44.6 742.0,50.6 736.0,56.6 730.0,50.6" class="s3"/>
+<polyline points="70.0,273.0 83.3,273.0 96.6,271.0 136.6,260.8 203.2,256.7 336.4,246.3 469.6,231.8 736.0,200.5" class="line s0" stroke-dasharray=""/>
+<circle cx="70.0" cy="273.0" r="4" class="s0"/>
+<circle cx="83.3" cy="273.0" r="4" class="s0"/>
+<circle cx="96.6" cy="271.0" r="4" class="s0"/>
+<circle cx="136.6" cy="260.8" r="4" class="s0"/>
+<circle cx="203.2" cy="256.7" r="4" class="s0"/>
+<circle cx="336.4" cy="246.3" r="4" class="s0"/>
+<circle cx="469.6" cy="231.8" r="4" class="s0"/>
+<circle cx="736.0" cy="200.5" r="4" class="s0"/>
+<polyline points="70.0,273.0 83.3,263.0 96.6,256.9 136.6,256.6 203.2,252.4 336.4,233.7 469.6,223.4 736.0,171.5" class="line s1" stroke-dasharray="7 4"/>
+<rect x="66.0" y="269.0" width="8" height="8" class="s1"/>
+<rect x="79.3" y="259.0" width="8" height="8" class="s1"/>
+<rect x="92.6" y="252.9" width="8" height="8" class="s1"/>
+<rect x="132.6" y="252.6" width="8" height="8" class="s1"/>
+<rect x="199.2" y="248.4" width="8" height="8" class="s1"/>
+<rect x="332.4" y="229.7" width="8" height="8" class="s1"/>
+<rect x="465.6" y="219.4" width="8" height="8" class="s1"/>
+<rect x="732.0" y="167.5" width="8" height="8" class="s1"/>
+<polyline points="70.0,273.0 83.3,256.4 96.6,240.1 136.6,240.1 203.2,223.5 336.4,206.9 469.6,190.2 736.0,140.4" class="line s2" stroke-dasharray="2 3"/>
+<polygon points="70.0,268.0 65.0,277.0 75.0,277.0" class="s2"/>
+<polygon points="83.3,251.4 78.3,260.4 88.3,260.4" class="s2"/>
+<polygon points="96.6,235.1 91.6,244.1 101.6,244.1" class="s2"/>
+<polygon points="136.6,235.1 131.6,244.1 141.6,244.1" class="s2"/>
+<polygon points="203.2,218.5 198.2,227.5 208.2,227.5" class="s2"/>
+<polygon points="336.4,201.9 331.4,210.9 341.4,210.9" class="s2"/>
+<polygon points="469.6,185.2 464.6,194.2 474.6,194.2" class="s2"/>
+<polygon points="736.0,135.4 731.0,144.4 741.0,144.4" class="s2"/>
+<polyline points="70.0,273.0 83.3,240.0 96.6,239.9 136.6,239.9 203.2,223.3 336.4,173.8 469.6,190.3 736.0,57.1" class="line s3" stroke-dasharray="10 3 2 3"/>
+<polygon points="70.0,267.0 76.0,273.0 70.0,279.0 64.0,273.0" class="s3"/>
+<polygon points="83.3,234.0 89.3,240.0 83.3,246.0 77.3,240.0" class="s3"/>
+<polygon points="96.6,233.9 102.6,239.9 96.6,245.9 90.6,239.9" class="s3"/>
+<polygon points="136.6,233.9 142.6,239.9 136.6,245.9 130.6,239.9" class="s3"/>
+<polygon points="203.2,217.3 209.2,223.3 203.2,229.3 197.2,223.3" class="s3"/>
+<polygon points="336.4,167.8 342.4,173.8 336.4,179.8 330.4,173.8" class="s3"/>
+<polygon points="469.6,184.3 475.6,190.3 469.6,196.3 463.6,190.3" class="s3"/>
+<polygon points="736.0,51.1 742.0,57.1 736.0,63.1 730.0,57.1" class="s3"/>
 <line x1="70" x2="104" y1="352" y2="352" class="line s0" stroke-dasharray=""/>
 <circle cx="87.0" cy="352.0" r="4" class="s0"/>
 <text x="114" y="356" class="t">99th percentile, before</text>
