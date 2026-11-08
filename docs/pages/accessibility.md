@@ -17,8 +17,7 @@ full control remapping, color blind friendly markers and difficulty options.
 | Analog sticks trigger movement past a 30 percent threshold, so a light push is enough. | In place |
 | The game needs only five controls: four directions and one fire button. | In place |
 | Controls are defined in one place, rtk::Input::InputMapping, so changing them never touches gameplay code. | In place |
-| In game menu to remap every action. | Planned |
-| Auto fire option, so the fire button does not need to be pressed and released repeatedly. | Planned |
+| In game menu to remap every action. | In place |
 
 ### Audio and visual disabilities
 
@@ -26,9 +25,8 @@ full control remapping, color blind friendly markers and difficulty options.
 | ------- | ------ |
 | No information is given by sound only: every shot, spawn and destruction is visible on screen. | In place |
 | Each player ship has its own color, and each player starts on its own row. | In place |
-| A number or shape marker on each ship, so players are told apart without relying on color. | Planned |
-| Color blind friendly palette for the four ships (the current blue, green, pink and red set is hard to read for red green color blindness). | Planned |
-| Separate volume settings for music and effects. | Planned |
+| Color blind friendly palette for the four ships (the current blue, green, pink and red set is hard to read for red green color blindness). | In place |
+| Separate volume settings for music and effects. | In place |
 
 ### Mental and cognitive disabilities
 
@@ -36,8 +34,7 @@ full control remapping, color blind friendly markers and difficulty options.
 | ------- | ------ |
 | Simple rules and controls: move, shoot, avoid enemies and walls. | In place |
 | Menus use a single Confirm action. | In place |
-| Difficulty setting (enemy speed and spawn rate). | Planned |
-| Pause in solo games. | Planned |
+| Difficulty setting (enemy speed and spawn rate). | In place |
 
 ## Documentation
 
