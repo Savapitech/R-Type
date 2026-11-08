@@ -4,10 +4,7 @@
 #include "GameInstance/RoomChannels.hpp"
 #include "GameInstance/RoomWorker.hpp"
 #include "Room/RoomManager.hpp"
-#include "Scene/serverGameScene.hpp"
-#include "Scene/serverLobbyScene.hpp"
 #include "Server.hpp"
-#include "collision/collisionBuffer.hpp"
 #include "factoryDataDriven/factoryDataDriven.hpp"
 #include "sceneManager/sceneManager.hpp"
 #include "serverScene.hpp"
@@ -31,15 +28,14 @@ namespace rtype::server {
  */
 
 /**
- * @brief Authoritative game simulation run by the server.
+ * @brief Front of the server: owns the network server, the rooms and their
+ * workers.
  *
- * Owns the network server, the lobby and in game scenes, and the player
- * entities, and replicates the world to every connected client.
+ * Runs on the main thread, answers lobby requests (rooms, chat, usernames,
+ * scoreboard) and routes in game messages to the room worker that simulates
+ * the game.
  */
 class Game {
-  friend class ServerLobbyScene;
-  friend class ServerGameScene;
-
 public:
   /// Entity of a player whose ship was destroyed.
   static constexpr std::size_t NO_ENTITY =
@@ -53,21 +49,21 @@ public:
   ~Game();
 
   /**
-   * @brief Registers components, loads blueprints, adds the systems and
-   * starts the network server.
+   * @brief Loads the scoreboard, starts the network server and the default
+   * room.
    * @param context Engine services.
    */
   void onLoad(rtk::EngineContext &context);
 
   /**
-   * @brief Updates the active scene.
+   * @brief Handles connections, room requests and room events.
    * @param context Engine services.
    * @param dt Elapsed time since the last frame, in seconds.
    */
   void onUpdate(rtk::EngineContext &context, float dt);
 
   /**
-   * @brief Exits the scene and stops the network server.
+   * @brief Stops every room worker and the network server.
    * @param context Engine services.
    */
   void onUnload(rtk::EngineContext &context);
@@ -78,66 +74,7 @@ public:
    */
   bool shouldContinue() const;
 
-  /**
-   * @brief Advances the server tick by one.
-   */
-  void incrementServerTick() { _serverTick++; }
-
-  /**
-   * @brief Returns the server tick.
-   * @return Number of simulated frames since the game started.
-   */
-  std::uint32_t getServerTick() const { return _serverTick; }
-
-  /**
-   * @brief Returns the number of connected players.
-   * @return The player count.
-   */
-  std::size_t getPlayerCount() const { return _players.size(); }
-
-  /**
-   * @brief Returns the connected players.
-   * @return Map from connection id to player entity.
-   */
-  const std::unordered_map<std::uint32_t, std::size_t> &getPlayers() const {
-    return _players;
-  }
-
-  /**
-   * @brief Tells whether a round is being played.
-   * @return True in the in game scene.
-   */
-  bool isGameActive() const { return _isGameActive; }
-
-  /**
-   * @brief Marks a round as started or stopped.
-   * @param active True while a round is played.
-   */
-  void setGameActive(bool active) { _isGameActive = active; }
-
-  /**
-   * @brief Forgets every player and resets the tick and round state.
-   */
-  void resetGameState() {
-    _players.clear();
-    _serverTick = 0;
-    _isGameActive = false;
-  }
-
-  /**
-   * @brief Sends DestroyEntity with reason GameEnded for every replicated
-   * entity to every player.
-   * @param context Engine services.
-   */
-  void broadcastGameEnded(rtk::EngineContext &context);
-
 private:
-  void registerComponents(rtk::EngineContext &context);
-  void registerBuilders(rtk::EngineContext &context);
-  void loadEntityBlueprints(rtk::EngineContext &context);
-  void subscribeEvents(rtk::EngineContext &context);
-  void addSystems(rtk::EngineContext &context);
-
   void handleConnections(rtk::EngineContext &context);
   void handleRoomRequests();
   /**
@@ -175,15 +112,6 @@ private:
    * @brief Deletes the oldest empty rooms until a new room fits in the list.
    */
   void freeRoomListSlot();
-  void cleanupOffscreenEnvironment(rtk::EngineContext &context);
-  void sendSnapshots(rtk::EngineContext &context);
-
-  void sendExistingEntities(std::uint32_t connectionId,
-                            rtk::EngineContext &context);
-  void broadcastPlayerCreated(std::uint32_t connectionId,
-                              rtk::EngineContext &context);
-  void broadcastPlayerDestroyed(std::uint32_t connectionId,
-                                std::uint32_t networkId);
   /**
    * @brief Displays network statistics at one-second intervals.
    */
@@ -260,12 +188,7 @@ private:
   RoomRouter _roomRouter;
   RoomEventQueue _roomEvents;
   Server _server;
-  std::unordered_map<std::uint32_t, std::size_t> _players;
-  std::array<std::uint16_t, 4> _playerArchetypes{};
-  std::uint32_t _serverTick = 0;
   bool _running = true;
-  bool _isGameActive = false;
-  rtk::collision::CollisionBuffer _collisionBuffer;
   RoomManager _roomManager;
   std::uint32_t _defaultRoomId = 0;
   std::chrono::steady_clock::time_point _lastMetricsTime{
