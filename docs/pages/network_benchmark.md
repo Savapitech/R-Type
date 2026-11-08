@@ -20,49 +20,54 @@ Before the changes, the ship of the player reacted one round trip time after a
 key press (135 ms with a 100 ms RTT, 535 ms with 500 ms), a 10 KB/s link added
 775 ms of delay, and a 5 KB/s link made the game unplayable.
 
-Now the ship moves in the same frame at any latency, the game stays connected
-with up to 50 percent packet loss, and links down to 10 KB/s per player work. The
-remaining problems are the other players and the enemies, which are seen late
-(they are not interpolated), a 5 KB/s link that is still on the edge, and a
-bandwidth that is still too high for four players on a link under 20 KB/s. They
-are listed in the section *Limits and known problems*.
+Now the ship moves in the same frame at any latency, and not one of the 88 runs
+ended with a disconnection, even with 50 percent of the packets lost, or with
+four players sharing 5 KB/s. A player alone on a 5 KB/s link, the test of the
+subject, can move and shoot: the missile appears 88 ms after the key is
+released, against 810 ms before our last fixes, and the game is rated
+playable. The remaining problems are the other players and the enemies, which
+are seen late and in steps (they are not interpolated), and four players on a
+link under 20 KB/s, which is below what the game needs. They are listed in the
+section *Limits and known problems*.
 
 How each condition is rated, after the changes:
 
 <!-- BEGIN summary -->
 | Condition | Verdict | Ship seen after (ms) | Update wait p99 (ms) | Updates received | Prediction gap p95 (px) | Disconnections |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| no degradation | good | 0 | 51 | 100 % | 0.0 | 0 |
+| no degradation | good | 0 | 51 | 100 % | 4.4 | 0 |
 | RTT 50 ms | good | 0 | 51 | 100 % | 2.8 | 0 |
-| RTT 100 ms | good | 0 | 51 | 100 % | 2.8 | 0 |
-| RTT 150 ms | playable | 0 | 51 | 100 % | 2.8 | 0 |
-| RTT 200 ms | playable | 0 | 51 | 100 % | 3.2 | 0 |
+| RTT 100 ms | good | 0 | 51 | 100 % | 3.5 | 0 |
+| RTT 150 ms | playable | 0 | 51 | 100 % | 3.5 | 0 |
+| RTT 200 ms | playable | 0 | 51 | 100 % | 3.5 | 0 |
 | RTT 300 ms | degraded | 0 | 51 | 100 % | 2.8 | 0 |
-| RTT 500 ms | degraded | 0 | 51 | 100 % | 2.8 | 0 |
-| 2 % loss | good | 0 | 69 | 99 % | 2.2 | 0 |
-| 5 % loss | good | 0 | 81 | 99 % | 0.6 | 0 |
-| 10 % loss | good | 0 | 100 | 97 % | 1.1 | 0 |
-| 20 % loss | playable | 0 | 119 | 93 % | 2.8 | 0 |
-| 30 % loss | playable | 0 | 150 | 87 % | 0.9 | 0 |
-| 50 % loss | degraded | 0 | 231 | 69 % | 10.0 | 0 |
-| 5 % loss, RTT 100 ms | good | 0 | 82 | 99 % | 4.3 | 0 |
-| 10 % loss, RTT 150 ms | playable | 0 | 100 | 97 % | 4.3 | 0 |
-| 2 % duplicated | good | 0 | 51 | 100 % | 2.2 | 0 |
-| 10 % duplicated | good | 0 | 51 | 100 % | 0.7 | 0 |
-| 25 % reordered, RTT 50 ms | good | 0 | 75 | 100 % | 3.7 | 0 |
-| 1 % corrupted | good | 0 | 51 | 100 % | 2.2 | 0 |
-| RTT 50 ms, jitter 40 ms | good | 0 | 95 | 100 % | 5.0 | 0 |
-| 4G profile | good | 0 | 66 | 99 % | 3.6 | 0 |
-| bad Wi-Fi profile | good | 0 | 86 | 99 % | 4.4 | 0 |
-| congested mobile profile | playable | 0 | 107 | 93 % | 4.1 | 0 |
-| 40 KB/s link, 1 player | good | 0 | 53 | 100 % | 3.5 | 0 |
-| 20 KB/s link, 1 player | good | 0 | 55 | 100 % | 3.5 | 0 |
-| 10 KB/s link, 1 player | playable | 0 | 151 | 91 % | 4.9 | 0 |
-| 5 KB/s link, 1 player | unstable | 0 | 273 | 32 % | 56.2 | 1 |
-| 50 KB/s shared, 4 players | good | 0 | 76 | 99 % | 3.6 | 0 |
-| 20 KB/s shared, 4 players | degraded | 0 | 361 | 27 % | 17.0 | 0 |
-| 10 KB/s shared, 4 players | unstable | 0 | 485 | 40 % | 6.2 | 3 |
-| 5 KB/s shared, 4 players | unplayable | - | - | - | - | 0 |
+| RTT 500 ms | degraded | 0 | 51 | 100 % | 3.2 | 0 |
+| 2 % loss | good | 0 | 100 | 98 % | 2.6 | 0 |
+| 5 % loss | playable | 0 | 100 | 95 % | 4.5 | 0 |
+| 10 % loss | playable | 0 | 113 | 91 % | 2.6 | 0 |
+| 20 % loss | degraded | 0 | 169 | 79 % | 0.6 | 0 |
+| 30 % loss | degraded | 0 | 200 | 69 % | 5.0 | 0 |
+| 50 % loss | degraded | 0 | 356 | 49 % | 7.0 | 0 |
+| 5 % loss, RTT 100 ms | playable | 0 | 101 | 96 % | 4.3 | 0 |
+| 10 % loss, RTT 150 ms | playable | 0 | 107 | 90 % | 4.3 | 0 |
+| 2 % duplicated | good | 0 | 51 | 100 % | 4.4 | 0 |
+| 10 % duplicated | good | 0 | 51 | 100 % | 4.5 | 0 |
+| 25 % reordered, RTT 50 ms | good | 0 | 76 | 100 % | 4.3 | 0 |
+| 1 % corrupted | good | 0 | 75 | 99 % | 4.5 | 0 |
+| RTT 50 ms, jitter 40 ms | playable | 0 | 108 | 100 % | 5.4 | 0 |
+| 4G profile | good | 0 | 79 | 99 % | 3.5 | 0 |
+| bad Wi-Fi profile | playable | 0 | 111 | 95 % | 4.4 | 0 |
+| congested mobile profile | playable | 0 | 102 | 97 % | 4.4 | 0 |
+| 40 KB/s link, 1 player | good | 0 | 51 | 100 % | 2.8 | 0 |
+| 20 KB/s link, 1 player | good | 0 | 53 | 100 % | 3.5 | 0 |
+| 10 KB/s link, 1 player | good | 0 | 60 | 100 % | 3.5 | 0 |
+| 5 KB/s link, 1 player | playable | 0 | 120 | 95 % | 4.7 | 0 |
+| 10 KB/s shared, 2 players | degraded | 0 | 183 | 82 % | 3.5 | 0 |
+| 5 KB/s shared, 2 players | degraded | 0 | 518 | 31 % | 40.5 | 0 |
+| 50 KB/s shared, 4 players | good | 0 | 56 | 100 % | 2.8 | 0 |
+| 20 KB/s shared, 4 players | degraded | 0 | 180 | 66 % | 5.1 | 0 |
+| 10 KB/s shared, 4 players | degraded | 0 | 515 | 30 % | 11.9 | 0 |
+| 5 KB/s shared, 4 players | degraded | - | 1796 | 17 % | 28.8 | 0 |
 <!-- END summary -->
 
 The ratings follow fixed rules, applied to the measurements of the current
@@ -97,7 +102,7 @@ The scenarios are the ones of the subject (2 percent drop or duplication,
 latency above 150 ms, 5 KB/s) and a wider sweep: RTT from 20 to 500 ms, loss from
 1 to 50 percent, 10 percent duplication, reordering, corruption, jitter, links of
 5 to 40 KB/s, and three profiles that imitate a 4G connection, a bad Wi-Fi and a
-congested mobile link.
+congested mobile link, and rooms of one, two and four players.
 
 ### The players
 
@@ -183,14 +188,14 @@ trip time.
 <!-- BEGIN latency -->
 | Added latency | Before (ms) | After, confirmed (ms) | After, seen (ms) | After, seen p95 (ms) | Samples |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| none | 35 | 32 | 0 | 0 | 12 |
-| RTT 20 ms | 35 | 35 | 0 | 0 | 9 |
-| RTT 50 ms | 85 | 84 | 0 | 0 | 16 |
-| RTT 100 ms | 135 | 133 | 0 | 0 | 10 |
-| RTT 150 ms | 184 | 184 | 0 | 0 | 14 |
-| RTT 200 ms | 234 | 236 | 0 | 0 | 13 |
-| RTT 300 ms | 335 | 335 | 0 | 0 | 13 |
-| RTT 500 ms | 535 | 534 | 0 | 0 | 10 |
+| none | 35 | 34 | 0 | 0 | 13 |
+| RTT 20 ms | 35 | 34 | 0 | 0 | 12 |
+| RTT 50 ms | 85 | 83 | 0 | 0 | 12 |
+| RTT 100 ms | 135 | 134 | 0 | 0 | 12 |
+| RTT 150 ms | 184 | 185 | 0 | 0 | 15 |
+| RTT 200 ms | 234 | 234 | 0 | 0 | 8 |
+| RTT 300 ms | 335 | 334 | 0 | 0 | 10 |
+| RTT 500 ms | 535 | 535 | 0 | 0 | 10 |
 <!-- END latency -->
 
 The "seen" delay of 0 ms means that the predicted ship has moved in the same loop
@@ -201,38 +206,45 @@ not wait for it.
 
 ### Packet loss
 
-![Line chart. The horizontal axis is the percentage of packets lost in each direction, from 0 to 50. The vertical axis is the wait between two world updates in milliseconds. The 99th percentile grows from 51 ms without loss to 231 ms at 50 percent loss. The longest wait grows from 51 ms to 450 ms. The curves before and after the changes are close.](netbench/snapshot_gap_vs_loss.svg)
+![Line chart. The horizontal axis is the percentage of packets lost in each direction, from 0 to 50. The vertical axis is the wait between two world updates in milliseconds. After the changes the 99th percentile grows from 51 ms without loss to 113 ms at 10 percent loss, 200 ms at 30 percent and 356 ms at 50 percent. The longest wait reaches 700 ms at 50 percent loss. The curves before and after the changes are close.](netbench/snapshot_gap_vs_loss.svg)
 
 **Text description of the figure.** A world update should arrive every 50 ms. The
-99th percentile of the wait stays at 100 ms with 10 percent loss, which is one
-lost update, then grows to 150 ms with 30 percent and 231 ms with 50 percent. The
-longest wait is 450 ms with 50 percent loss. The curves before and after the
-changes are close because the way snapshots are sent did not change.
+99th percentile of the wait is 100 ms with 2 percent loss, which is one lost
+update, 113 ms with 10 percent, 200 ms with 30 percent and 356 ms with 50 percent.
+The longest wait is 700 ms with 50 percent loss. The curves before and after the
+changes are close, a little higher after at 30 and 50 percent loss (see below).
 
 <!-- BEGIN loss -->
 | Condition | Wait p99 before (ms) | Wait p99 after (ms) | Longest before (ms) | Longest after (ms) | Updates received | Creation repaired p95 (ms) | Creation repaired max (ms) | Server confirmation before (ms) | Server confirmation after (ms) | Disconnections |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| none | 51 | 51 | 51 | 51 | 100 % | - | 0 | 35 | 32 | 0 |
-| 1 % loss | 51 | 51 | 101 | 101 | 100 % | 52 | 86 | 35 | 34 | 0 |
-| 2 % loss | 57 | 69 | 150 | 101 | 99 % | 17 | 17 | 35 | 35 | 0 |
-| 5 % loss | 88 | 81 | 150 | 150 | 99 % | 38 | 101 | 34 | 60 | 0 |
-| 10 % loss | 100 | 100 | 200 | 151 | 97 % | 47 | 118 | 33 | 33 | 0 |
-| 20 % loss | 131 | 119 | 250 | 199 | 93 % | 124 | 273 | 59 | 35 | 0 |
-| 30 % loss | 175 | 150 | 300 | 251 | 87 % | 127 | 302 | 58 | 104 | 0 |
-| 50 % loss | 269 | 231 | 450 | 450 | 69 % | 205 | 472 | 81 | 59 | 0 |
-| 5 % loss, RTT 100 ms | 94 | 82 | 150 | 149 | 99 % | 131 | 194 | 160 | 133 | 0 |
-| 10 % loss, RTT 150 ms | 100 | 100 | 151 | 200 | 97 % | 131 | 167 | 183 | 185 | 0 |
+| none | 51 | 51 | 51 | 51 | 100 % | - | 0 | 35 | 34 | 0 |
+| 1 % loss | 51 | 81 | 101 | 150 | 99 % | 16 | 16 | 35 | 34 | 0 |
+| 2 % loss | 57 | 100 | 150 | 151 | 98 % | 17 | 17 | 35 | 34 | 0 |
+| 5 % loss | 88 | 100 | 150 | 151 | 95 % | 32 | 69 | 34 | 34 | 0 |
+| 10 % loss | 100 | 113 | 200 | 201 | 91 % | 64 | 204 | 33 | 41 | 0 |
+| 20 % loss | 131 | 169 | 250 | 349 | 79 % | 112 | 185 | 59 | 22 | 0 |
+| 30 % loss | 175 | 200 | 300 | 300 | 69 % | 158 | 429 | 58 | 80 | 0 |
+| 50 % loss | 269 | 356 | 450 | 700 | 49 % | 326 | 716 | 81 | 96 | 0 |
+| 5 % loss, RTT 100 ms | 94 | 101 | 150 | 151 | 96 % | 144 | 199 | 160 | 135 | 0 |
+| 10 % loss, RTT 150 ms | 100 | 107 | 151 | 199 | 90 % | 304 | 556 | 183 | 169 | 0 |
 <!-- END loss -->
 
 No client was disconnected, even with 50 percent of the packets lost in each
 direction, which means that only one packet out of four makes a round trip. Lost
-creations are repaired in 17 to 205 ms (95th percentile) and at most 472 ms, by the
-resends of the reliable packets and by `QueryEntity`. With up to 10 percent loss
-the game is rated good, and with 20 and 30 percent playable.
+creations are repaired in 16 to 326 ms (95th percentile) and at most 716 ms, by the
+resends of the reliable packets and by `QueryEntity`. The game is rated good up
+to 2 percent loss, playable up to 10 percent, and degraded from 20 percent, with
+49 percent of the world updates still received at 50 percent loss.
+
+At 30 and 50 percent loss the wait is a little longer after the changes (200 ms
+against 175 ms, 356 ms against 269 ms). The server reads the missing
+acknowledgements as the sign of a queue and slows the snapshots down, which does
+not help when the packets are lost by the network and not queued. The player does
+not feel it on his own ship, which is predicted, and the game stays connected.
 
 The "server confirmation" columns are noisy: with few samples, one lost snapshot
-or input moves the median by 50 ms, in both directions (5 percent loss: 34 then 60
-ms, 20 percent loss: 59 then 35 ms). We found no systematic change. In any case
+or input moves the median by 50 ms, in both directions (20 percent loss: 59 then 22
+ms, 30 percent loss: 58 then 80 ms). We found no systematic change. In any case
 the player does not wait for it any more.
 
 ### Duplication, reordering, corruption, jitter
@@ -240,14 +252,14 @@ the player does not wait for it any more.
 <!-- BEGIN conditions -->
 | Condition | Delay before (ms) | Delay after, confirmed (ms) | Delay after, seen (ms) | Update wait p99 after (ms) | Prediction gap p95 (px) | Disconnections |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 2 % duplicated | 34 | 34 | 0 | 51 | 2.2 | 0 |
-| 10 % duplicated | 35 | 34 | 0 | 51 | 0.7 | 0 |
-| 25 % reordered, RTT 50 ms | 85 | 85 | 0 | 75 | 3.7 | 0 |
-| 1 % corrupted | 34 | 35 | 0 | 51 | 2.2 | 0 |
-| RTT 50 ms, jitter 40 ms | 75 | 76 | 0 | 95 | 5.0 | 0 |
-| 4G: RTT 60 ms, jitter, 1 % loss | 78 | 84 | 0 | 66 | 3.6 | 0 |
-| bad Wi-Fi: 5 % loss, jitter | 88 | 77 | 0 | 86 | 4.4 | 0 |
-| mobile: RTT 120 ms, 3 % loss, 400 kbit/s | 501 | 227 | 0 | 107 | 4.1 | 0 |
+| 2 % duplicated | 34 | 34 | 0 | 51 | 4.4 | 0 |
+| 10 % duplicated | 35 | 34 | 0 | 51 | 4.5 | 0 |
+| 25 % reordered, RTT 50 ms | 85 | 83 | 0 | 76 | 4.3 | 0 |
+| 1 % corrupted | 34 | 34 | 0 | 75 | 4.5 | 0 |
+| RTT 50 ms, jitter 40 ms | 75 | 72 | 0 | 108 | 5.4 | 0 |
+| 4G: RTT 60 ms, jitter, 1 % loss | 78 | 76 | 0 | 79 | 3.5 | 0 |
+| bad Wi-Fi: 5 % loss, jitter | 88 | 73 | 0 | 111 | 4.4 | 0 |
+| mobile: RTT 120 ms, 3 % loss, 400 kbit/s | 501 | 177 | 0 | 102 | 4.4 | 0 |
 <!-- END conditions -->
 
 Duplicated packets, reordered packets and 1 percent of corrupted packets have no
@@ -255,105 +267,145 @@ visible effect. The tracker drops the duplicates, the corrupted datagrams fail a
 length check and are dropped like lost ones, and a reordered snapshot is
 ignored by the prediction when it is older than the last one used. The three
 profiles are playable: the congested mobile link (RTT 120 ms, 3 percent loss,
-400 kbit/s shared by four players) went from 501 ms to 227 ms of confirmation
-delay, thanks to the snapshot rate adaptation.
+400 kbit/s shared by four players) went from 501 ms to 177 ms of confirmation
+delay, thanks to the smaller snapshots and to the snapshot rate adaptation. A
+network with 40 ms of jitter, which reorders packets, is rated playable.
 
 ### Accuracy of the prediction
 
-![Line chart. The horizontal axis lists ten network conditions. The vertical axis is the distance in pixels between the predicted ship and the position given by the server. The median is below 1 pixel everywhere. The 95th percentile stays under 11 pixels and the largest gap reaches 48 pixels with 50 percent loss.](netbench/prediction_error.svg)
+![Line chart. The horizontal axis lists ten network conditions. The vertical axis is the distance in pixels between the predicted ship and the position given by the server. The median is below 1 pixel everywhere. The 95th percentile is at most 7 pixels and the largest gap reaches 30 pixels.](netbench/prediction_error.svg)
 
 **Text description of the figure.** Under ten conditions, from no degradation to a
 congested mobile link, the median distance between the predicted ship and the
-position it should have according to the server is below one pixel. The 95th
-percentile is at most 10 pixels, with 50 percent loss. The largest distance is 48
-pixels, with 50 percent loss. The screen is 1280 pixels wide.
+position it should have according to the server is at most 0.8 pixel. The 95th
+percentile is at most 7 pixels. The largest distance is 30 pixels. The screen is
+1280 pixels wide.
 
-Over the 70 runs, the prediction was compared with the server 15 213 times. It
-corrected the ship smoothly 2 388 times (16 percent) and had to move it at once
-twice, both on a 5 KB/s link (the largest gap was 140 pixels). A player sees
-these corrections as a ship that slides slightly, not as a jump, except in the
-two extreme cases.
+Over the 88 runs, the prediction was compared with the server 18 835 times. It
+corrected the ship smoothly 3 968 times (21 percent) and never had to move it at
+once. The largest gap of all was 81 pixels, with two players sharing a 5 KB/s
+link. A player sees these corrections as a ship that slides slightly, not as a
+jump.
 
 ### Bandwidth
 
 <!-- BEGIN bandwidth -->
 | Case | Down before (KB/s) | Down after (KB/s) | Up before (KB/s) | Up after (KB/s) | Up packets/s before | Up packets/s after | Down packets/s after |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 4 players, no limit | 7.7 | 7.5 | 1.90 | 0.66 | 61 | 21 | 41 |
-| 1 player, no limit | 5.9 | 6.0 | 1.90 | 0.60 | 61 | 20 | 27 |
+| 4 players, no limit | 7.7 | 3.4 | 1.90 | 0.45 | 61 | 15 | 27 |
+| 1 player, no limit | 5.9 | 2.1 | 1.90 | 0.38 | 61 | 13 | 25 |
 <!-- END bandwidth -->
 
 The figures count the bytes of the game protocol. Each datagram adds 28 bytes of
 IPv4 and UDP headers on the wire. Per client, with four players, that makes about
-9.9 KB/s on the wire in total now (8.6 down, 1.2 up) against 12.4 KB/s before
-(8.9 down, 3.6 up), 20 percent less.
+5.0 KB/s on the wire in total now (4.1 down, 0.9 up) against 12.4 KB/s before
+(8.9 down, 3.6 up), 60 percent less. With one player it is 3.5 KB/s.
 
-The saving is on the way up: the client sends 21 packets per second instead of
-61, because an input is now sent only when the keys change and every 50 ms
-otherwise. The way down is unchanged, 7.5 KB/s and 41 packets per second per client, of
-which a snapshot is most of the volume. Reducing it needs delta snapshots, which
-we have not done (see the limits).
+Both directions went down, for two different reasons:
+
+- **Up.** The client sends 13 to 15 packets per second instead of 61, because an
+  input is now sent only when the keys change and every 100 ms otherwise.
+- **Down.** A capture of the traffic of the server showed that 98 percent of it was
+  snapshots and that 92 percent of their entries were stage scenery (ground
+  tiles, ramps, reactors, gates). The scenery scrolls at a constant velocity that
+  the client knows, so it is now sent once and then only every 1.5 to 2.5 seconds.
+  The average snapshot went from 442 to 105 bytes, and the way down from 7.7 to
+  3.4 KB/s per client with four players.
+
+### Shooting
+
+A player on a narrow link could move, but shots seemed not to work: the missile
+appears only when the server creates it, and the message came back late. This is
+the time between the release of the fire button and the moment the missile is
+visible:
+
+<!-- BEGIN shots -->
+| One player shooting | Missile visible p50 (ms) | p95 (ms) | Longest (ms) | Shots measured | Shots never seen | Disconnections |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| no degradation | 17 | 17 | 17 | 8 | 0 | 0 |
+| RTT 100 ms | 101 | 118 | 118 | 8 | 0 | 0 |
+| 10 % loss | 17 | 50 | 50 | 9 | 0 | 0 |
+| 40 KB/s link | 17 | 18 | 18 | 9 | 0 | 0 |
+| 20 KB/s link | 17 | 18 | 18 | 10 | 0 | 0 |
+| 10 KB/s link | 18 | 19 | 19 | 10 | 0 | 0 |
+| 5 KB/s link | 88 | 122 | 122 | 10 | 0 | 0 |
+<!-- END shots -->
+
+Without degradation the missile is visible in 17 ms, which is one tick of the
+server. With 100 ms of RTT it takes one round trip time more, as the missile is
+created by the server and not predicted. On a link of 10 KB/s or more it is not
+affected, and on a 5 KB/s link it takes 88 ms in the median and 122 ms at most, no shot
+was lost. Before the fixes of the resend delay and of the snapshots the same test took
+810 ms in the median and up to 1.5 s on a 5 KB/s link.
 
 ### Narrow links
 
-![Line chart. The horizontal axis is the capacity of the link in KB/s, 5, 10, 20 and 40, on a logarithmic scale. The vertical axis is the delay before the ship moves. Before the changes the delay is 775 ms at 10 KB/s and no movement was seen at 5 KB/s. After, the delay confirmed by the server is 64 ms at 10 KB/s and 149 ms at 5 KB/s, and the ship seen by the player moves at once on every link.](netbench/narrow_links.svg)
+![Line chart. The horizontal axis is the capacity of the link in KB/s, 5, 10, 20 and 40, on a logarithmic scale. The vertical axis is the delay before the ship moves. Before the changes the delay is 775 ms at 10 KB/s and no movement was seen at 5 KB/s. After, the delay confirmed by the server is 40 ms at 10 KB/s and 58 ms at 5 KB/s, and the ship seen by the player moves at once on every link.](netbench/narrow_links.svg)
 
 **Text description of the figure.** With one player, a link of 20 or 40 KB/s works
 the same before and after, 47 and 41 ms. At 10 KB/s the delay before the ship moved
-was 775 ms and is now 64 ms. At 5 KB/s the ship never moved in the before
-runs, and the server confirms the movement after 149 ms now. The ship seen by the
+was 775 ms and is now 40 ms. At 5 KB/s the ship never moved in the before
+runs, and the server confirms the movement after 58 ms now. The ship seen by the
 player moves at once on every link.
 
 <!-- BEGIN links -->
 | Link (one player) | Delay before (ms) | Delay after, confirmed (ms) | Delay after, seen (ms) | Updates before | Updates after | Update every, after (ms) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | no limit | 34 | 34 | 0 | 100 % | 100 % | 50 |
-| 40 KB/s | 41 | 41 | 0 | 100 % | 100 % | 50 |
-| 20 KB/s | 47 | 47 | 0 | 100 % | 100 % | 50 |
-| 10 KB/s | 775 | 64 | 0 | 89 % | 91 % | 50 |
-| 5 KB/s | no sample | 149 | 0 | 39 % | 32 % | 177 |
+| 40 KB/s | 41 | 35 | 0 | 100 % | 100 % | 50 |
+| 20 KB/s | 47 | 38 | 0 | 100 % | 100 % | 50 |
+| 10 KB/s | 775 | 40 | 0 | 89 % | 100 % | 50 |
+| 5 KB/s | no sample | 58 | 0 | 39 % | 95 % | 50 |
 <!-- END links -->
 
-With four players, the link is shared by the room:
+When several players are in the room, they share the link:
 
 <!-- BEGIN shared_links -->
 | Link shared by the room | Delay before (ms) | Delay after, confirmed (ms) | Delay after, seen (ms) | Updates before | Updates after | Disconnections after |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 20 KB/s for 4 players | 663 | 296 | 0 | 45 % | 27 % | 0 |
-| 10 KB/s for 4 players | 749 | no sample | 0 | 63 % | 40 % | 3 |
-| 5 KB/s for 4 players | no sample | no sample | no sample | 53 % | no game | 0 |
-| 50 KB/s for 4 players | 481 | 59 | 0 | 86 % | 99 % | 0 |
+| 10 KB/s for 2 players | not measured | 35 | 0 | not measured | 82 % | 0 |
+| 5 KB/s for 2 players | not measured | 361 | 0 | not measured | 31 % | 0 |
+| 20 KB/s for 4 players | 663 | 157 | 0 | 45 % | 66 % | 0 |
+| 10 KB/s for 4 players | 749 | 867 | 0 | 63 % | 30 % | 0 |
+| 5 KB/s for 4 players | no sample | no sample | no sample | 53 % | 17 % | 0 |
+| 50 KB/s for 4 players | 481 | 45 | 0 | 86 % | 100 % | 0 |
 <!-- END shared_links -->
+
+Two players can share 10 KB/s (82 percent of the updates, 35 ms) and still play on
+5 KB/s with long delays (361 ms, 31 percent of the updates). Four players need about
+20 KB/s: below that the game degrades but nobody is disconnected, whereas before the
+clients were disconnected or the game did not start.
 
 The server watches the round trip time of every client. When a queue fills in
 front of a link, it sends fewer snapshots to that client (down to 5 per second),
-so the queue empties and the delay comes back. That is what makes 10 KB/s per
-player work, and the congested mobile profile.
-
-The 5 KB/s link is still on the edge. The ship seen by the player moves at once and
-the server confirms after 149 ms, but world updates arrive every 177 ms and one of
-the two runs ended with a disconnection. The cause is the burst of `CreateEntity`
-sent when the game starts: it fills the queue of a 5 KB/s link before the
-adaptation can react, and reliable packets are dropped. Four players on 5 or
-10 KB/s in total are below what the game needs: before and after, the clients are
-disconnected or the game does not start.
+so the queue empties and the delay comes back. With the smaller snapshots a
+single player no longer fills a 5 KB/s link, the 5 KB/s link of one player is
+rated playable, and the adaptation mostly protects rooms of several players
+and the congested mobile profile.
 
 ## What was changed
 
-Three changes came out of the first round of measurements:
+Several changes came out of the rounds of measurements:
 
 1. **Prediction with reconciliation of the local ship.** The ship moves at once,
    with the movement of the server, and each snapshot corrects it. This removes the
    round trip time from what the player feels (@ref networking_latency).
-2. **Inputs sent when they change.** 21 packets per second instead of 61, with
-   two repeats and a 50 ms heartbeat against packet loss.
-3. **Snapshot rate adapted to the link.** A client whose round trip time grows by
-   more than 60 ms is sent fewer snapshots. The round trip time is now measured on
-   every acknowledged packet, because the one used for resends was too rare to see
-   a queue (28 ms measured while the real delay was 775 ms).
+2. **Inputs sent when they change.** 13 to 15 packets per second instead of 61,
+   with two repeats and a 100 ms heartbeat against packet loss.
+3. **Scenery sent only now and then.** The snapshot went from 442 to 105 bytes.
+4. **Snapshot rate adapted to the link.** A client whose smallest round trip time
+   stays more than 80 ms above its normal value for two checks is sent fewer
+   snapshots. The round trip time is measured on every acknowledged packet,
+   because the one used for resends was too rare to see a queue (28 ms measured
+   while the real delay was 775 ms). A first version reacted too fast and slowed
+   the snapshots down on jitter and loss (54 percent of the updates received at 40
+   ms of jitter): this benchmark showed it, and the second version fixed it.
+5. **Resend delay that follows the queue.** A critical packet was sent again
+   every 100 ms while it waited in the queue of a saturated link, which made the
+   queue longer (@ref networking_latency, *Resends on a saturated link*).
 
 The protocol version went from 2 to 3 because the `Snapshot` header and the
-meaning of `Input` changed.
+meaning of `Input` changed. A snapshot also no longer lists the stage scenery.
 
 ## Limits and known problems
 
@@ -361,8 +413,8 @@ meaning of `Input` changed.
   in about 15 seconds. A human player holds keys longer, and a real client has
   frames of different durations, which makes the prediction gap larger than
   measured here, where it is exactly 0 with no network delay. The graphical
-  client uses the same prediction code and compiles, but we did not play it
-  under degraded conditions: it needs a screen.
+  client uses the same prediction code, and shows the same measures live with
+  the F3 key (see below).
 - **Few samples.** About ten key presses per scenario, two runs. The 95th
   percentiles and the comparisons below 50 ms are not reliable.
 - **Other players and enemies are seen late and in steps.** Only the ship of the
@@ -374,11 +426,14 @@ meaning of `Input` changed.
 - **Missiles leave from the position of the server ship**, which is behind the ship
   that the player sees by about half a round trip time. At 300 pixels per second
   and 100 ms of RTT that is 15 pixels. The server does not compensate the lag.
-- **The way down is still 7.5 KB/s per client.** Every snapshot carries the full
-  position of every entity. Only the entities that changed, or only the ones that
-  cannot be guessed (the enemies move in straight lines), would be needed.
-- **The burst of `CreateEntity` at the start** is not paced, so it can overflow a
-  very narrow link (see above).
+- **The way down is still 3.4 KB/s per client with four players.** Every
+  snapshot carries the full position of every entity that is not scenery. Sending
+  only what changed, or what cannot be guessed (enemies and missiles move in
+  straight lines), would reduce it further.
+- **Four players on less than 20 KB/s** do not get a good game, even if nobody is
+  disconnected any more.
+- **Missiles are not predicted.** They appear when the server creates them, one
+  round trip time after the key was released.
 - **The speed of a ship is read from its blueprint.** A speed power up is applied
   by the client and the server with the same rule, but if they ever disagree
   the prediction is corrected at each snapshot, and the ship slides.
@@ -400,5 +455,11 @@ netem_off                                    # no degradation
 
 The server and every client started from this shell talk through the degraded
 loopback of the namespace. `exit` stops the server.
+
+In the client, F3 shows the network metrics on screen: round trip time, packet
+loss, bandwidth in both directions, wait between two world updates, delay before
+the server confirms an input, gap of the predicted ship, and a verdict rated with
+the same thresholds as this page. The complete list, with the percentiles, is
+written on the console when F3 is pressed and every five seconds after.
 
 On Windows the subject recommends `clumsy`: the same conditions can be set with it.

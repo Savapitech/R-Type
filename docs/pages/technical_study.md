@@ -329,9 +329,9 @@ section 10.1.
 **Measured effect** (@ref network_benchmark). The delay seen by the player went
 from the round trip time plus 35 ms to 0 ms in the same frame, at every latency up
 to 500 ms and with up to 50 percent loss. The gap between the predicted ship and
-the server position has a median below 1 pixel, a 95th percentile of at most 10
-pixels, and the prediction had to jump only twice in 15 213 comparisons, both on a
-5 KB/s link.
+the server position has a median below 1 pixel, a 95th percentile of at most 7
+pixels in the ten conditions of the figure, and the prediction never had to jump
+in 18 835 comparisons.
 
 **Limits.** The server position is only trusted through the acknowledged tick,
 which assumes that the client and the server tick at the same rate. We measured
@@ -345,13 +345,29 @@ The subject asks to test a very low bandwidth, 5 KB/s. Each client used to recei
 7.7 KB/s of snapshots and creations and to send 1.9 KB/s of inputs (12.4 KB/s on
 the wire with the IP and UDP headers). On a link that cannot carry this, a queue
 grows in front of it, and all the packets arrive late: a 10 KB/s link added 775
-ms, a 5 KB/s link made the game unplayable.
+ms, a 5 KB/s link made the game unplayable. Two things were done: send less, and
+adapt when the link is still too small.
 
 **Sending less upstream.** An input was sent 60 times per second, 31 bytes each,
 19 of which are the packet header, while the server keeps the last actions it
 received. It is now sent when the keys change, twice more against packet loss, and
-every 50 ms otherwise: 21 packets per second instead of 61, 0.66 KB/s instead of
-1.90 KB/s.
+every 100 ms otherwise: 13 to 15 packets per second instead of 61, 0.45 KB/s
+instead of 1.90 KB/s.
+
+**Sending less downstream.** We measured before cutting. A capture of everything the
+server sends in a one player game showed that 98 percent of the bytes were
+snapshots, and that 92 percent of the entries of a snapshot (38 of 41) were stage
+scenery: ground tiles, ramps, reactors and gates. They scroll at a constant
+velocity (-50 pixels per second) that comes from their blueprint, which the client
+has too and applies with its own movement system. Sending their position 20 times
+per second was redundant. The server now sends a piece of scenery to a client in the
+first snapshot after the client learns about it, and then every 1.5 to 2.5 seconds to
+correct any drift, spread by id. The average snapshot went from 442 to 105 bytes.
+The other usual options were not chosen for now: a lower snapshot rate hides the
+problem for every entity and makes the ships of the other players move in bigger
+steps, and a generic delta against the previous snapshot would not help here, since
+a scrolling tile changes position every time. Knowing what the client can deduce
+is what removes the entries.
 
 **Sending fewer snapshots when the link is saturated.** The question is how the
 server knows that a client's link is saturated.
@@ -360,28 +376,44 @@ server knows that a client's link is saturated.
 | ------ | ---- | --- | -------- |
 | Packet loss | Easy to count with the ack bit field | Loss also comes from radio noise, where sending less does not help. With a deep buffer it comes late, after seconds of delay | Rejected as the only signal. |
 | Round trip time of the reliable packets (what the resend logic used) | Already measured | Too few samples: it said 28 ms while the real delay was 775 ms | Rejected. |
-| **Smallest round trip time of every acknowledged packet over half a second** | About 20 samples per second and per client, grows as soon as a queue forms, ignores the delay before the acknowledgement because of the minimum | The empty link round trip time must be known: it is the smallest value seen, taken in the lobby where nothing is sent | **Chosen.** |
+| **Smallest round trip time of every acknowledged packet over half a second** | About 10 samples per second and per client, grows as soon as a queue forms, ignores the delay before the acknowledgement because of the minimum | The empty link round trip time must be known: it is the smallest value seen, taken in the lobby where nothing is sent | **Chosen.** |
 | Bandwidth estimation by packet pairs, or a report from the client | Gives the capacity directly | Needs a probing protocol or a new message, fragile on a shared link | Too heavy for the gain. |
 
-When the smallest round trip time of a client is more than 60 ms above its normal
-value, the server sends it one snapshot out of 2, 3 or 4 (down to 5 per second),
-and goes straight to 4 if it is more than 300 ms above. It speeds up one step after
-6 seconds without growth, because trying a faster rate on a link that cannot
-carry it fills the queue again.
+When the smallest round trip time of a client stays more than 80 ms above its normal
+value on two checks in a row, the server sends it one snapshot out of 2, 3 or 4
+(down to 5 per second), and goes straight to 4 if it is more than 300 ms above. It
+speeds up one step after 6 seconds without growth, because trying a faster rate on a
+link that cannot carry it fills the queue again. A window with fewer than 3 samples
+is ignored.
 
-**Measured effect.** With one player, a 10 KB/s link went from 775 to 64 ms of
-confirmation delay. Four players on a congested mobile profile (400 kbit/s) went
-from 501 to 227 ms, and on a 50 KB/s link from 481 to 59 ms. A 5 KB/s link, which
-did not work at all, now gives 149 ms and world updates every 177 ms, but one run
-out of two was disconnected. The reason is the burst of creations at the start of
-the game, which overflows the queue before the adaptation reacts. Pacing it is a
-known follow-up.
+**A first version was wrong, and the benchmark showed it.** It looked at a quarter of
+a second and reacted after one check above 60 ms. With the input heartbeat at 100 ms
+there are only 2 or 3 samples in such a window, and the delay before the
+acknowledgement (up to 100 ms) is larger than the margin. It slowed the snapshots
+down for nothing: 54 percent of the updates received with 40 ms of jitter, 31
+percent with 50 percent loss. The window, the margin and the two checks were chosen
+to remove these false alarms: the same scenarios gave 100 percent and 49 percent.
 
-**What was not done.** The way down stays at 7.5 KB/s per client. Delta
-snapshots, which the subject suggests, would reduce it further by sending only the
-entities that changed, and would make narrower links possible. We chose to adapt
-the rate first because it solves the saturation without changing the format of the
-snapshot a second time.
+**Resends.** The round trip time used to decide when to send a critical packet again
+was measured only on packets that had never been sent again. On a saturated link
+it stayed at its small old value, and every critical packet was sent again every 100
+ms while it waited in the queue: up to 31 resends per second were measured on a 5
+KB/s link, which made the queue longer. It is now measured on every acknowledged
+packet, so the resend delay follows the queue.
+
+**Measured effect** (@ref network_benchmark). On the wire a client now uses 5.0 KB/s
+with four players (12.4 KB/s before) and 3.5 KB/s alone. With one player, a 10 KB/s link
+went from 775 to 40 ms of confirmation delay, and a 5 KB/s link, which did not work at
+all, is rated playable: the server confirms an input after 58 ms, the world is
+updated every 50 ms for 95 percent of the time, and a missile appears 88 ms after
+the fire button is released (810 ms before the resend fix). Four players on the
+congested mobile profile (400 kbit/s) went from 501 to 177 ms, and on a 50 KB/s link
+from 481 to 45 ms. Not one of the 88 runs ended with a disconnection.
+
+**Limits.** Four players on a link under 20 KB/s are below what the game needs: they
+stay connected but get a degraded game. The way down is 3.4 KB/s per client with four
+players, and could be lowered further by sending only what the client cannot guess
+(enemies and missiles move in straight lines too).
 
 ## 7. Build and dependencies
 
