@@ -303,6 +303,14 @@
     {
       "name": "stage3_boss_room",
       "file": "assets/descriptionEntity/stage3_boss_room.json"
+    },
+    {
+      "name": "warship",
+      "file": "assets/descriptionEntity/warship.json"
+    },
+    {
+      "name": "warship_turret",
+      "file": "assets/descriptionEntity/warship_turret.json"
     }
   ]
 }
