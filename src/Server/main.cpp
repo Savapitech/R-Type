@@ -1,9 +1,12 @@
+#include <charconv>
 #include <cstdint>
 #include <cstdlib>
 #include <exception>
 #include <iostream>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <system_error>
 
 #include "GameEngine.hpp"
 #include "Resources/Resources.hpp"
@@ -19,6 +22,16 @@ static void printUsage(std::string_view progName) {
             << "  -h, --help          Display this help message\n";
 }
 
+static std::optional<std::uint16_t> parsePort(std::string_view text) {
+  std::uint16_t port = 0;
+  const char *const end = text.data() + text.size();
+  const auto [last, error] = std::from_chars(text.data(), end, port);
+
+  if (error != std::errc{} || last != end || port == 0)
+    return std::nullopt;
+  return port;
+}
+
 int main(int argc, char *argv[]) {
   try {
     rtype::res::mount();
@@ -30,21 +43,28 @@ int main(int argc, char *argv[]) {
         printUsage(argv[0]);
         return EXIT_SUCCESS;
       }
+      std::string_view portText;
       if (arg == "-p" || arg == "--port") {
-        if (i + 1 < argc) {
-          port = static_cast<std::uint16_t>(std::stoi(argv[++i]));
-        } else {
+        if (i + 1 >= argc) {
           std::cerr << "Error: " << arg << " requires a port number\n";
           printUsage(argv[0]);
           return EXIT_FAILURE;
         }
+        portText = argv[++i];
       } else if (arg.rfind("-", 0) != 0) {
-        port = static_cast<std::uint16_t>(std::stoi(argv[i]));
+        portText = arg;
       } else {
         std::cerr << "Unknown option: " << arg << "\n";
         printUsage(argv[0]);
         return EXIT_FAILURE;
       }
+      const auto parsed = parsePort(portText);
+      if (!parsed) {
+        std::cerr << "Error: invalid port '" << portText
+                  << "', expected a number between 1 and 65535\n";
+        return EXIT_FAILURE;
+      }
+      port = *parsed;
     }
 
     rtype::server::Game game(port);
