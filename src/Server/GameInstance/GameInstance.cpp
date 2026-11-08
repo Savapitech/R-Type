@@ -29,6 +29,7 @@
 #include "systems/LuaScriptSystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/WaveMovementSystem.hpp"
+#include "systems/tailSystem.hpp"
 
 #include <algorithm>
 #include <array>
@@ -327,6 +328,7 @@ void GameInstance::addSystems(Server &server) {
       rtk::ecs::Order::Update);
 
   context.scheduler.add<rtk::systems::LuaScriptSystem>(rtk::ecs::Order::Update);
+  context.scheduler.add<rtk::systems::TailSystem>(rtk::ecs::Order::Update);
 
   _systemsRegistered = true;
 }
