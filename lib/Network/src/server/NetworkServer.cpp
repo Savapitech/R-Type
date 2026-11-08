@@ -167,7 +167,8 @@ void NetworkServer::handleConnectedPacket(
 
   std::vector<ParsedMessage> messages;
   if (!MessageParser::parseBody(header.compressed, reader, messages)) {
-    std::cerr << "Invalid message framing" << header.connectionId << std::endl;
+    std::cerr << "Invalid message framing from connection "
+              << header.connectionId << std::endl;
     return;
   }
 
