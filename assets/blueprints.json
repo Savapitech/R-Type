@@ -171,6 +171,18 @@
     {
       "name": "dobkeratops_bottom_hitbox",
       "file": "assets/descriptionEntity/dobkeratops_bottom_hitbox.json"
+    },
+    {
+      "name": "dobkeratops_tail_big",
+      "file": "assets/descriptionEntity/dobkeratops_tail_big.json"
+    },
+    {
+      "name": "dobkeratops_tail_medium",
+      "file": "assets/descriptionEntity/dobkeratops_tail_medium.json"
+    },
+    {
+      "name": "dobkeratops_tail_small",
+      "file": "assets/descriptionEntity/dobkeratops_tail_small.json"
     }
   ]
 }

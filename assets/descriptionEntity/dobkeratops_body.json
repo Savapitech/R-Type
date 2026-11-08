@@ -57,8 +57,7 @@
             "height": 95.0,
             "layer": "Enemy",
             "mask": [
-                "PlayerProjectile",
-                "Player"
+                "PlayerProjectile"
             ]
         },
         "enemy": {
@@ -67,6 +66,25 @@
             "blueprintName": "dobkeratops_bullet",
             "offsetX": -5.0,
             "offsetY": 200.0
+        },
+        "tail": {
+            "segmentsBlueprint": [
+                "dobkeratops_tail_big",
+                "dobkeratops_tail_big",
+                "dobkeratops_tail_big",
+                "dobkeratops_tail_medium",
+                "dobkeratops_tail_medium",
+                "dobkeratops_tail_medium",
+                "dobkeratops_tail_small",
+                "dobkeratops_tail_small"
+            ],
+            "tipX": 60.0,
+            "tipY": 186.0,
+            "spacing": 33.0,
+            "baseAngle": 3.4,
+            "swing": 0.6,
+            "speed": 2.5,
+            "phase": 0.5
         },
         "networkEntity": {},
         "deathEffect": {

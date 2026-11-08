@@ -19,6 +19,7 @@
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
 #include "components/WaveMovement.hpp"
+#include "components/bossTail.hpp"
 #include "components/powerUp.hpp"
 #include "systems/BulletSystem.hpp"
 #include "systems/ColliderSystem.hpp"
@@ -163,6 +164,7 @@ void GameInstance::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::powerUp>();
   context.registry.register_component<component::DropPowerUp>();
   context.registry.register_component<component::DeathEffect>();
+  context.registry.register_component<component::tail>();
 }
 
 void GameInstance::registerBuilders(rtk::EngineContext &context) {
@@ -260,6 +262,8 @@ void GameInstance::registerBuilders(rtk::EngineContext &context) {
                                          component::dropPowerupFromJson);
   context._entityFactory.registerBuilder("deathEffect",
                                          component::deathEffectFromJson);
+  context._entityFactory.registerBuilder("tail", component::tailFromJson);
+  context._entityFactory.registerBuilder("Tail", component::tailFromJson);
 }
 
 void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
@@ -1515,12 +1519,37 @@ void GameInstance::updateStage(float dt) {
             bodyNetId, bossTransform->position.x, bossTransform->position.y,
             "dobkeratops_body"});
 
+        const auto bossPos = bossTransform->position;
+        const auto bossScale = bossTransform->scale;
+
+        auto *bossTail =
+            context.registry.get_components<component::tail>().get(bossEntity);
+        if (bossTail) {
+          const float tipScreenX = bossPos.x + bossTail->tipX * bossScale.x;
+          const float tipScreenY = bossPos.y + bossTail->tipY * bossScale.y;
+
+          bossTail->_segments.clear();
+          for (const auto &segmentBp : bossTail->_segmentsBluePrint) {
+            std::uint32_t segmentNetId =
+                NetworkIdGenerator::getInstance().getNextId();
+            auto segmentEntity = context._entityFactory.createNetwork(
+                context.registry, segmentBp, segmentNetId);
+            bossTail->_segments.push_back(segmentEntity);
+
+            if (auto *segTransform = transforms.get(segmentEntity)) {
+              segTransform->position = {tipScreenX, tipScreenY};
+              _eventBus.publish(rtype::events::EnemySpawnedEvent{
+                  segmentNetId, segTransform->position.x,
+                  segTransform->position.y, segmentBp});
+            }
+          }
+        }
         std::uint32_t hitboxNetId =
             NetworkIdGenerator::getInstance().getNextId();
         auto bottomHitbox = context._entityFactory.createNetwork(
             context.registry, "dobkeratops_bottom_hitbox", hitboxNetId);
         if (auto *hitboxTransform = transforms.get(bottomHitbox)) {
-          hitboxTransform->position = bossTransform->position;
+          hitboxTransform->position = bossPos;
           _eventBus.publish(rtype::events::EnemySpawnedEvent{
               hitboxNetId, hitboxTransform->position.x,
               hitboxTransform->position.y, "dobkeratops_bottom_hitbox"});
@@ -1532,10 +1561,8 @@ void GameInstance::updateStage(float dt) {
         auto *alienTransform = transforms.get(alienEntity);
         auto *alienVelocity = velocities.get(alienEntity);
         if (alienTransform) {
-          alienTransform->position.x =
-              bossTransform->position.x + 72.0f * bossTransform->scale.x;
-          alienTransform->position.y =
-              bossTransform->position.y + 94.0f * bossTransform->scale.y;
+          alienTransform->position.x = bossPos.x + 72.0f * bossScale.x;
+          alienTransform->position.y = bossPos.y + 94.0f * bossScale.y;
           _eventBus.publish(rtype::events::EnemySpawnedEvent{
               alienNetId, alienTransform->position.x,
               alienTransform->position.y, "dobkeratops_alien"});
