@@ -15,7 +15,7 @@
 #include "scene/roomListScene.hpp"
 #include "sceneManager/sceneManager.hpp"
 
-#include "rtkAudiManagerAdapter.hpp"
+#include "rtkAudioManagerAdapter.hpp"
 #include "rtkWindowAdapter.hpp"
 
 #include "ClientMetrics.hpp"
