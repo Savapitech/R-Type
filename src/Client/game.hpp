@@ -342,13 +342,6 @@ private:
   void subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId);
   void addSystems(rtk::EngineContext &context);
   void loadEntityBluePrint(rtk::EngineContext &context);
-  void handleReplication(rtk::EngineContext &context);
-  void createReplicatedEntity(rtk::EngineContext &context,
-                              const protocol::CreateEntityPayload &payload);
-  void destroyReplicatedEntity(rtk::EngineContext &context,
-                               const protocol::DestroyEntityPayload &payload);
-  void applySnapshot(rtk::EngineContext &context,
-                     const protocol::SnapshotPayload &payload);
   void updateNetworkStats();
   void updateChat(rtk::EngineContext &context, float dt);
 
