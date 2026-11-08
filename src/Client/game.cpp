@@ -41,6 +41,7 @@
 #include "systems/DeadSystem.hpp"
 #include "systems/DebugCollisionSystem.hpp"
 #include "systems/HudSystem.hpp"
+#include "systems/NetworkHudSystem.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/ParallaxSystem.hpp"
@@ -528,14 +529,26 @@ void Game::addSystems(rtk::EngineContext &context) {
   _hudSystem = &context.scheduler.add<rtk::systems::HudSystem>(
       rtk::ecs::Order::Update, std::ref(_window), std::ref(_inputState),
       std::ref(context.eventBus), _fontRtype);
+  context.scheduler.add<rtk::systems::NetworkHudSystem>(
+      rtk::ecs::Order::Update, std::ref(_window), std::ref(_inputState),
+      std::cref(_networkStats), std::cref(_networkDiagnostics),
+      std::cref(_prediction), _fontRtype);
 }
 
 bool Game::shouldContinue() const {
   return !_inputState.closeRequested && !_shouldQuit;
 }
 
+static double diagnosticsNow() {
+  return std::chrono::duration<double>(
+             std::chrono::steady_clock::now().time_since_epoch())
+      .count();
+}
+
 void Game::onUpdate(rtk::EngineContext &context, float dt) {
   updateNetworkStats();
+  if (_networkClient.isConnected())
+    _networkDiagnostics.onInput(_networkClient.inputTick(), diagnosticsNow());
   NetworkEvent netEvent;
   while (_networkClient.pollEvent(netEvent)) {
     if (netEvent.type == NetworkEventType::Connected) {
@@ -681,6 +694,8 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           std::get<protocol::CreateEntityPayload>(repEvent.payload);
       _pendingEntityQueries.erase(createPayload.networkId.get());
       _destroyedEntities.erase(createPayload.networkId.get());
+      _networkDiagnostics.onEntityCreated(createPayload.networkId.get(),
+                                          diagnosticsNow());
 
       bool alreadyExists = false;
       auto viewNet = context.registry.view<component::NetworkEntity>();
@@ -916,6 +931,7 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
       auto &velocities = context.registry.get_components<component::Velocity>();
 
       _prediction.setOwnNetworkId(snapshotPayload.ownNetworkId.get());
+      _networkDiagnostics.onSnapshot(snapshotPayload, diagnosticsNow());
 
       for (const auto &netData : snapshotPayload.entities) {
         bool found = false;
@@ -928,10 +944,14 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
               // The ship of the local player is predicted: the Snapshot only
               // corrects the prediction. Its animation follows the held keys
               // (PlayerSystem).
+              const auto reconciliations = _prediction.stats().reconciliations;
               _prediction.reconcile(
                   protocol::decodePosition(netData.positionX),
                   protocol::decodePosition(netData.positionY),
                   snapshotPayload.ackedInputTick.get());
+              if (_prediction.stats().reconciliations > reconciliations)
+                _networkDiagnostics.onPredictionGap(
+                    _prediction.stats().lastError, diagnosticsNow());
               if (_prediction.isActive()) {
                 transform->position.x = _prediction.x();
                 transform->position.y = _prediction.y();
@@ -966,6 +986,8 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           if (!_destroyedEntities.contains(netData.networkId.get()) &&
               !_pendingEntityQueries.contains(netData.networkId.get())) {
             _pendingEntityQueries.insert(netData.networkId.get());
+            _networkDiagnostics.onUnknownEntity(netData.networkId.get(),
+                                                diagnosticsNow());
             _networkClient.sendQueryEntity(netData.networkId.get());
           }
         }
@@ -1017,6 +1039,7 @@ void Game::clearNetworkEntities(rtk::EngineContext &context) {
   _destroyedEntities.clear();
   _lastServerTick = 0;
   _prediction.reset();
+  _networkDiagnostics.reset();
 }
 
 void Game::onUnload(rtk::EngineContext &context) {
@@ -1193,6 +1216,10 @@ void Game::updateNetworkStats() {
   _networkStats.totalOutOfOrder = metrics.packetsOut;
   _networkStats.totalBytesReceived = metrics.bytesReceived;
   _networkStats.totalBytesSent = metrics.bytesSent;
+  _networkStats.packetLossPercent = metrics.packetLossPercentage;
+  _networkStats.totalPacketsReceived = metrics.packetsReceived;
+  _networkStats.totalPacketsSent = metrics.packetsSent;
+  _networkStats.totalPacketsLost = metrics.packetsLost;
 
   if (!_networkMetricsInitialized) {
     _previousNetworkMetrics = metrics;
