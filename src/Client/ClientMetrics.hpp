@@ -35,6 +35,14 @@ struct ClientNetworkStats {
   std::uint64_t totalBytesReceived = 0;
   /** @brief Total bytes sent. */
   std::uint64_t totalBytesSent = 0;
+  /** @brief Datagrams known to be lost, over all datagrams, in percent. */
+  float packetLossPercent = 0.0f;
+  /** @brief Total datagrams received. */
+  std::uint64_t totalPacketsReceived = 0;
+  /** @brief Total datagrams sent. */
+  std::uint64_t totalPacketsSent = 0;
+  /** @brief Total datagrams known to be lost. */
+  std::uint64_t totalPacketsLost = 0;
 };
 
 } // namespace rtype::client

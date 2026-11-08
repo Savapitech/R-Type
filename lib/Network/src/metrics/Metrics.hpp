@@ -16,6 +16,10 @@ struct NetworkMetrics {
   float smoothRtt = 0.0f;   ///< Exponentially smoothed round trip time.
   float previousRtt = 0.0f; ///< Round trip time sample before the last one.
   float jitter = 0.0f;      ///< Smoothed variation between samples.
+  /// Smallest round trip time of the last half second, in ms, measured on every
+  /// acknowledged packet. It grows when a queue fills on the path (a saturated
+  /// link), 0 until a window has been measured.
+  float windowMinRtt = 0.0f;
   /// Lost packets over all packets, in percent.
   float packetLossPercentage = 0.0f;
   uint32_t retransmissions = 0; ///< Number of resent packets.

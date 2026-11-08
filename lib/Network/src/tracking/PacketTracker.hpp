@@ -5,10 +5,12 @@
  * @{
  */
 
+#include <array>
 #include <bitset>
 #include <chrono>
 #include <cstdint>
 #include <deque>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -148,7 +150,28 @@ public:
    */
   std::uint64_t getRttSampleCount() const;
 
+  /**
+   * @brief Takes the smallest round trip time measured since the last call.
+   *
+   * Unlike the RTT used for resends, it is measured on every acknowledged
+   * packet, Unreliable ones included, so there are about as many samples as
+   * packets. A packet is acknowledged by the next packet of the peer, so a
+   * sample can be late by the delay between two packets of the peer: take the
+   * minimum of many samples. A minimum that grows means a queue is filling
+   * somewhere on the path.
+   *
+   * @return The smallest sample, or nothing if no packet was acknowledged.
+   */
+  std::optional<std::chrono::microseconds> takeMinRttSample();
+
 private:
+  /// When a packet was sent, to measure the RTT when it is acknowledged.
+  struct SentRecord {
+    std::uint32_t sequence = 0;
+    TimePoint sentAt;
+  };
+  static constexpr std::size_t SENT_HISTORY = 64;
+
   struct Pending {
     std::vector<std::uint8_t> payload; ///< Body as sent, compressed or not.
     bool compressed = false;           ///< True if payload is a zstd frame.
@@ -168,7 +191,7 @@ private:
                                         PacketPriority priority,
                                         std::uint16_t reliableId,
                                         const std::vector<std::uint8_t> &body,
-                                        bool compressed,
+                                        bool compressed, TimePoint now,
                                         std::uint32_t &sequence);
   void acknowledge(std::uint32_t ack, std::uint32_t ackBits, TimePoint now);
   bool markReliableReceived(std::uint16_t reliableId);
@@ -189,6 +212,9 @@ private:
   std::uint64_t _duplicateCount = 0;
   std::uint64_t _outOfOrderCount = 0;
   std::uint64_t _tooOldCount = 0;
+  std::array<SentRecord, SENT_HISTORY> _sent{};
+  std::uint32_t _lastSampledSequence = 0;
+  std::optional<std::chrono::microseconds> _minRttSample;
   std::chrono::microseconds _lastRttSample{0};
   std::uint64_t _rttSampleCount = 0;
   TimePoint _lastLossChange;
