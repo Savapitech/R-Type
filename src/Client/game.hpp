@@ -20,6 +20,7 @@
 
 #include "ClientMetrics.hpp"
 #include "LocalPrediction.hpp"
+#include "NetworkDiagnostics.hpp"
 #include "NetworkClient.hpp"
 #include "Protocol/RoomPayload.hpp"
 #include "metrics/Metrics.hpp"
@@ -341,6 +342,7 @@ private:
   /// Predicted ship of the local player, moved by PlayerSystem and corrected
   /// by every Snapshot.
   rtype::client::LocalPrediction _prediction;
+  rtype::client::NetworkDiagnostics _networkDiagnostics;
   clientDependancy _dependency;
   rtk::SceneManager<SceneType, clientDependancy, rtk::InputState, IntroScene,
                     MenuScene, NetworkConnectionScene, RoomListScene,
