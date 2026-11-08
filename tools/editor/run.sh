@@ -3,10 +3,12 @@
 # Extra system libraries extracted in .venv/syslibs (no root needed) are used if present.
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-libs="$root/.venv/syslibs/usr/lib/x86_64-linux-gnu"
-if [ -d "$libs" ]; then
-  export LD_LIBRARY_PATH="$libs${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+if [ "$(uname -s)" = "Linux" ]; then
+  libs="$root/.venv/syslibs/usr/lib/x86_64-linux-gnu"
+  if [ -d "$libs" ]; then
+    export LD_LIBRARY_PATH="$libs${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+  fi
+  export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
 fi
-export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
 cd "$root"
 exec "$root/.venv/bin/python" -m tools.editor "$@"

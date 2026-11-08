@@ -16,9 +16,10 @@ python3 -m tools.editor            # edits this repository
 python3 -m tools.editor path/to/project   # any folder that contains assets/
 ```
 
-Without root access (for example on WSL), `tools/editor/run.sh` starts the
-editor from the repository's `.venv` and uses the system libraries extracted in
-`.venv/syslibs`, forcing the X11 (xcb) Qt platform.
+`tools/editor/run.sh` starts the editor from the repository's `.venv`. On
+Linux without root access (for example on WSL), it also uses the system
+libraries extracted in `.venv/syslibs` and forces the X11 (xcb) Qt platform; on
+macOS the native (cocoa) platform is used.
 
 `python3 -m tools.editor --selftest` validates every JSON file under `assets/`
 (syntax, missing textures, unknown blueprints in stages) and smoke-tests the
