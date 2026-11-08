@@ -1,0 +1,85 @@
+{
+  "components": {
+    "transform": {
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "scale": {
+        "x": 2.0,
+        "y": 2.0
+      },
+      "rotation": 0.0
+    },
+    "sprite": {
+      "texture": "assets/entityTexture/warship_thruster.png",
+      "size": {
+        "w": 66.0,
+        "h": 34.0
+      },
+      "origin": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "textureRect": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 34
+      },
+      "color": {
+        "r": 255,
+        "g": 255,
+        "b": 255,
+        "a": 255
+      },
+      "layer": 0,
+      "flags": 0
+    },
+    "collider": {
+      "width": 62.0,
+      "height": 30.0,
+      "offsetX": 2.0,
+      "offsetY": 2.0,
+      "layer": "Environment",
+      "mask": [
+        "Player",
+        "PlayerProjectile"
+      ]
+    },
+    "velocity": {
+      "x": -50.0,
+      "y": 0.0
+    },
+    "animation": {
+      "frameDuration": 0.3,
+      "currentFrame": 0,
+      "totalFrames": 8,
+      "frameWidth": 66,
+      "frameHeight": 34,
+      "startX": 0,
+      "startY": 0,
+      "loop": true,
+      "playing": true,
+      "columns": 8,
+      "paddingX": 0,
+      "paddingY": 0
+    },
+    "health": {
+      "max": 300.0,
+      "current": 300.0
+    },
+    "enemy": {
+      "fireRate": 2.4,
+      "fireDelay": 1.5,
+      "blueprintName": "warship_orb",
+      "offsetX": -10.0,
+      "offsetY": 30.0
+    },
+    "bossPart": {},
+    "networkEntity": {},
+    "deathEffect": {
+      "blueprintName": "explosion"
+    }
+  }
+}

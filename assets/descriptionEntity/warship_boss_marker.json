@@ -1,0 +1,28 @@
+{
+  "components": {
+    "transform": {
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "scale": {
+        "x": 1.0,
+        "y": 1.0
+      },
+      "rotation": 0.0
+    },
+    "collider": {
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "width": 1.0,
+      "height": 1.0,
+      "layer": "BossRoom",
+      "mask": []
+    },
+    "velocity": {
+      "x": -50.0,
+      "y": 0.0
+    },
+    "networkEntity": {}
+  }
+}
