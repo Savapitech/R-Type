@@ -262,7 +262,27 @@ private:
     std::uint32_t cleanChecks = 0; ///< Checks in a row without congestion.
   };
 
-  /// Lowers or raises the snapshot rate of every client, once per second.
+  /**
+   * @brief Tells whether an entity is stage scenery (a ground tile, a ramp, a
+   * reactor, a gate).
+   *
+   * Scenery scrolls with a constant velocity that the client knows from the
+   * blueprint of the entity, so it moves it by itself between two snapshots.
+   * It is sent to a client when it first appears and then only now and then,
+   * to correct any drift, which removes most of the entries of a snapshot.
+   */
+  bool isScenery(std::uint16_t archetypeId) const;
+
+  /** @brief Server ticks after which scenery already sent is sent again. */
+  static std::uint32_t sceneryRefreshTicks(std::uint32_t networkId);
+
+  /** @brief Forgets the scenery sent for entities that no longer exist. */
+  void pruneScenerySentTicks(std::size_t aliveEntities);
+
+  /**
+   * @brief Lowers or raises the snapshot rate of every client, four times per
+   * second.
+   */
   void updateSnapshotRates(Server &server);
 
   std::uint32_t _roomId;
@@ -287,6 +307,10 @@ private:
       _sceneManager;
 
   std::array<std::uint16_t, 4> _playerArchetypes{};
+  std::array<std::uint16_t, 6> _sceneryArchetypes{};
+  std::unordered_map<std::uint32_t,
+                     std::unordered_map<std::uint32_t, std::uint32_t>>
+      _scenerySentTicks;
   rtk::collision::CollisionBuffer _collisionBuffer;
   bool _systemsRegistered = false;
   bool _eventsRegistered = false;
