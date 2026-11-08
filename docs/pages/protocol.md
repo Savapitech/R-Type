@@ -240,11 +240,15 @@ server.
 | `0x0004` | `Disconnect` | Client to server | 1 | 7.3 |
 | `0x0013` | `QueryEntity` | Client to server | 4 | 7.4 |
 | `0x0025` | `ChatSend` | Client to server | 1 + n | 7.5 |
+| `0x0026` | `SetUsername` | Client to server | n | 7.6 |
+| `0x0027` | `GetScoreboard` | Client to server | 0 | 7.7 |
 | `0x0083` | `Snapshot` | Server to client | 14 + 11 n | 8.1 |
 | `0x0084` | `CreateEntity` | Server to client | 16 | 8.2 |
 | `0x0085` | `DestroyEntity` | Server to client | 9 | 8.3 |
 | `0x0086` | `Pong` | Server to client | 4 | 8.4 |
 | `0x0096` | `ChatMessage` | Server to client | 9 + n | 8.5 |
+| `0x0097` | `Scoreboard` | Server to client | n | 8.6 |
+| `0x0098` | `ScoreUpdate` | Server to client | 4 | 8.7 |
 
 A receiver MUST ignore messages whose type it does not know, and keep
 processing the other messages of the packet. Type `0` is invalid and is never
@@ -358,6 +362,21 @@ server MUST drop the message if the text is invalid, if bytes follow it, or if
 the sender is not in a room. It also drops a message sent less than 250 ms
 after the previous accepted one of the same client. Otherwise it sends a
 `ChatMessage` to every player of the sender's room, the sender included.
+
+### 7.6 SetUsername (0x0026)
+
+The payload is the username itself, 1 to 16 bytes among `a-z`, `A-Z`, `0-9`
+and `_`, without length prefix nor terminator. Sent reliably by a client
+started with `--username`, right after `Welcome`. At the end of each round, the
+server adds the score of the connection to the stats saved under this name in
+its `scores.json` file. A client that never sends it plays without saving its
+scores. The server MUST drop the message if the name is invalid.
+
+A player earns 100 points for each enemy destroyed by one of its projectiles.
+
+### 7.7 GetScoreboard (0x0027)
+
+Empty payload, sent reliably. The server answers with a `Scoreboard`.
 
 ## 8. Server to client messages
 
@@ -473,6 +492,23 @@ recently destroyed ids so that it does not query them again when a late
 
 Sent reliably, in the lobby of the room as well as during a game. A client
 MUST drop the message if it is invalid or if `roomId` is not its current room.
+
+### 8.6 Scoreboard (0x0097)
+
+The payload is plain text, without terminator: one line per player, ended by
+`\n`, for the 10 best players sorted by best score, for example
+`1. bob  BEST 300  TOTAL 300  GAMES 1`. It is `NO SCORE YET` when no score was
+saved. Sent reliably, as the answer to `GetScoreboard`. The client displays it
+as it is.
+
+### 8.7 ScoreUpdate (0x0098)
+
+| Offset | Size | Field | Type | Description |
+| -----: | ---: | ----- | ---- | ----------- |
+| 0 | 4 | `score` | `u32` | Points of the receiving player in the current round. |
+
+Sent reliably to a player each time its score changes. The client resets the
+score to 0 when it receives `GameStarting`.
 
 ## 9. Value encodings
 
