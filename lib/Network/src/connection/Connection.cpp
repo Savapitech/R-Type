@@ -37,6 +37,23 @@ std::chrono::steady_clock::time_point Connection::getLastReceived() const {
   return _lastReceived;
 }
 
+void Connection::recordRttSample(std::chrono::microseconds sample,
+                                 std::chrono::steady_clock::time_point now) {
+  constexpr auto WINDOW = std::chrono::milliseconds(500);
+  constexpr std::uint32_t MIN_SAMPLES = 3;
+  if (now - _rttWindowStart >= WINDOW) {
+    if (_rttWindowSamples >= MIN_SAMPLES && _rttWindowMin > 0.0f)
+      _metrics.windowMinRtt = _rttWindowMin;
+    _rttWindowStart = now;
+    _rttWindowMin = 0.0f;
+    _rttWindowSamples = 0;
+  }
+  ++_rttWindowSamples;
+  const float ms = static_cast<float>(sample.count()) / 1000.0f;
+  if (_rttWindowMin == 0.0f || ms < _rttWindowMin)
+    _rttWindowMin = ms > 0.0f ? ms : 0.001f;
+}
+
 NetworkMetrics &Connection::getMetrics() { return _metrics; }
 
 const NetworkMetrics &Connection::getMetrics() const { return _metrics; }

@@ -70,6 +70,18 @@ public:
   const NetworkMetrics &getMetrics() const;
 
   /**
+   * @brief Feeds the half second window of the smallest round trip time.
+   *
+   * When a window ends its smallest sample is published in the metrics
+   * (NetworkMetrics::windowMinRtt).
+   *
+   * @param sample Round trip time of an acknowledged packet.
+   * @param now Current time.
+   */
+  void recordRttSample(std::chrono::microseconds sample,
+                       std::chrono::steady_clock::time_point now);
+
+  /**
    * @brief Records that a valid packet was just received.
    * @param now Current time.
    */
@@ -87,6 +99,9 @@ private:
   asio::ip::udp::endpoint _endpoint;
   PacketTracker _tracker;
   NetworkMetrics _metrics = {};
+  std::chrono::steady_clock::time_point _rttWindowStart;
+  float _rttWindowMin = 0.0f; ///< 0 while the window has no sample
+  std::uint32_t _rttWindowSamples = 0;
 };
 
 /** @} */

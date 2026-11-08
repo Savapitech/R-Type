@@ -2,6 +2,7 @@
 
 #include "EngineContext.hpp"
 #include "GameInstance/Scene/InstanceScenes.hpp"
+#include "Protocol/InputPayload.hpp"
 #include "Server.hpp"
 #include "collision/collisionBuffer.hpp"
 #include "sceneManager/sceneManager.hpp"
@@ -228,8 +229,68 @@ public:
   bool hasAlivePlayers();
 
 private:
+  /**
+   * @brief Actions held by a player, and when they started to be applied.
+   *
+   * It lets a snapshot tell the client which of its ticks the ship state
+   * accounts for: the held actions were applied from the client tick
+   * `clientTick` (server tick `serverTick`) and have been applied for every
+   * server tick since, so the ship state is the one of the client tick
+   * `clientTick + (now - serverTick)`.
+   */
+  struct InputRun {
+    rtype::protocol::InputAction actions = rtype::protocol::InputAction::NoneAction;
+    std::uint32_t clientTick = 0;
+    std::uint32_t serverTick = 0;
+  };
+
+  /// Client tick the ship of a player is simulated up to, 0 if no input yet.
+  std::uint32_t ackedInputTick(std::uint32_t connectionId) const;
+
+  /**
+   * @brief How often one client receives snapshots.
+   *
+   * A client whose link is saturated gets fewer snapshots, otherwise the queue
+   * of the link grows and everything arrives late. The client is detected by
+   * the round trip time: when its smallest RTT of the last half second is well
+   * above the smallest ever seen (the RTT of an empty link), packets are
+   * waiting in a queue.
+   */
+  struct SnapshotRate {
+    std::uint32_t divisor = 1; ///< Send one snapshot out of `divisor`.
+    float baseRtt = 0.0f;      ///< Smallest RTT seen, in ms, 0 if none yet.
+    std::uint32_t cleanChecks = 0; ///< Checks in a row without congestion.
+    std::uint32_t congestedChecks = 0;
+  };
+
+  /**
+   * @brief Tells whether an entity is stage scenery (a ground tile, a ramp, a
+   * reactor, a gate).
+   *
+   * Scenery scrolls with a constant velocity that the client knows from the
+   * blueprint of the entity, so it moves it by itself between two snapshots.
+   * It is sent to a client when it first appears and then only now and then,
+   * to correct any drift, which removes most of the entries of a snapshot.
+   */
+  bool isScenery(std::uint16_t archetypeId) const;
+
+  /** @brief Server ticks after which scenery already sent is sent again. */
+  static std::uint32_t sceneryRefreshTicks(std::uint32_t networkId);
+
+  /** @brief Forgets the scenery sent for entities that no longer exist. */
+  void pruneScenerySentTicks(std::size_t aliveEntities);
+
+  /**
+   * @brief Lowers or raises the snapshot rate of every client, four times per
+   * second.
+   */
+  void updateSnapshotRates(Server &server);
+
   std::uint32_t _roomId;
   std::unordered_map<std::uint32_t, std::size_t> _players;
+  std::unordered_map<std::uint32_t, InputRun> _inputRuns;
+  std::unordered_map<std::uint32_t, SnapshotRate> _snapshotRates;
+  std::uint32_t _snapshotCount = 0; ///< Snapshot periods since the start.
   std::uint32_t _serverTick = 0;
   bool _isActive = false;
   bool _gameStartRequested = false;
@@ -247,6 +308,10 @@ private:
       _sceneManager;
 
   std::array<std::uint16_t, 4> _playerArchetypes{};
+  std::array<std::uint16_t, 6> _sceneryArchetypes{};
+  std::unordered_map<std::uint32_t,
+                     std::unordered_map<std::uint32_t, std::uint32_t>>
+      _scenerySentTicks;
   rtk::collision::CollisionBuffer _collisionBuffer;
   bool _systemsRegistered = false;
   bool _eventsRegistered = false;

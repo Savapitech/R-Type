@@ -40,6 +40,15 @@ inline constexpr std::chrono::milliseconds ACK_ONLY_DELAY{50};
 /// Period of the timer that flushes the outgoing queues.
 inline constexpr std::chrono::milliseconds FLUSH_INTERVAL{5};
 
+/// Rate of the client input ticks, in ticks per second. Ticks follow the clock,
+/// not the frame rate, so the server can tell how long an input lasted.
+inline constexpr std::uint32_t INPUT_TICK_RATE = 60;
+/// Copies of an Input sent after the actions changed, against packet loss.
+inline constexpr std::uint32_t INPUT_REDUNDANT_COPIES = 2;
+/// Delay after which the held actions are sent again even if they did not
+/// change, so a lost change is repaired and the server hears a live client.
+inline constexpr std::chrono::milliseconds INPUT_HEARTBEAT{100};
+
 /// Maximum number of simultaneous client connections on a server.
 inline constexpr std::size_t MAX_CONNECTIONS = 32;
 /// Time without any valid packet after which a connection is closed.

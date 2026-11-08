@@ -2,6 +2,7 @@
 #include "EngineContext.hpp"
 #include "NetworkIdGenerator.hpp"
 #include "Protocol/EntityPayload.hpp"
+#include "Protocol/ShipMovement.hpp"
 #include "Scheduler.hpp"
 #include "Server.hpp"
 #include "ServerDeathSystem.hpp"
@@ -65,6 +66,9 @@ void GameInstance::addPlayer(std::uint32_t connectionId, std::size_t entity) {
 }
 
 bool GameInstance::removePlayer(std::uint32_t connectionId) {
+  _inputRuns.erase(connectionId);
+  _snapshotRates.erase(connectionId);
+  _scenerySentTicks.erase(connectionId);
   return _players.erase(connectionId) > 0;
 }
 
@@ -88,6 +92,8 @@ void GameInstance::setGameActive(bool active) { _isActive = active; }
 void GameInstance::resetGameState() {
   _isActive = false;
   _serverTick = 0;
+  _inputRuns.clear();
+  _scenerySentTicks.clear();
 }
 
 void GameInstance::requestGameStart() { _gameStartRequested = true; }
@@ -275,6 +281,12 @@ void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
   _playerArchetypes[1] = factory.getArchetypeID("player_green");
   _playerArchetypes[2] = factory.getArchetypeID("player_pink");
   _playerArchetypes[3] = factory.getArchetypeID("player_red");
+
+  const char *const sceneryNames[] = {"low_ground", "medium_ground",
+                                      "high_ground", "ramp",
+                                      "reactor",    "gate"};
+  for (std::size_t i = 0; i < _sceneryArchetypes.size(); ++i)
+    _sceneryArchetypes[i] = factory.getArchetypeID(sceneryNames[i]);
 }
 
 const std::array<std::uint16_t, 4> &GameInstance::getPlayerArchetypes() const {
@@ -587,25 +599,17 @@ void GameInstance::processInput(const Server::InputEvent &inputEvent,
   if (!velocity || !controllable || !transform)
     return;
 
-  velocity->x = 0.0f;
-  velocity->y = 0.0f;
   const auto actions = inputEvent.input.actions;
-  if (rtype::protocol::hasAction(actions, rtype::protocol::InputAction::Up)) {
-    velocity->y = -controllable->speed;
-  }
-  if (rtype::protocol::hasAction(actions, rtype::protocol::InputAction::Down)) {
-    velocity->y = controllable->speed;
-  }
-  if (rtype::protocol::hasAction(actions, rtype::protocol::InputAction::Left)) {
-    velocity->x = -controllable->speed;
-  }
-  if (rtype::protocol::hasAction(actions,
-                                 rtype::protocol::InputAction::Right)) {
-    velocity->x = controllable->speed;
-  }
-  if (velocity->x != 0.0f && velocity->y != 0.0f) {
-    velocity->x *= 0.7071f;
-    velocity->y *= 0.7071f;
+  const auto shipSpeed = rtype::protocol::shipVelocity(actions, controllable->speed);
+  velocity->x = shipSpeed.x;
+  velocity->y = shipSpeed.y;
+
+  // A repeated Input (redundancy, heartbeat) does not restart the run: the
+  // ship has been moving with these actions since the first one.
+  auto run = _inputRuns.find(inputEvent.connectionId);
+  if (run == _inputRuns.end() || run->second.actions != actions) {
+    _inputRuns[inputEvent.connectionId] = {
+        actions, inputEvent.input.clientTick.get(), _serverTick};
   }
   const bool isShoot =
       rtype::protocol::hasAction(actions, rtype::protocol::InputAction::Shoot);
@@ -792,6 +796,9 @@ bool GameInstance::removeConnectedPlayer(std::uint32_t connectionId,
   const auto entity = it->second;
   if (entity == NO_ENTITY) {
     _players.erase(it);
+    _inputRuns.erase(connectionId);
+    _snapshotRates.erase(connectionId);
+    _scenerySentTicks.erase(connectionId);
     return true;
   }
 
@@ -812,7 +819,75 @@ bool GameInstance::removeConnectedPlayer(std::uint32_t connectionId,
   registry.remove_entity_from_all_pools(entity);
   registry.kill_entity(entity);
   _players.erase(it);
+  _inputRuns.erase(connectionId);
+  _snapshotRates.erase(connectionId);
+  _scenerySentTicks.erase(connectionId);
   return true;
+}
+
+namespace {
+constexpr std::uint32_t RATE_CHECK_PERIOD = 5;
+/// Growth of the smallest RTT, in ms, above which a link counts as congested.
+constexpr float CONGESTION_MARGIN_MS = 80.0f;
+constexpr std::uint32_t CONGESTED_CHECKS_TO_SLOW = 2;
+/// Growth above which the queue is already long: go to the slowest rate at once.
+constexpr float SEVERE_CONGESTION_MS = 300.0f;
+constexpr std::uint32_t SCENERY_REFRESH_BASE_TICKS = 90;
+constexpr std::uint32_t SCENERY_REFRESH_SPREAD = 20;
+constexpr std::uint32_t SCENERY_REFRESH_SPREAD_TICKS = 3;
+constexpr std::uint32_t SCENERY_PRUNE_PERIOD = 100;
+constexpr std::size_t SCENERY_PRUNE_SLACK = 64;
+/// Slowest rate: one snapshot out of this many (5 per second).
+constexpr std::uint32_t MAX_SNAPSHOT_DIVISOR = 4;
+/// Checks without congestion before the rate goes up one step (6 s): trying a
+/// faster rate on a link that cannot carry it fills the queue again.
+constexpr std::uint32_t CLEAN_CHECKS_TO_SPEED_UP = 24;
+} // namespace
+
+std::uint32_t GameInstance::sceneryRefreshTicks(std::uint32_t networkId) {
+  return SCENERY_REFRESH_BASE_TICKS +
+         (networkId % SCENERY_REFRESH_SPREAD) * SCENERY_REFRESH_SPREAD_TICKS;
+}
+
+void GameInstance::updateSnapshotRates(Server &server) {
+  const auto metrics = server.getAllClientMetrics();
+  for (const auto &[connectionId, entity] : _players) {
+    (void)entity;
+    const auto client = metrics.find(connectionId);
+    if (client == metrics.end() || client->second.windowMinRtt <= 0.0f)
+      continue;
+
+    SnapshotRate &rate = _snapshotRates[connectionId];
+    const float rtt = client->second.windowMinRtt;
+    if (rate.baseRtt == 0.0f || rtt < rate.baseRtt)
+      rate.baseRtt = rtt;
+
+    const float queueDelay = rtt - rate.baseRtt;
+    if (queueDelay > CONGESTION_MARGIN_MS) {
+      rate.cleanChecks = 0;
+      ++rate.congestedChecks;
+      if (queueDelay > SEVERE_CONGESTION_MS) {
+        rate.divisor = MAX_SNAPSHOT_DIVISOR;
+      } else if (rate.congestedChecks >= CONGESTED_CHECKS_TO_SLOW &&
+                 rate.divisor < MAX_SNAPSHOT_DIVISOR) {
+        ++rate.divisor;
+        rate.congestedChecks = 0;
+      }
+    } else {
+      rate.congestedChecks = 0;
+      if (++rate.cleanChecks >= CLEAN_CHECKS_TO_SPEED_UP && rate.divisor > 1) {
+        --rate.divisor;
+        rate.cleanChecks = 0;
+      }
+    }
+  }
+}
+
+std::uint32_t GameInstance::ackedInputTick(std::uint32_t connectionId) const {
+  const auto run = _inputRuns.find(connectionId);
+  if (run == _inputRuns.end())
+    return 0;
+  return run->second.clientTick + (_serverTick - run->second.serverTick);
 }
 
 void GameInstance::sendSnapshots(Server &server) {
@@ -820,18 +895,16 @@ void GameInstance::sendSnapshots(Server &server) {
   auto view = registry.view<component::NetworkEntity, component::Transform>();
   auto &transforms = registry.get_components<component::Transform>();
   auto &networkEntities = registry.get_components<component::NetworkEntity>();
-  protocol::SnapshotPayload snapshot;
-  snapshot.serverTick = _serverTick;
 
-  const auto flush = [&]() {
-    if (snapshot.entities.empty())
-      return;
+  ++_snapshotCount;
+  if (_snapshotCount % RATE_CHECK_PERIOD == 0)
+    updateSnapshotRates(server);
 
-    for (const auto &[connectionId, _] : _players)
-      server.sendSnapshot(connectionId, snapshot);
-    snapshot.entities.clear();
+  struct Candidate {
+    protocol::SnapshotEntityState state;
+    bool scenery;
   };
-
+  std::vector<Candidate> candidates;
   for (auto entity : view) {
     const auto *transform = transforms.get(entity);
     const auto *netEnt = networkEntities.get(entity);
@@ -847,19 +920,65 @@ void GameInstance::sendSnapshots(Server &server) {
         transform->position.y > protocol::MAX_POSITION)
       continue;
 
-    snapshot.entities.push_back(
-        {netEnt->id, static_cast<std::uint8_t>(netEnt->archetypeId & 0xFF),
-         protocol::encodePosition(transform->position.x),
-         protocol::encodePosition(transform->position.y),
-         protocol::encodeRotation(transform->rotation)});
-
-    if (snapshot.entities.size() == protocol::SNAPSHOT_MAX_ENTITIES) {
-      flush();
-    }
+    candidates.push_back(
+        {{netEnt->id, static_cast<std::uint8_t>(netEnt->archetypeId & 0xFF),
+          protocol::encodePosition(transform->position.x),
+          protocol::encodePosition(transform->position.y),
+          protocol::encodeRotation(transform->rotation)},
+         isScenery(netEnt->archetypeId)});
   }
 
-  flush();
+  if (_snapshotCount % SCENERY_PRUNE_PERIOD == 0)
+    pruneScenerySentTicks(candidates.size());
+
+  for (const auto &[connectionId, entity] : _players) {
+    const auto rate = _snapshotRates.find(connectionId);
+    if (rate != _snapshotRates.end() &&
+        _snapshotCount % rate->second.divisor != 0)
+      continue;
+
+    protocol::SnapshotPayload snapshot;
+    snapshot.serverTick = _serverTick;
+    snapshot.ackedInputTick = ackedInputTick(connectionId);
+    if (entity != NO_ENTITY) {
+      if (const auto *own = networkEntities.get(entity))
+        snapshot.ownNetworkId = own->id;
+    }
+
+    auto &sentTicks = _scenerySentTicks[connectionId];
+    for (const auto &candidate : candidates) {
+      const std::uint32_t id = candidate.state.networkId.get();
+      if (candidate.scenery) {
+        const auto sent = sentTicks.find(id);
+        if (sent != sentTicks.end() &&
+            _serverTick - sent->second < sceneryRefreshTicks(id))
+          continue;
+        sentTicks[id] = _serverTick;
+      }
+      snapshot.entities.push_back(candidate.state);
+      if (snapshot.entities.size() == protocol::SNAPSHOT_MAX_ENTITIES) {
+        server.sendSnapshot(connectionId, snapshot);
+        snapshot.entities.clear();
+      }
+    }
+    if (!snapshot.entities.empty())
+      server.sendSnapshot(connectionId, snapshot);
+  }
 }
+
+bool GameInstance::isScenery(std::uint16_t archetypeId) const {
+  return std::find(_sceneryArchetypes.begin(), _sceneryArchetypes.end(),
+                   archetypeId) != _sceneryArchetypes.end();
+}
+
+void GameInstance::pruneScenerySentTicks(std::size_t aliveEntities) {
+  for (auto &[connectionId, sentTicks] : _scenerySentTicks) {
+    (void)connectionId;
+    if (sentTicks.size() > aliveEntities + SCENERY_PRUNE_SLACK)
+      sentTicks.clear();
+  }
+}
+
 void GameInstance::processEntityQuery(
     const Server::QueryEntityEvent &queryEvent, Server &server) {
   if (!hasPlayer(queryEvent.connectionId))
@@ -1097,6 +1216,8 @@ void GameInstance::endGame(Server &server) {
     entity = NO_ENTITY;
   _isActive = false;
   _serverTick = 0;
+  _inputRuns.clear();
+  _scenerySentTicks.clear();
 }
 
 void GameInstance::respawnPlayers() {
