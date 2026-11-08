@@ -13,6 +13,27 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  tests:
+    name: unit tests / linux-x86_64
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+
+      - name: Setup vcpkg (with GitHub Actions binary cache)
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgJsonGlob: vcpkg.json
+          vcpkgGitCommitId: 44819aa2a6c10e56065e2b0330e7d6c89d1d2574
+
+      - name: Build and run the unit tests
+        run: make tests
+
   build:
     name: ${{ matrix.target }} / ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
