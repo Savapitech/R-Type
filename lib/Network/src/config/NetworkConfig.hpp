@@ -47,7 +47,7 @@ inline constexpr std::uint32_t INPUT_TICK_RATE = 60;
 inline constexpr std::uint32_t INPUT_REDUNDANT_COPIES = 2;
 /// Delay after which the held actions are sent again even if they did not
 /// change, so a lost change is repaired and the server hears a live client.
-inline constexpr std::chrono::milliseconds INPUT_HEARTBEAT{50};
+inline constexpr std::chrono::milliseconds INPUT_HEARTBEAT{100};
 
 /// Maximum number of simultaneous client connections on a server.
 inline constexpr std::size_t MAX_CONNECTIONS = 32;
