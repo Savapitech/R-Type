@@ -840,7 +840,7 @@ bool GameInstance::removeConnectedPlayer(std::uint32_t connectionId,
 
   if (netEnt) {
     const auto payload = protocol::destroyEntityPayload(
-        _serverTick, netEnt->id, protocol::DestroyReason::Unknown);
+        _serverTick, netEnt->id, protocol::DestroyReason::PlayerDisconnected);
     for (const auto &[clientId, _] : _players) {
       if (clientId == connectionId)
         continue;
