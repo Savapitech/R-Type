@@ -3,6 +3,7 @@
   "nextStage": "stage3",
   "duration": 0.0,
   "startX": 0.0,
+  "enemies": "stage2",
   "segments": [
     {
       "blueprint": "stage2_pillar_floor",
@@ -115,6 +116,11 @@
       "spacing": 128.0
     },
     {
+      "blueprint": "gouger_nest",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
       "blueprint": "stage2_background_3",
       "symmetric": false,
       "spacing": 128.0
@@ -210,6 +216,11 @@
       "spacing": 128.0
     },
     {
+      "blueprint": "gouger_nest_ceiling",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
       "blueprint": "stage2_background_3",
       "symmetric": false,
       "spacing": 128.0
@@ -268,6 +279,16 @@
       "blueprint": "stage2_background_2",
       "symmetric": false,
       "spacing": 128.0
+    },
+    {
+      "blueprint": "gouger_nest",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "gouger_nest_ceiling",
+      "symmetric": false,
+      "spacing": 0.0
     },
     {
       "blueprint": "stage2_background_3",
@@ -360,6 +381,11 @@
       "spacing": 128.0
     },
     {
+      "blueprint": "gouger_nest",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
       "blueprint": "stage2_background_3",
       "symmetric": false,
       "spacing": 128.0
@@ -470,6 +496,11 @@
       "spacing": 128.0
     },
     {
+      "blueprint": "gouger_nest_ceiling",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
       "blueprint": "stage2_background_1",
       "symmetric": false,
       "spacing": 128.0
@@ -543,6 +574,16 @@
       "blueprint": "stage2_background_2",
       "symmetric": false,
       "spacing": 128.0
+    },
+    {
+      "blueprint": "gouger_nest",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "gouger_nest_ceiling",
+      "symmetric": false,
+      "spacing": 0.0
     },
     {
       "blueprint": "stage2_background_3",
