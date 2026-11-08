@@ -271,6 +271,38 @@
     {
       "name": "enemyShell",
       "file": "assets/descriptionEntity/enemyShell.json"
+    },
+    {
+      "name": "stage3_high_ground",
+      "file": "assets/descriptionEntity/stage3_high_ground.json"
+    },
+    {
+      "name": "stage3_high_ceiling",
+      "file": "assets/descriptionEntity/stage3_high_ceiling.json"
+    },
+    {
+      "name": "stage3_medium_ground",
+      "file": "assets/descriptionEntity/stage3_medium_ground.json"
+    },
+    {
+      "name": "stage3_medium_ceiling",
+      "file": "assets/descriptionEntity/stage3_medium_ceiling.json"
+    },
+    {
+      "name": "stage3_low_ground",
+      "file": "assets/descriptionEntity/stage3_low_ground.json"
+    },
+    {
+      "name": "stage3_low_ceiling",
+      "file": "assets/descriptionEntity/stage3_low_ceiling.json"
+    },
+    {
+      "name": "stage3_low_long_ground",
+      "file": "assets/descriptionEntity/stage3_low_long_ground.json"
+    },
+    {
+      "name": "stage3_boss_room",
+      "file": "assets/descriptionEntity/stage3_boss_room.json"
     }
   ]
 }
