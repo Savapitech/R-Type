@@ -79,11 +79,14 @@ private:
  */
 class ParticleManager final : public rtk::ecs::ISystem {
 public:
+  /**
+   * @brief Pending emission burst request to be processed on the next update.
+   */
   struct EmissionRequest {
-    rtk::ecs::concepts::ColorRGBA8 color;
-    std::size_t density;
-    float radius;
-    utils::vec2 position;
+    rtk::ecs::concepts::ColorRGBA8 color; ///< Base RGBA color of the particles.
+    std::size_t density;                  ///< Number of particles in the burst.
+    float radius;                         ///< Spatial dispersion radius in pixels.
+    utils::vec2 position;                 ///< Center emission coordinates.
   };
 
   /**
@@ -98,7 +101,11 @@ public:
 
   ~ParticleManager() override = default;
 
-  void onStart(rtk::ecs::Registry &) override {}
+  /**
+   * @brief Initializes the particle manager when the scheduler starts.
+   * @param reg ECS entity registry.
+   */
+  void onStart(rtk::ecs::Registry &reg) override { (void)reg; }
 
   /**
    * @brief Enqueues a burst of particles to be emitted on the next update.
@@ -259,6 +266,10 @@ public:
     }
   }
 
+  /**
+   * @brief Destroys all active particles and cleans up requests when stopped.
+   * @param reg ECS entity registry.
+   */
   void onStop(rtk::ecs::Registry &reg) override {
     for (auto ent : _activeParticles) {
       reg.kill_entity(ent);
