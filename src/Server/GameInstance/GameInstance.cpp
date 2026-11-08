@@ -1514,8 +1514,8 @@ void GameInstance::updateStage(float dt) {
         constexpr float screenH = 720.0f;
         const float bossH = 204.0f * bossTransform->scale.y;
         const float bossW = 155.0f * bossTransform->scale.x;
-        bossTransform->position.x = 1000.0f - (bossW / 2.0f);
-        bossTransform->position.y = (screenH - bossH) / 2.0f;
+        bossTransform->position.x = std::round(1000.0f - (bossW / 2.0f));
+        bossTransform->position.y = std::round((screenH - bossH) / 2.0f);
 
         _eventBus.publish(rtype::events::EnemySpawnedEvent{
             bodyNetId, bossTransform->position.x, bossTransform->position.y,
