@@ -898,8 +898,7 @@ bool GameInstance::removeConnectedPlayer(std::uint32_t connectionId,
 }
 
 namespace {
-/// Snapshot periods between two checks of the link of the clients (0.5 s).
-constexpr std::uint32_t RATE_CHECK_PERIOD = 10;
+constexpr std::uint32_t RATE_CHECK_PERIOD = 5;
 /// Growth of the smallest RTT, in ms, above which a link counts as congested.
 constexpr float CONGESTION_MARGIN_MS = 60.0f;
 /// Growth above which the queue is already long: go to the slowest rate at once.
@@ -908,7 +907,7 @@ constexpr float SEVERE_CONGESTION_MS = 300.0f;
 constexpr std::uint32_t MAX_SNAPSHOT_DIVISOR = 4;
 /// Checks without congestion before the rate goes up one step (6 s): trying a
 /// faster rate on a link that cannot carry it fills the queue again.
-constexpr std::uint32_t CLEAN_CHECKS_TO_SPEED_UP = 12;
+constexpr std::uint32_t CLEAN_CHECKS_TO_SPEED_UP = 24;
 } // namespace
 
 void GameInstance::updateSnapshotRates(Server &server) {

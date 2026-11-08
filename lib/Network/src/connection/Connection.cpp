@@ -39,7 +39,7 @@ std::chrono::steady_clock::time_point Connection::getLastReceived() const {
 
 void Connection::recordRttSample(std::chrono::microseconds sample,
                                  std::chrono::steady_clock::time_point now) {
-  constexpr auto WINDOW = std::chrono::milliseconds(500);
+  constexpr auto WINDOW = std::chrono::milliseconds(250);
   if (now - _rttWindowStart >= WINDOW) {
     if (_rttWindowMin > 0.0f)
       _metrics.windowMinRtt = _rttWindowMin;
