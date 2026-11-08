@@ -260,6 +260,7 @@ private:
     std::uint32_t divisor = 1; ///< Send one snapshot out of `divisor`.
     float baseRtt = 0.0f;      ///< Smallest RTT seen, in ms, 0 if none yet.
     std::uint32_t cleanChecks = 0; ///< Checks in a row without congestion.
+    std::uint32_t congestedChecks = 0;
   };
 
   /**
