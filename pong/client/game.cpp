@@ -13,6 +13,7 @@
 #include "systems/ColliderSystem.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/MovementSystem.hpp"
+#include "systems/ParticleManager.hpp"
 #include "systems/PongBallSystem.hpp"
 #include "systems/PongPaddleSystem.hpp"
 #include "systems/PongScoreSystem.hpp"
@@ -64,9 +65,27 @@ void Game::onLoad(rtk::EngineContext &context) {
   }
 
   context.eventBus.subscribe<pong::events::BallBounceEvent>(
-      [this](const pong::events::BallBounceEvent &) {
+      [this, &context](const pong::events::BallBounceEvent &event) {
         if (_audioEngine && _bounceSoundId != static_cast<std::size_t>(-1)) {
           _audioEngine->playSound(_bounceSoundId);
+        }
+        if (_particleManager) {
+          utils::vec2 bouncePos = event.position;
+          if (bouncePos.x == 0.0f && bouncePos.y == 0.0f) {
+            auto ballView = context.registry.view<::component::Transform,
+                                                 pong::component::Ball>();
+            auto &transforms =
+                context.registry.get_components<::component::Transform>();
+            for (auto ent : ballView) {
+              if (auto *t = transforms.get(ent)) {
+                bouncePos = t->position;
+                break;
+              }
+            }
+          }
+          _particleManager->generate(
+              rtk::ecs::concepts::ColorRGBA8{255, 255, 255, 255}, 20, 12.0f,
+              bouncePos);
         }
       });
 
@@ -80,6 +99,13 @@ void Game::onLoad(rtk::EngineContext &context) {
   loadAudioPlugin("bin/plugins/libpong_audio_rtk" +
                   std::string(rtk::audio::DynamicLibrary::getExtension()));
 
+  if (_particleManager) {
+    const uint32_t particleTexId =
+        _window.loadTexture("pong/asset/texture/PongAssetSheet.png").getHandle();
+    _particleManager->setDefaultTexture(particleTexId, {73, 104, 4, 4});
+    _particleManager->setParticleSize({4.0f, 4.0f});
+  }
+
   _sceneManager.start(context);
 }
 
@@ -88,6 +114,7 @@ void Game::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<::component::Velocity>();
   context.registry.register_component<::component::AABBCollider>();
   context.registry.register_component<rtk::ecs::concepts::SpriteData>();
+  context.registry.register_component<::component::Particle>();
   context.registry.register_component<pong::component::Paddle>();
   context.registry.register_component<pong::component::Ball>();
   context.registry.register_component<pong::component::ScoreDisplay>();
@@ -208,6 +235,9 @@ void Game::addSystems(rtk::EngineContext &context) {
   context.scheduler.add<pong::systems::PongScoreSystem>(
       rtk::ecs::Order::Update, std::ref(context.registry),
       std::ref(context.eventBus));
+
+  _particleManager = &context.scheduler.add<rtk::systems::ParticleManager>(
+      rtk::ecs::Order::Update, std::ref(context.registry));
 
   context.scheduler.add<rtk::systems::MovementSystem>(rtk::ecs::Order::Physics);
 
@@ -421,6 +451,22 @@ void Game::applySnapshot(rtk::EngineContext &context,
     auto *trans = transforms.get(ent);
     if (!trans)
       continue;
+
+    if (_hasLastBallPos) {
+      if (snap.ballY <= 9.0f || snap.ballY >= 700.0f ||
+          (_lastBallX < 55.0f && snap.ballX >= 55.0f) ||
+          (_lastBallX > 1225.0f && snap.ballX <= 1225.0f)) {
+        if (_particleManager) {
+          _particleManager->generate(
+              rtk::ecs::concepts::ColorRGBA8{255, 255, 255, 255}, 20, 12.0f,
+              {snap.ballX, snap.ballY});
+        }
+      }
+    }
+    _lastBallX = snap.ballX;
+    _lastBallY = snap.ballY;
+    _hasLastBallPos = true;
+
     trans->position.x = snap.ballX;
     trans->position.y = snap.ballY;
     if (auto *vel = velocities.get(ent)) {
