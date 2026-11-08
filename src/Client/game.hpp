@@ -22,6 +22,7 @@
 #include "LocalPrediction.hpp"
 #include "NetworkDiagnostics.hpp"
 #include "NetworkClient.hpp"
+#include "Protocol/PowerUpPayload.hpp"
 #include "Protocol/RoomPayload.hpp"
 #include "chat/ChatBox.hpp"
 #include "metrics/Metrics.hpp"
@@ -344,6 +345,13 @@ private:
   void loadEntityBluePrint(rtk::EngineContext &context);
   void updateNetworkStats();
   void updateChat(rtk::EngineContext &context, float dt);
+  /**
+   * @brief Applies a power up the server gave to the local ship.
+   * @param context Engine services.
+   * @param payload Kind and strength of the power up.
+   */
+  void applyPowerUp(rtk::EngineContext &context,
+                    const protocol::PowerUpTakenPayload &payload);
 
   std::unordered_map<protocol::NetworkEntityId, std::size_t> _networkEntities;
   std::unordered_set<std::uint32_t> _pendingEntityQueries;

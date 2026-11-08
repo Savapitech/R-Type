@@ -44,7 +44,8 @@ enum class MessageType : std::uint16_t {
   GameStarting = 0x95, ///< Server to client: all players ready: game starting.
   ChatMessage = 0x96,  ///< Server to client: chat message sent in the room.
   Scoreboard = 0x97,   ///< Server to client: scoreboard as plain text lines.
-  ScoreUpdate = 0x98   ///< Server to client: score of the player this round.
+  ScoreUpdate = 0x98,  ///< Server to client: score of the player this round.
+  PowerUpTaken = 0x99  ///< Server to client: the player's ship took a power up.
 };
 
 /**
@@ -84,6 +85,7 @@ constexpr PacketPriority messagePriority(MessageType type) {
   case MessageType::ChatMessage:
   case MessageType::Scoreboard:
   case MessageType::ScoreUpdate:
+  case MessageType::PowerUpTaken:
     return PacketPriority::Reliable;
   default:
     return PacketPriority::Unreliable;

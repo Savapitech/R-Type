@@ -332,83 +332,6 @@ void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
       [this](const rtype::events::StopMusicEvent &) {
         stopMusic();
       });
-
-  context.eventBus.subscribe<
-      rtk::collision::Collision>([this, &context](
-                                     const rtk::collision::Collision &event) {
-    auto *colA = context.registry.get_components<component::AABBCollider>().get(
-        event.firstEntity);
-    auto *colB = context.registry.get_components<component::AABBCollider>().get(
-        event.secondEntity);
-    if (!colA || !colB)
-      return;
-
-    const std::uint32_t collisionPair = colA->layer | colB->layer;
-    const std::uint32_t playerVsPowerup =
-        Collider::CollisionLayer::Player | Collider::CollisionLayer::PowerUp;
-
-    if (collisionPair == playerVsPowerup) {
-      const std::size_t playerEnt =
-          (colA->layer == Collider::CollisionLayer::Player)
-              ? event.firstEntity
-              : event.secondEntity;
-      const std::size_t powerupEnt =
-          (colA->layer == Collider::CollisionLayer::PowerUp)
-              ? event.firstEntity
-              : event.secondEntity;
-
-      auto &deads = context.registry.get_components<component::Dead>();
-      if (deads.get(powerupEnt) != nullptr)
-        return;
-      deads.insert_at(powerupEnt, {});
-
-      auto *powerupComp =
-          context.registry.get_components<component::powerUp>().get(powerupEnt);
-      if (powerupComp) {
-        if (powerupComp->type == component::powerUpType::Speed) {
-          auto *speedComp =
-              context.registry.get_components<component::Controllable>().get(
-                  playerEnt);
-          constexpr float MAX_SPEED = 440.0f;
-          if (speedComp) {
-            speedComp->speed =
-                std::min(speedComp->speed + powerupComp->value, MAX_SPEED);
-          }
-          if (_hudSystem) {
-            _hudSystem->addSpeedBonus();
-          }
-        } else if (powerupComp->type == component::powerUpType::WeaponSpread) {
-          const float duration =
-              (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
-          auto *ctrl =
-              context.registry.get_components<component::Controllable>().get(
-                  playerEnt);
-          if (ctrl) {
-            ctrl->weaponType = 1;
-            ctrl->weaponTimer = duration;
-            ctrl->weaponMaxDuration = duration;
-          }
-          if (_hudSystem) {
-            _hudSystem->setWeaponWithTimer(1, duration);
-          }
-        } else if (powerupComp->type == component::powerUpType::WeaponPlasma) {
-          const float duration =
-              (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
-          auto *ctrl =
-              context.registry.get_components<component::Controllable>().get(
-                  playerEnt);
-          if (ctrl) {
-            ctrl->weaponType = 2;
-            ctrl->weaponTimer = duration;
-            ctrl->weaponMaxDuration = duration;
-          }
-          if (_hudSystem) {
-            _hudSystem->setWeaponWithTimer(2, duration);
-          }
-        }
-      }
-    }
-  });
 }
 
 void Game::addSystems(rtk::EngineContext &context) {
@@ -606,6 +529,15 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           _roundScore = score;
         break;
       }
+      case rtype::protocol::MessageType::PowerUpTaken: {
+        PacketReader reader(netEvent.payload);
+        protocol::PowerUpTakenPayload payload{};
+        if (!protocol::readPayload(reader, payload) || !reader.isEnd() ||
+            !protocol::isValid(payload))
+          break;
+        applyPowerUp(context, payload);
+        break;
+      }
       case rtype::protocol::MessageType::Scoreboard:
         _scoreboardText.assign(netEvent.payload.begin(),
                                netEvent.payload.end());
@@ -689,40 +621,6 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           sprite->flags = 1 << 1;
         }
       }
-
-      if (transform &&
-          (type == context._entityFactory.getArchetypeID("bullet_plasma") ||
-           (type == context._entityFactory.getArchetypeID("bullet") &&
-            std::abs(transform->rotation) > 0.1f))) {
-        const std::uint8_t wType =
-            (type == context._entityFactory.getArchetypeID("bullet_plasma"))
-                ? 2
-                : 1;
-        for (auto pEnt : context.registry.view<component::Controllable>()) {
-          auto *pTrans =
-              context.registry.get_components<component::Transform>().get(pEnt);
-          if (pTrans &&
-              std::abs(transform->position.y - pTrans->position.y) < 40.0f &&
-              std::abs(transform->position.x - pTrans->position.x) < 100.0f) {
-            auto *ctrl =
-                context.registry.get_components<component::Controllable>().get(
-                    pEnt);
-            if (ctrl) {
-              ctrl->weaponType = wType;
-              if (ctrl->weaponTimer <= 0.0f) {
-                ctrl->weaponTimer = 5.0f;
-                ctrl->weaponMaxDuration = 5.0f;
-              }
-            }
-            if (_hudSystem && (_hudSystem->getWeapon() != wType ||
-                               _hudSystem->getWeaponTimer() <= 0.0f)) {
-              _hudSystem->setWeaponWithTimer(
-                  wType, (ctrl && ctrl->weaponTimer > 0.0f) ? ctrl->weaponTimer
-                                                            : 5.0f);
-            }
-          }
-        }
-      }
     }
 
     else if (std::holds_alternative<protocol::DestroyEntityPayload>(
@@ -745,51 +643,6 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
         auto *netEnt =
             context.registry.get_components<component::NetworkEntity>().get(e);
         if (netEnt && netEnt->id == destroyPayload.networkId.get()) {
-          auto *powerupComp =
-              context.registry.get_components<component::powerUp>().get(e);
-          auto &deads = context.registry.get_components<component::Dead>();
-
-          if (powerupComp && deads.get(e) == nullptr) {
-            for (auto pEnt : context.registry.view<component::Controllable>()) {
-              auto *ctrl =
-                  context.registry.get_components<component::Controllable>()
-                      .get(pEnt);
-              if (powerupComp->type == component::powerUpType::Speed) {
-                constexpr float MAX_SPEED = 440.0f;
-                if (ctrl) {
-                  ctrl->speed =
-                      std::min(ctrl->speed + powerupComp->value, MAX_SPEED);
-                }
-                if (_hudSystem) {
-                  _hudSystem->addSpeedBonus();
-                }
-              } else if (powerupComp->type ==
-                         component::powerUpType::WeaponSpread) {
-                const float duration =
-                    (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
-                if (ctrl) {
-                  ctrl->weaponType = 1;
-                  ctrl->weaponTimer = duration;
-                  ctrl->weaponMaxDuration = duration;
-                }
-                if (_hudSystem) {
-                  _hudSystem->setWeaponWithTimer(1, duration);
-                }
-              } else if (powerupComp->type ==
-                         component::powerUpType::WeaponPlasma) {
-                const float duration =
-                    (powerupComp->value > 0.0f) ? powerupComp->value : 5.0f;
-                if (ctrl) {
-                  ctrl->weaponType = 2;
-                  ctrl->weaponTimer = duration;
-                  ctrl->weaponMaxDuration = duration;
-                }
-                if (_hudSystem) {
-                  _hudSystem->setWeaponWithTimer(2, duration);
-                }
-              }
-            }
-          }
           if (destroyPayload.reason == protocol::DestroyReason::Collision &&
               _collisionFlashSystem) {
             auto *bullet =
@@ -962,6 +815,43 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
   _previousMuteKey = mPressed;
 
   _sceneManager.update(context, _inputState, dt);
+}
+
+void Game::applyPowerUp(rtk::EngineContext &context,
+                        const protocol::PowerUpTakenPayload &payload) {
+  const float value = protocol::powerUpValue(payload);
+  component::Controllable *ctrl = nullptr;
+  const auto own = _networkEntities.find(_prediction.ownNetworkId());
+  if (own != _networkEntities.end())
+    ctrl = context.registry.get_components<component::Controllable>().get(
+        own->second);
+
+  switch (payload.kind) {
+  case protocol::PowerUpKind::Speed: {
+    constexpr float MAX_SPEED = 440.0f;
+    if (ctrl)
+      ctrl->speed = std::min(ctrl->speed + value, MAX_SPEED);
+    if (_hudSystem)
+      _hudSystem->addSpeedBonus();
+    break;
+  }
+  case protocol::PowerUpKind::WeaponSpread:
+  case protocol::PowerUpKind::WeaponPlasma: {
+    const std::uint8_t weapon =
+        payload.kind == protocol::PowerUpKind::WeaponSpread ? 1 : 2;
+    if (ctrl) {
+      ctrl->weaponType = weapon;
+      ctrl->weaponTimer = value;
+      ctrl->weaponMaxDuration = value;
+    }
+    if (_hudSystem)
+      _hudSystem->setWeaponWithTimer(weapon, value);
+    break;
+  }
+  case protocol::PowerUpKind::Heal:
+  case protocol::PowerUpKind::Shield:
+    break;
+  }
 }
 
 void Game::updateChat(rtk::EngineContext &context, float dt) {

@@ -383,6 +383,15 @@ bool Server::sendScoreUpdate(std::uint32_t connectionId, std::uint32_t score) {
                      writer.getData());
 }
 
+bool Server::sendPowerUpTaken(std::uint32_t connectionId,
+                              const protocol::PowerUpTakenPayload &payload) {
+  PacketWriter writer;
+  if (!protocol::isValid(payload) || !protocol::writePayload(writer, payload))
+    return false;
+  return sendMessage(connectionId, protocol::MessageType::PowerUpTaken,
+                     writer.getData());
+}
+
 std::unordered_map<std::uint32_t, NetworkMetrics>
 Server::getAllClientMetrics() const {
   return _network.getAllClientMetrics();

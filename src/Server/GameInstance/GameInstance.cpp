@@ -2,6 +2,7 @@
 #include "EngineContext.hpp"
 #include "NetworkIdGenerator.hpp"
 #include "Protocol/EntityPayload.hpp"
+#include "Protocol/PowerUpPayload.hpp"
 #include "Protocol/ShipMovement.hpp"
 #include "Scheduler.hpp"
 #include "Server.hpp"
@@ -47,6 +48,12 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+
+static_assert(static_cast<int>(component::powerUpType::Speed) ==
+                  static_cast<int>(rtype::protocol::PowerUpKind::Speed) &&
+              static_cast<int>(component::powerUpType::WeaponPlasma) ==
+                  static_cast<int>(rtype::protocol::PowerUpKind::WeaponPlasma),
+              "powerUpType and PowerUpKind must use the same values");
 
 namespace rtype::server {
 namespace {
@@ -594,6 +601,21 @@ void GameInstance::subscribeEvents(Server &server) {
               }
               break;
             }
+            }
+
+            const bool isWeapon =
+                powerupComp->type == component::powerUpType::WeaponSpread ||
+                powerupComp->type == component::powerUpType::WeaponPlasma;
+            const float value = (isWeapon && powerupComp->value <= 0.0f)
+                                    ? 5.0f
+                                    : powerupComp->value;
+            const auto payload = protocol::powerUpTakenPayload(
+                static_cast<protocol::PowerUpKind>(powerupComp->type), value);
+            for (const auto &[connectionId, entity] : _players) {
+              if (entity == playerEnt) {
+                server.sendPowerUpTaken(connectionId, payload);
+                break;
+              }
             }
           }
         }

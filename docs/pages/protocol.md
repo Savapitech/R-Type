@@ -249,6 +249,7 @@ server.
 | `0x0096` | `ChatMessage` | Server to client | 9 + n | 8.5 |
 | `0x0097` | `Scoreboard` | Server to client | n | 8.6 |
 | `0x0098` | `ScoreUpdate` | Server to client | 4 | 8.7 |
+| `0x0099` | `PowerUpTaken` | Server to client | 3 | 8.8 |
 
 A receiver MUST ignore messages whose type it does not know, and keep
 processing the other messages of the packet. Type `0` is invalid and is never
@@ -517,6 +518,20 @@ as it is.
 
 Sent reliably to a player each time its score changes. The client resets the
 score to 0 when it receives `GameStarting`.
+
+### 8.8 PowerUpTaken (0x0099)
+
+| Offset | Size | Field | Type | Description |
+| -----: | ---: | ----- | ---- | ----------- |
+| 0 | 1 | `kind` | `u8` | `0` heal, `1` speed, `2` shield, `3` spread weapon, `4` plasma weapon. |
+| 1 | 2 | `value` | `u16` | Strength of the effect, in tenths: pixels per second for speed, seconds for a weapon, health points for heal and shield. |
+
+Sent reliably to the player whose ship took a power up, and only to it. The
+server decides the pickup and applies the effect on its side; the client uses
+this message to update its own ship (speed used by the prediction, weapon shown
+by the HUD). The power up itself is removed with a `DestroyEntity` of reason
+`Collision`, sent to every player. A client MUST drop the message if `kind` is
+unknown or if bytes follow the payload.
 
 ## 9. Value encodings
 

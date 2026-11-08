@@ -12,6 +12,7 @@
 #include "Protocol/EntityPayload.hpp"
 #include "Protocol/InputPayload.hpp"
 #include "Protocol/MessageType.hpp"
+#include "Protocol/PowerUpPayload.hpp"
 #include "Protocol/RoomPayload.hpp"
 #include "Protocol/SnapshotPayload.hpp"
 #include "protocol/MessageHeader.hpp"
@@ -287,6 +288,15 @@ public:
    * @return True if the message was queued.
    */
   bool sendScoreUpdate(std::uint32_t connectionId, std::uint32_t score);
+
+  /**
+   * @brief Tells a player that its ship took a power up.
+   * @param connectionId Destination connection.
+   * @param payload Kind and strength of the power up.
+   * @return True if the message was encoded and queued.
+   */
+  bool sendPowerUpTaken(std::uint32_t connectionId,
+                        const protocol::PowerUpTakenPayload &payload);
 
 private:
   void handleMessage(std::uint32_t connectionId, MessageId type,
