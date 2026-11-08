@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
@@ -20,6 +21,7 @@ struct SoundEntry {
   ma_sound sound{};     ///< Low-level miniaudio sound object.
   std::string path{};   ///< File path to the loaded audio asset.
   bool isLoaded{false}; ///< Whether the sound has been initialized and loaded.
+  float volume{1.0f};   ///< Own volume, before the effects volume is applied.
 
   SoundEntry() = default;
   ~SoundEntry() {
@@ -49,6 +51,7 @@ private:
   bool _muted{false};
   float _masterVolume{1.0f};
   float _musicVolume{0.8f};
+  float _effectsVolume{1.0f};
 
   std::vector<std::unique_ptr<SoundEntry>> _sounds;
   std::unique_ptr<SoundEntry> _musicEntry{nullptr};
@@ -95,6 +98,7 @@ public:
     }
 
     entry->isLoaded = true;
+    ma_sound_set_volume(&entry->sound, _effectsVolume);
     _sounds.push_back(std::move(entry));
     return _sounds.size() - 1;
   }
@@ -153,7 +157,43 @@ public:
   void setSoundVolume(size_t id, float volume) {
     if (id >= _sounds.size() || !_sounds[id]->isLoaded)
       return;
-    ma_sound_set_volume(&_sounds[id]->sound, volume);
+    _sounds[id]->volume = volume;
+    ma_sound_set_volume(&_sounds[id]->sound, volume * _effectsVolume);
+  }
+
+  /**
+   * @brief Sets the volume of the background music, kept apart from the
+   * effects so a player can lower one without the other.
+   * @param volume Volume factor, clamped to 0.0 to 1.0.
+   */
+  void setMusicVolume(float volume) {
+    _musicVolume = std::clamp(volume, 0.0f, 1.0f);
+    if (_musicEntry && _musicEntry->isLoaded)
+      ma_sound_set_volume(&_musicEntry->sound, _musicVolume);
+  }
+
+  /**
+   * @brief Returns the volume of the background music.
+   */
+  [[nodiscard]] float getMusicVolume() const noexcept { return _musicVolume; }
+
+  /**
+   * @brief Sets the volume applied to every sound effect.
+   * @param volume Volume factor, clamped to 0.0 to 1.0.
+   */
+  void setEffectsVolume(float volume) {
+    _effectsVolume = std::clamp(volume, 0.0f, 1.0f);
+    for (const auto &entry : _sounds) {
+      if (entry->isLoaded)
+        ma_sound_set_volume(&entry->sound, entry->volume * _effectsVolume);
+    }
+  }
+
+  /**
+   * @brief Returns the volume applied to every sound effect.
+   */
+  [[nodiscard]] float getEffectsVolume() const noexcept {
+    return _effectsVolume;
   }
 
   /**

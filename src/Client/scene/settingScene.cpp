@@ -20,6 +20,8 @@ const std::vector<BindingOption> SettingScene::OPTIONS = {
     {"TOGGLE HUD", 7},
     {"READY / UNREADY", 8},
     {"MUTE AUDIO", 253},
+    {"MUSIC VOLUME", 252},
+    {"EFFECTS VOLUME", 251},
     {"RESTORE DEFAULT CONTROLS", 255},
     {"BACK TO MAIN MENU", 254},
 };
@@ -259,6 +261,25 @@ void SettingScene::updateVisuals(rtk::EngineContext &context) {
       continue;
     }
 
+    if (OPTIONS[i].actionBit == 252 || OPTIONS[i].actionBit == 251) {
+      const float volume = OPTIONS[i].actionBit == 252
+                               ? _dependency.game.getMusicVolume()
+                               : _dependency.game.getEffectsVolume();
+      const rtk::ecs::concepts::ColorRGBA8 labelColor =
+          isSelected ? rtk::ecs::concepts::ColorRGBA8{255, 255, 255, 255}
+                     : rtk::ecs::concepts::ColorRGBA8{170, 175, 195, 220};
+      addText(context, _dependency.window, _font, OPTIONS[i].label, labelX, y,
+              labelColor, textScale, _dynamicTextEntities);
+      const std::string valueStr =
+          std::to_string(static_cast<int>(std::lround(volume * 100.0f))) + "%";
+      const rtk::ecs::concepts::ColorRGBA8 valueColor =
+          isSelected ? rtk::ecs::concepts::ColorRGBA8{255, 230, 80, 255}
+                     : rtk::ecs::concepts::ColorRGBA8{80, 220, 255, 240};
+      addText(context, _dependency.window, _font, valueStr, 730.0f, y,
+              valueColor, textScale, _dynamicTextEntities);
+      continue;
+    }
+
     if (OPTIONS[i].actionBit == 255) {
       const rtk::ecs::concepts::ColorRGBA8 color =
           isSelected ? rtk::ecs::concepts::ColorRGBA8{255, 200, 60, 255}
@@ -387,6 +408,16 @@ SettingScene::onUpdate(rtk::EngineContext &context,
     }
     if (OPTIONS[_selectedOption].actionBit == 253) {
       _dependency.game.toggleMute();
+      updateVisuals(context);
+      return std::nullopt;
+    }
+    if (OPTIONS[_selectedOption].actionBit == 252) {
+      _dependency.game.cycleMusicVolume();
+      updateVisuals(context);
+      return std::nullopt;
+    }
+    if (OPTIONS[_selectedOption].actionBit == 251) {
+      _dependency.game.cycleEffectsVolume();
       updateVisuals(context);
       return std::nullopt;
     }

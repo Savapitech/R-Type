@@ -1,7 +1,9 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <font/font.hpp>
 #include <unordered_set>
 
@@ -314,6 +316,36 @@ public:
   bool toggleMute() { return _adapterAudioManager.toggleMute(); }
 
   /**
+   * @brief Returns the music volume, from 0.0 to 1.0.
+   */
+  [[nodiscard]] float getMusicVolume() const noexcept {
+    return _adapterAudioManager.getMusicVolume();
+  }
+
+  /**
+   * @brief Returns the sound effects volume, from 0.0 to 1.0.
+   */
+  [[nodiscard]] float getEffectsVolume() const noexcept {
+    return _adapterAudioManager.getEffectsVolume();
+  }
+
+  /**
+   * @brief Lowers the music volume by a quarter, wrapping from 0 to 100%.
+   */
+  void cycleMusicVolume() {
+    _adapterAudioManager.setMusicVolume(
+        nextVolumeStep(_adapterAudioManager.getMusicVolume()));
+  }
+
+  /**
+   * @brief Lowers the effects volume by a quarter, wrapping from 0 to 100%.
+   */
+  void cycleEffectsVolume() {
+    _adapterAudioManager.setEffectsVolume(
+        nextVolumeStep(_adapterAudioManager.getEffectsVolume()));
+  }
+
+  /**
    * @brief Destroys every replicated entity, the server does not send
    * DestroyEntity to a player who leaves the room.
    * @param context Engine services.
@@ -321,6 +353,13 @@ public:
   void clearNetworkEntities(rtk::EngineContext &context);
 
 private:
+  static float nextVolumeStep(float volume) {
+    constexpr float STEP = 0.25f;
+    if (volume <= 0.001f)
+      return 1.0f;
+    return std::max(0.0f, std::floor((volume - 0.001f) / STEP) * STEP);
+  }
+
   void registerBuilders(rtk::EngineContext &context);
   void registerComponents(rtk::EngineContext &context);
   void createBindings();

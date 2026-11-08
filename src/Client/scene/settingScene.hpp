@@ -24,8 +24,8 @@ namespace rtype::client {
  */
 struct BindingOption {
   std::string label; ///< Display text for the action.
-  uint8_t actionBit; ///< Action bit index in InputMapping, or 255 for special
-                     ///< actions.
+  uint8_t actionBit; ///< Action bit index in InputMapping, or 251 to 255 for
+                     ///< the audio, reset and back entries.
 };
 
 /**
