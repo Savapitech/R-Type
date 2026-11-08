@@ -24,6 +24,10 @@ void MenuScene::onEnter(rtk::EngineContext &context) {
   _quitTextureId =
       _dependency.window.loadTexture("assets/menu_assets/texture/quit.png")
           .getHandle();
+  _scoreboardTextureId =
+      _dependency.window
+          .loadTexture("assets/menu_assets/texture/scoreboard.png")
+          .getHandle();
 
   const auto logoEntity = context.registry.spawn_entity();
 
@@ -45,9 +49,10 @@ void MenuScene::onEnter(rtk::EngineContext &context) {
       logoEntity, logoSprite);
   _entities.push_back(logoEntity);
 
-  ButtonInit buttonInits[3] = {
+  ButtonInit buttonInits[4] = {
       {&_playEntity, _playTextureId, 242.f, 65.f, 1600, 430},
       {&_settingEntity, _settingTextureId, 377.f, 65.f, 2470, 426},
+      {&_scoreboardEntity, _scoreboardTextureId, 499.f, 65.f, 676, 88},
       {&_quitEntity, _quitTextureId, 214.f, 65.f, 1413, 430},
   };
 
@@ -98,13 +103,14 @@ void MenuScene::updateTransitionVisuals(rtk::EngineContext &context,
     float endTime;
   };
 
-  ButtonTransitionConfig buttons[3] = {
-      {_playEntity, 242.f, 65.f, -80.f, 290.f, 0.0f, 0.50f},
-      {_settingEntity, 377.f, 65.f, -80.f, 430.f, 0.15f, 0.70f},
-      {_quitEntity, 214.f, 65.f, -80.f, 570.f, 0.30f, 0.90f},
+  ButtonTransitionConfig buttons[4] = {
+      {_playEntity, 242.f, 65.f, -80.f, 260.f, 0.0f, 0.50f},
+      {_settingEntity, 377.f, 65.f, -80.f, 370.f, 0.15f, 0.70f},
+      {_scoreboardEntity, 499.f, 65.f, -80.f, 480.f, 0.25f, 0.80f},
+      {_quitEntity, 214.f, 65.f, -80.f, 590.f, 0.30f, 0.90f},
   };
 
-  for (int i = 0; i < 3; ++i) {
+  for (int i = 0; i < 4; ++i) {
     auto *transform = transforms.get(buttons[i].entity);
     auto *sprite = sprites.get(buttons[i].entity);
 
@@ -170,13 +176,14 @@ void MenuScene::updateSelectionVisuals(rtk::EngineContext &context) {
     float centerY;
   };
 
-  ButtonLayout buttons[3] = {
-      {_playEntity, 242.f, 65.f, 290.f},
-      {_settingEntity, 377.f, 65.f, 430.f},
-      {_quitEntity, 214.f, 65.f, 570.f},
+  ButtonLayout buttons[4] = {
+      {_playEntity, 242.f, 65.f, 260.f},
+      {_settingEntity, 377.f, 65.f, 370.f},
+      {_scoreboardEntity, 499.f, 65.f, 480.f},
+      {_quitEntity, 214.f, 65.f, 590.f},
   };
 
-  for (int i = 0; i < 3; ++i) {
+  for (int i = 0; i < 4; ++i) {
     auto *transform = transforms.get(buttons[i].entity);
     auto *sprite = sprites.get(buttons[i].entity);
 
@@ -232,10 +239,10 @@ std::optional<SceneType> MenuScene::onUpdate(rtk::EngineContext &context,
   }
 
   if (upPressed) {
-    _selectedOption = (_selectedOption + 2) % 3;
+    _selectedOption = (_selectedOption + 3) % 4;
     updateSelectionVisuals(context);
   } else if (downPressed) {
-    _selectedOption = (_selectedOption + 1) % 3;
+    _selectedOption = (_selectedOption + 1) % 4;
     updateSelectionVisuals(context);
   }
 
@@ -249,6 +256,8 @@ std::optional<SceneType> MenuScene::onUpdate(rtk::EngineContext &context,
       return SceneType::Connection;
     case MenuOption::Setting:
       return SceneType::Setting;
+    case MenuOption::Scoreboard:
+      return SceneType::Scoreboard;
     case MenuOption::Quit:
       context.eventBus.publish(rtype::events::QuitGameEvent{});
       return std::nullopt;

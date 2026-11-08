@@ -21,10 +21,11 @@ namespace rtype::client {
  * @brief Menu items available on the title screen.
  */
 enum class MenuOption {
-  Play = 0, ///< Launch the game (connect to server).
-  Setting,  ///< Return to the intro scene.
-  Quit,     ///< Quit the application.
-  Count     ///< Number of options.
+  Play = 0,   ///< Launch the game (connect to server).
+  Setting,    ///< Return to the intro scene.
+  Scoreboard, ///< Show the scores of the best players.
+  Quit,       ///< Quit the application.
+  Count       ///< Number of options.
 };
 
 /**
@@ -98,10 +99,12 @@ private:
   std::uint32_t _playTextureId = 0;
   std::uint32_t _settingTextureId = 0;
   std::uint32_t _quitTextureId = 0;
+  std::uint32_t _scoreboardTextureId = 0;
 
   std::size_t _playEntity = 0;
   std::size_t _settingEntity = 0;
   std::size_t _quitEntity = 0;
+  std::size_t _scoreboardEntity = 0;
 
   int _selectedOption = 0;
   uint32_t _previousActionMask = 0;
