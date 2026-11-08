@@ -112,7 +112,7 @@ manifest. The editor does both.
 | `spawns[].wave` | Optional, only for blueprints with a `waveMovement` component: overrides its `amplitude` and `frequency`, the base height is `y` |
 | `randomSpawns` | Optional, `true` by default. Set it to `false` to turn off the random Bydos and Mecha spawner for this stage |
 | `enemies` | Optional, `stage1` by default. Name of the enemy pool the random spawner picks from (`stage1`, `stage2`, …). The pools are the vectors of `rtk::systems::EnemySpawnerSystem`; an unknown name falls back to `stage1` with a warning |
-| `boss` | Optional, `dobkeratops` by default. What happens when a `BossRoom` entity reaches the left edge and the scrolling stops: `dobkeratops` spawns that boss, `parts` keeps the boss already in the stage, made of every entity with a `bossPart` component, and ends the stage once they are all destroyed (stage 3 warship thrusters) |
+| `boss` | Optional, `dobkeratops` by default. `dobkeratops` spawns that boss when a `BossRoom` entity reaches the left edge and the scrolling stops. `parts` means the boss is already in the stage: every entity with a `bossPart` component, the stage ends once they are all destroyed, and if `duration` is set and runs out first, the boss gets away and the game is lost (stage 3 warship thrusters) |
 | `scrollSpeed` | Optional, used by the editor to convert between time and distance, the terrain blueprints move at `-50` px/s |
 | `duration` | Optional, `0` means no time limit |
 

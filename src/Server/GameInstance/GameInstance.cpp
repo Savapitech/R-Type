@@ -1427,6 +1427,17 @@ void GameInstance::loadStage(rtk::EngineContext &context,
                                  symmetric, offsetX, y);
     _stageObstaclesSpawned += symmetric ? 2 : 1;
   }
+  if (_stageBoss == "parts") {
+    auto &netEntities =
+        context.registry.get_components<component::NetworkEntity>();
+    for (auto entity :
+         context.registry
+             .view<component::BossPart, component::NetworkEntity>()) {
+      if (const auto *net = netEntities.get(entity))
+        _bossPartIds.push_back(net->id);
+    }
+    _bossSpawned = true;
+  }
 
   std::cout << "[Server] Loaded stage from " << stagePath << " (" << _stageName
             << ") with " << _stageObstaclesSpawned << " obstacle entities"
@@ -1691,20 +1702,6 @@ void GameInstance::updateStage(float dt) {
       }
     }
 
-    if (!_bossSpawned && _stageBoss == "parts") {
-      _stageRandomSpawns = false;
-      auto &netEntities =
-          context.registry.get_components<component::NetworkEntity>();
-      for (auto entity :
-           context.registry
-               .view<component::BossPart, component::NetworkEntity>()) {
-        const auto *net = netEntities.get(entity);
-        if (net && deads.get(entity) == nullptr)
-          _bossPartIds.push_back(net->id);
-      }
-      _bossSpawned = true;
-    }
-
     if (!_bossSpawned) {
       _stageRandomSpawns = false;
       std::uint32_t bodyNetId = NetworkIdGenerator::getInstance().getNextId();
@@ -1776,6 +1773,15 @@ void GameInstance::updateStage(float dt) {
       }
       _bossSpawned = true;
     }
+  }
+  if (_stageBoss == "parts" && _stageDuration > 0.0f &&
+      _stageTimer >= _stageDuration && !isBossDefeated(context)) {
+    std::cout << "[Server] The boss got away, game over" << std::endl;
+    for (const auto &[_, player] : _players) {
+      if (player != NO_ENTITY)
+        deads.insert_at(player, {});
+    }
+    return;
   }
   if (isStageFinished(context)) {
     if (!advanceToNextStage(context)) {

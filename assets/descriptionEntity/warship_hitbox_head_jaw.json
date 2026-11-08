@@ -20,12 +20,11 @@
       "mask": [
         "Player",
         "Enemy",
-        "PlayerProjectile",
         "EnemyProjectile"
       ]
     },
     "velocity": {
-      "x": -50.0,
+      "x": 0.0,
       "y": 0.0
     },
     "networkEntity": {},

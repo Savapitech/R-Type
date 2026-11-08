@@ -367,10 +367,6 @@
     {
       "name": "warship_orb",
       "file": "assets/descriptionEntity/warship_orb.json"
-    },
-    {
-      "name": "warship_boss_marker",
-      "file": "assets/descriptionEntity/warship_boss_marker.json"
     }
   ]
 }
