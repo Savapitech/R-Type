@@ -228,7 +228,16 @@ public:
    */
   bool hasAlivePlayers();
 
+  /**
+   * @brief Score of each player in the current round.
+   * @return Scores indexed by connection ID.
+   */
+  std::unordered_map<std::uint32_t, std::uint32_t> &getRoundScores() {
+    return _roundScores;
+  }
+
 private:
+  std::unordered_map<std::uint32_t, std::uint32_t> _roundScores;
   /**
    * @brief Actions held by a player, and when they started to be applied.
    *

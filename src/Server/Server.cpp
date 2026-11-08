@@ -10,6 +10,7 @@
 #include "Protocol/PayloadCodec.hpp"
 #include "Protocol/RoomPayload.hpp"
 #include "Protocol/SnapshotPayload.hpp"
+#include "Protocol/Username.hpp"
 #include "config/NetworkConfig.hpp"
 #include "metrics/Metrics.hpp"
 #include "protocol/MessageHeader.hpp"
@@ -205,6 +206,25 @@ void Server::handleMessage(std::uint32_t connectionId, MessageId type,
     break;
   }
 
+  case protocol::MessageType::SetUsername:
+  case protocol::MessageType::GetScoreboard: {
+    RoomRequestEvent event{};
+    event.connectionId = connectionId;
+    if (static_cast<protocol::MessageType>(type) ==
+        protocol::MessageType::SetUsername) {
+      event.type = RoomRequestEvent::Type::SetUsername;
+      event.username.assign(payload.begin(), payload.end());
+      if (!protocol::isValidUsername(event.username))
+        return;
+    } else {
+      event.type = RoomRequestEvent::Type::GetScoreboard;
+    }
+    std::lock_guard<std::mutex> lock(_roomRequestMutex);
+    if (_roomRequestQueue.size() < MAX_QUEUED_EVENTS)
+      _roomRequestQueue.push(std::move(event));
+    break;
+  }
+
   default:
     break;
   }
@@ -346,6 +366,20 @@ bool Server::sendChatMessage(std::uint32_t connectionId,
   if (!protocol::writeChatMessage(writer, payload))
     return false;
   return sendMessage(connectionId, protocol::MessageType::ChatMessage,
+                     writer.getData());
+}
+
+bool Server::sendScoreboard(std::uint32_t connectionId,
+                            const std::string &text) {
+  return sendMessage(connectionId, protocol::MessageType::Scoreboard,
+                     std::vector<std::uint8_t>(text.begin(), text.end()));
+}
+
+bool Server::sendScoreUpdate(std::uint32_t connectionId, std::uint32_t score) {
+  PacketWriter writer;
+  if (!writer.writeUInt32(score))
+    return false;
+  return sendMessage(connectionId, protocol::MessageType::ScoreUpdate,
                      writer.getData());
 }
 

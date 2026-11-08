@@ -361,7 +361,7 @@ void GameInstance::subscribeEvents(Server &server) {
       });
 
   _context.eventBus.subscribe<rtk::collision::Collision>(
-      [this](const rtk::collision::Collision &event) {
+      [this, &server](const rtk::collision::Collision &event) {
         auto &colliders =
             _context.registry.get_components<component::AABBCollider>();
 
@@ -422,6 +422,7 @@ void GameInstance::subscribeEvents(Server &server) {
           auto &enemies = _context.registry.get_components<component::Enemy>();
           auto *enemyComp = enemies.get(enemyEnt);
           auto *healthComp = healths.get(enemyEnt);
+          const bool wasDead = deads.get(enemyEnt) != nullptr;
 
           const float damage = bulletComp ? bulletComp->damage : 10.0f;
           if (enemyComp) {
@@ -436,6 +437,12 @@ void GameInstance::subscribeEvents(Server &server) {
             }
           } else {
             deads.insert_at(enemyEnt, {});
+          }
+          if (!wasDead && deads.get(enemyEnt) && bulletComp &&
+              bulletComp->owner != 0) {
+            _roundScores[bulletComp->owner] += 100;
+            server.sendScoreUpdate(bulletComp->owner,
+                                   _roundScores[bulletComp->owner]);
           }
 
         } else if (collisionPair == bulletVsEnv) {
@@ -632,6 +639,10 @@ void GameInstance::processInput(const Server::InputEvent &inputEvent,
 
       auto bulletEntity = _context._entityFactory.createNetwork(
           _context.registry, archetypeName, bulletNetId);
+      if (auto *bullet =
+              _context.registry.get_components<component::Bullet>().get(
+                  bulletEntity))
+        bullet->owner = inputEvent.connectionId;
       auto *bulletTransform =
           _context.registry.get_components<component::Transform>().get(
               bulletEntity);
@@ -668,6 +679,10 @@ void GameInstance::processInput(const Server::InputEvent &inputEvent,
 
         auto bulletEntity = _context._entityFactory.createNetwork(
             _context.registry, "bullet", bulletNetId);
+        if (auto *bullet =
+                _context.registry.get_components<component::Bullet>().get(
+                    bulletEntity))
+          bullet->owner = inputEvent.connectionId;
         auto *bulletTransform =
             _context.registry.get_components<component::Transform>().get(
                 bulletEntity);

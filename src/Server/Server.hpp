@@ -91,7 +91,9 @@ public:
       JoinRoom,
       LeaveRoom,
       SetReady,
-      Chat
+      Chat,
+      SetUsername,
+      GetScoreboard
     };
 
     Type type;                  ///< Requested operation.
@@ -100,6 +102,7 @@ public:
     std::uint32_t roomId = 0;   ///< Target room for JoinRoom.
     bool ready = false;         ///< Requested ready state for SetReady.
     std::string chatText;       ///< Message to broadcast for Chat.
+    std::string username;       ///< Name for SetUsername.
   };
 
   /// Receives Input messages on the network thread.
@@ -268,6 +271,22 @@ public:
    */
   bool sendChatMessage(std::uint32_t connectionId,
                        const protocol::ChatMessagePayload &payload);
+
+  /**
+   * @brief Sends the scoreboard, as plain text lines.
+   * @param connectionId Destination connection.
+   * @param text Scoreboard, one player per line.
+   * @return True if the message was queued.
+   */
+  bool sendScoreboard(std::uint32_t connectionId, const std::string &text);
+
+  /**
+   * @brief Sends the score of a player in the current round.
+   * @param connectionId Destination connection.
+   * @param score Points earned since the round started.
+   * @return True if the message was queued.
+   */
+  bool sendScoreUpdate(std::uint32_t connectionId, std::uint32_t score);
 
 private:
   void handleMessage(std::uint32_t connectionId, MessageId type,

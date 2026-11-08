@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <iostream>
 #include <optional>
+#include <utility>
 
 namespace rtype::server {
 
@@ -35,6 +36,7 @@ void InstanceGameScene::onEnter(rtk::EngineContext &) {
   if (!instance.hasAlivePlayers())
     instance.respawnPlayers();
   instance.createBackground();
+  instance.getRoundScores().clear();
 
   for (const auto &[connectionId, _] : instance.getPlayers()) {
     instance.sendExistingEntities(connectionId, _dependency.server);
@@ -69,8 +71,10 @@ void InstanceGameScene::onExit(rtk::EngineContext &) {
 
   std::cout << "[Room " << roomId << "] Leaving game scene" << std::endl;
   instance.endGame(_dependency.server);
-  _dependency.events.push(
-      RoomEvent{.type = RoomEvent::Type::GameEnded, .roomId = roomId});
+  RoomEvent event{.type = RoomEvent::Type::GameEnded, .roomId = roomId};
+  event.scores.assign(instance.getRoundScores().begin(),
+                      instance.getRoundScores().end());
+  _dependency.events.push(std::move(event));
 }
 
 } // namespace rtype::server

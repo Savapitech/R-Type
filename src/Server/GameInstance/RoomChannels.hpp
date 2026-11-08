@@ -11,6 +11,7 @@
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -50,6 +51,8 @@ struct RoomEvent {
   std::uint64_t requestId{0};    ///< Request answered, for PlayerAdded.
   bool success{false};           ///< Outcome, for PlayerAdded.
   std::string error{};           ///< Exception message, for Crashed.
+  /// Connection ID and score of each player, for GameEnded.
+  std::vector<std::pair<std::uint32_t, std::uint32_t>> scores{};
 };
 
 /** @brief Thread safe queue of the notifications sent to the main thread. */

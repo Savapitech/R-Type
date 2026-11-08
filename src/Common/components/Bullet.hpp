@@ -20,6 +20,7 @@ struct Bullet {
   bool piercing{false}; ///< True if projectile passes through enemies.
   std::vector<std::size_t>
       hitEntities{}; ///< Enemies already damaged by this projectile.
+  std::uint32_t owner{0}; ///< Connection ID of the shooter, 0 if none.
 };
 
 /**
