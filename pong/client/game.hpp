@@ -17,6 +17,7 @@
 #include "scene/gameScene.hpp"
 #include "scene/menuScene.hpp"
 #include "scene/sceneType.hpp"
+#include "systems/ParticleManager.hpp"
 
 namespace pong::systems {
 class PongBallSystem;
@@ -101,6 +102,10 @@ private:
 
   pong::systems::PongBallSystem *_ballSystem = nullptr;
   pong::systems::PongPaddleSystem *_paddleSystem = nullptr;
+  rtk::systems::ParticleManager *_particleManager = nullptr;
+  float _lastBallX = 635.0f;
+  float _lastBallY = 355.0f;
+  bool _hasLastBallPos = false;
   bool _matchStarted = false;
   bool _shouldQuit = false;
 
