@@ -65,11 +65,12 @@
 #include <vulkan/vulkan_core.h>
 
 namespace rtype::client {
-Game::Game(std::string host, std::string port)
+Game::Game(std::string host, std::string port, std::string username)
     : _window({1280.f, 720.f}, "R-Type"), _adapter(_window),
       _chat(_window, _adapter), _dependency{_window, _networkClient, *this},
       _sceneManager(_dependency, std::in_place_type<IntroScene>),
-      _host(std::move(host)), _port(std::move(port)) {}
+      _host(std::move(host)), _port(std::move(port)),
+      _username(std::move(username)) {}
 
 void Game::onLoad(rtk::EngineContext &context) {
   registerComponents(context);
@@ -464,6 +465,8 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
   NetworkEvent netEvent;
   while (_networkClient.pollEvent(netEvent)) {
     if (netEvent.type == NetworkEventType::Connected) {
+      if (!_username.empty())
+        _networkClient.sendSetUsername(_username);
       context.eventBus.publish(rtype::events::ConnectedToServerEvent{});
     } else if (netEvent.type == NetworkEventType::Rejected) {
       context.eventBus.publish(rtype::events::ConnectionRejectedEvent{});
@@ -593,8 +596,20 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
         clearNetworkEntities(context);
         _gameStarting = true;
         _readyRequestPending = false;
+        _roundScore = 0;
         break;
       }
+      case rtype::protocol::MessageType::ScoreUpdate: {
+        PacketReader reader(netEvent.payload);
+        std::uint32_t score = 0;
+        if (reader.readUInt32(score) && reader.isEnd())
+          _roundScore = score;
+        break;
+      }
+      case rtype::protocol::MessageType::Scoreboard:
+        _scoreboardText.assign(netEvent.payload.begin(),
+                               netEvent.payload.end());
+        break;
       case rtype::protocol::MessageType::ChatMessage: {
         PacketReader reader(netEvent.payload);
         protocol::ChatMessagePayload payload{};
@@ -934,6 +949,7 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
   _previousActionMask = _inputState.actionMask;
   if (escapePressed && _sceneManager.get<RoomLobbyScene>() == nullptr &&
       _sceneManager.get<SettingScene>() == nullptr &&
+      _sceneManager.get<ScoreboardScene>() == nullptr &&
       _sceneManager.get<GameOverScene>() == nullptr &&
       _sceneManager.get<GameScene>() == nullptr)
     _shouldQuit = true;
@@ -1242,6 +1258,14 @@ bool Game::requestReady(bool ready) {
 
   _readyRequestPending = true;
   _networkClient.sendSetReady(ready);
+  return true;
+}
+
+bool Game::requestScoreboard() {
+  _scoreboardText.clear();
+  if (!_networkClient.isConnected())
+    return false;
+  _networkClient.sendGetScoreboard();
   return true;
 }
 

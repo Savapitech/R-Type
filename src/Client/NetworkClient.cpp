@@ -252,6 +252,15 @@ void NetworkClient::sendChat(const std::string &text) {
   sendRoomCommand(protocol::MessageType::ChatSend, writer.getData());
 }
 
+void NetworkClient::sendSetUsername(const std::string &username) {
+  sendRoomCommand(protocol::MessageType::SetUsername,
+                  std::vector<std::uint8_t>(username.begin(), username.end()));
+}
+
+void NetworkClient::sendGetScoreboard() {
+  sendRoomCommand(protocol::MessageType::GetScoreboard, {});
+}
+
 void NetworkClient::flush() {
   if (!_running.load() || !_connected.load())
     return;

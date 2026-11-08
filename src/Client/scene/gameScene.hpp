@@ -273,6 +273,9 @@ private:
 
   std::vector<std::size_t> _entities;
   std::optional<std::size_t> _playerEntity;
+  /// Glyphs of the score text, and the text they show.
+  std::vector<std::size_t> _scoreEntities;
+  std::string _scoreText;
 
   std::vector<std::size_t> bullets;
 

@@ -31,6 +31,7 @@
 #include "scene/menuScene.hpp"
 #include "scene/networkConnectionScene.hpp"
 #include "scene/roomLobbyScene.hpp"
+#include "scene/scoreboardScene.hpp"
 #include "scene/settingScene.hpp"
 
 #include "events/GameEvents.hpp"
@@ -56,8 +57,10 @@ public:
    * @brief Opens the 1280x720 window and creates the menu scene.
    * @param host Server hostname or IP address.
    * @param port Server UDP port.
+   * @param username Name the stats are saved under, empty to not save them.
    */
-  explicit Game(std::string host = "127.0.0.1", std::string port = "4242");
+  explicit Game(std::string host = "127.0.0.1", std::string port = "4242",
+                std::string username = "");
   ~Game() = default;
 
   /**
@@ -148,6 +151,24 @@ public:
    * @return True if a leave request was initiated.
    */
   bool requestLeaveRoom();
+
+  /**
+   * @brief Returns the last scoreboard received, as plain text lines.
+   * @return Scoreboard text, empty until the server answered.
+   */
+  const std::string &getScoreboardText() const { return _scoreboardText; }
+
+  /**
+   * @brief Clears the last scoreboard and asks the server for a new one.
+   * @return False if not connected: nothing was sent.
+   */
+  bool requestScoreboard();
+
+  /**
+   * @brief Returns the score of the local player in the current round.
+   * @return Points earned since the round started.
+   */
+  std::uint32_t getRoundScore() const { return _roundScore; }
 
   /**
    * @brief Returns the font loaded in the window context.
@@ -353,7 +374,8 @@ private:
   clientDependancy _dependency;
   rtk::SceneManager<SceneType, clientDependancy, rtk::InputState, IntroScene,
                     MenuScene, NetworkConnectionScene, RoomListScene,
-                    RoomLobbyScene, GameScene, SettingScene, GameOverScene>
+                    RoomLobbyScene, GameScene, SettingScene, GameOverScene,
+                    ScoreboardScene>
       _sceneManager;
 
   rtk::Font _fontRtype;
@@ -373,6 +395,9 @@ private:
   bool _localReady = false;
   bool _readyRequestPending = false;
   bool _gameStarting = false;
+  std::string _username;
+  std::string _scoreboardText;
+  std::uint32_t _roundScore = 0;
 };
 
 /** @} */

@@ -6,6 +6,7 @@
 #include <string_view>
 
 #include "GameEngine.hpp"
+#include "Protocol/Username.hpp"
 #include "Resources/Resources.hpp"
 #include "game.hpp"
 
@@ -19,6 +20,7 @@ static void printUsage(std::string_view progName) {
             << DEFAULT_HOST << ")\n"
             << "  -p, --port <port>     Server port to connect to (default: "
             << DEFAULT_PORT << ")\n"
+            << "  -u, --username <name> Save your scores under this name\n"
             << "  --help                Display this help message\n";
 }
 
@@ -27,6 +29,7 @@ int main(int argc, char *argv[]) {
     rtype::res::mount();
     std::string host = DEFAULT_HOST;
     std::string port = DEFAULT_PORT;
+    std::string username;
 
     for (int i = 1; i < argc; ++i) {
       std::string_view arg = argv[i];
@@ -53,6 +56,13 @@ int main(int argc, char *argv[]) {
           printUsage(argv[0]);
           return EXIT_FAILURE;
         }
+      } else if ((arg == "-u" || arg == "--username") && i + 1 < argc) {
+        username = argv[++i];
+        if (!rtype::protocol::isValidUsername(username)) {
+          std::cerr << "Error: username must be 1 to 16 characters among "
+                       "a-z, A-Z, 0-9 and _\n";
+          return EXIT_FAILURE;
+        }
       } else {
         std::cerr << "Unknown option: " << arg << "\n";
         printUsage(argv[0]);
@@ -60,7 +70,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    rtype::client::Game game(host, port);
+    rtype::client::Game game(host, port, username);
     rtk::GameEngine engine;
 
     engine.setFPS(60);

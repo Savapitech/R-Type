@@ -12,6 +12,7 @@
 #include "systems/RenderConcept.hpp"
 
 #include "../input/action.hpp"
+#include "ui/Text.hpp"
 
 namespace rtype::client {
 GameScene::GameScene(clientDependancy &dep) : _dependency(dep) {}
@@ -40,6 +41,16 @@ std::optional<SceneType> GameScene::onUpdate(rtk::EngineContext &context,
     context.eventBus.publish(rtype::events::StopMusicEvent{});
     return SceneType::GameOver;
   }
+
+  const std::string score =
+      "SCORE " + std::to_string(_dependency.game.getRoundScore());
+  if (score != _scoreText) {
+    _scoreText = score;
+    ui::clearText(context.registry, _scoreEntities);
+    ui::drawText(context.registry, _dependency.window,
+                 _dependency.game.getFont(), score, 1060.0f, 50.0f, 0.5f,
+                 _scoreEntities);
+  }
   return std::nullopt;
 }
 
@@ -50,6 +61,8 @@ void GameScene::onExit(rtk::EngineContext &context) {
 
   for (const auto entity : _entities)
     context.registry.kill_entity(entity);
+  ui::clearText(context.registry, _scoreEntities);
+  _scoreText.clear();
 
   context.registry.flush();
 

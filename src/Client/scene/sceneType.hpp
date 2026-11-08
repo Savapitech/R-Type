@@ -19,7 +19,8 @@ enum class SceneType {
   RoomLobby,  ///< Lobby of a room before the game start.
   Game,       ///< In game.
   Setting,    ///< Settings and key bindings.
-  GameOver    ///< Game over screen.
+  GameOver,   ///< Game over screen.
+  Scoreboard  ///< Scores of the best players.
 };
 /** @} */
 } // namespace rtype::client

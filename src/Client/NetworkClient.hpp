@@ -257,6 +257,17 @@ public:
    * @param text Message, ignored if it is not a valid chat text.
    */
   void sendChat(const std::string &text);
+
+  /**
+   * @brief Sends the name the player's stats are saved under.
+   * @param username Valid username.
+   */
+  void sendSetUsername(const std::string &username);
+
+  /**
+   * @brief Asks the server for the scoreboard.
+   */
+  void sendGetScoreboard();
 };
 
 /** @} */
