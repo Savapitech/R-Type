@@ -1,0 +1,55 @@
+{
+  "components": {
+    "transform": {
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "scale": {
+        "x": 2.0,
+        "y": 2.0
+      },
+      "rotation": 0.0
+    },
+    "sprite": {
+      "texture": "assets/entityTexture/gouger_nest_death.png",
+      "size": {
+        "w": 33.0,
+        "h": 33.0
+      },
+      "origin": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "textureRect": {
+        "x": 0,
+        "y": 0,
+        "w": 33,
+        "h": 33
+      },
+      "color": {
+        "r": 255,
+        "g": 255,
+        "b": 255,
+        "a": 255
+      },
+      "layer": 10,
+      "flags": 0
+    },
+    "animation": {
+      "frameDuration": 0.08,
+      "currentFrame": 0,
+      "totalFrames": 4,
+      "frameWidth": 33,
+      "frameHeight": 33,
+      "startX": 0,
+      "startY": 0,
+      "loop": false,
+      "playing": true,
+      "columns": 4,
+      "paddingX": 0,
+      "paddingY": 0
+    },
+    "destroyAnimEnd": {}
+  }
+}

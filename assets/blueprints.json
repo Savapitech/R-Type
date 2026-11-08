@@ -239,6 +239,22 @@
     {
       "name": "stage2_background_4",
       "file": "assets/descriptionEntity/stage2_background_4.json"
+    },
+    {
+      "name": "gouger",
+      "file": "assets/descriptionEntity/gouger.json"
+    },
+    {
+      "name": "gouger_nest",
+      "file": "assets/descriptionEntity/gouger_nest.json"
+    },
+    {
+      "name": "gouger_nest_ceiling",
+      "file": "assets/descriptionEntity/gouger_nest_ceiling.json"
+    },
+    {
+      "name": "gouger_nest_death",
+      "file": "assets/descriptionEntity/gouger_nest_death.json"
     }
   ]
 }

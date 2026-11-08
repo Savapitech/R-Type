@@ -107,6 +107,7 @@ manifest. The editor does both.
 | `spawns` | Optional. Entities created by the server once the stage timer reaches `time` seconds, at `(x, y)` in screen pixels (the screen is 1280x720, so `x = 1300` is just off the right edge) |
 | `spawns[].wave` | Optional, only for blueprints with a `waveMovement` component: overrides its `amplitude` and `frequency`, the base height is `y` |
 | `randomSpawns` | Optional, `true` by default. Set it to `false` to turn off the random Bydos and Mecha spawner for this stage |
+| `enemies` | Optional, `stage1` by default. Name of the enemy pool the random spawner picks from (`stage1`, `stage2`, …). The pools are the vectors of `rtk::systems::EnemySpawnerSystem`; an unknown name falls back to `stage1` with a warning |
 | `scrollSpeed` | Optional, used by the editor to convert between time and distance, the terrain blueprints move at `-50` px/s |
 | `duration` | Optional, `0` means no time limit |
 
