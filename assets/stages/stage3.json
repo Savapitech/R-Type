@@ -12,6 +12,90 @@
       "offsetX": 1152.0
     },
     {
+      "blueprint": "warship_hitbox_head_top",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1156.0,
+      "y": 236.0
+    },
+    {
+      "blueprint": "warship_hitbox_head_jaw",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1188.0,
+      "y": 348.0
+    },
+    {
+      "blueprint": "warship_hitbox_front",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1252.0,
+      "y": 196.0
+    },
+    {
+      "blueprint": "warship_hitbox_tower",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1412.0,
+      "y": 72.0
+    },
+    {
+      "blueprint": "warship_hitbox_body",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1380.0,
+      "y": 188.0
+    },
+    {
+      "blueprint": "warship_hitbox_body_low",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1380.0,
+      "y": 324.0
+    },
+    {
+      "blueprint": "warship_hitbox_rear_front",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1636.0,
+      "y": 216.0
+    },
+    {
+      "blueprint": "warship_hitbox_connector",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1796.0,
+      "y": 302.0
+    },
+    {
+      "blueprint": "warship_hitbox_pod",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1960.0,
+      "y": 176.0
+    },
+    {
+      "blueprint": "warship_hitbox_pod_top",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 2056.0,
+      "y": 144.0
+    },
+    {
+      "blueprint": "warship_hitbox_pod_low",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 2116.0,
+      "y": 332.0
+    },
+    {
+      "blueprint": "warship_hitbox_tip",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 2276.0,
+      "y": 176.0
+    },
+    {
       "blueprint": "warship_turret",
       "symmetric": false,
       "spacing": 0.0,

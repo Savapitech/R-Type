@@ -311,6 +311,54 @@
     {
       "name": "warship_turret",
       "file": "assets/descriptionEntity/warship_turret.json"
+    },
+    {
+      "name": "warship_hitbox_head_top",
+      "file": "assets/descriptionEntity/warship_hitbox_head_top.json"
+    },
+    {
+      "name": "warship_hitbox_head_jaw",
+      "file": "assets/descriptionEntity/warship_hitbox_head_jaw.json"
+    },
+    {
+      "name": "warship_hitbox_front",
+      "file": "assets/descriptionEntity/warship_hitbox_front.json"
+    },
+    {
+      "name": "warship_hitbox_tower",
+      "file": "assets/descriptionEntity/warship_hitbox_tower.json"
+    },
+    {
+      "name": "warship_hitbox_body",
+      "file": "assets/descriptionEntity/warship_hitbox_body.json"
+    },
+    {
+      "name": "warship_hitbox_body_low",
+      "file": "assets/descriptionEntity/warship_hitbox_body_low.json"
+    },
+    {
+      "name": "warship_hitbox_rear_front",
+      "file": "assets/descriptionEntity/warship_hitbox_rear_front.json"
+    },
+    {
+      "name": "warship_hitbox_connector",
+      "file": "assets/descriptionEntity/warship_hitbox_connector.json"
+    },
+    {
+      "name": "warship_hitbox_pod",
+      "file": "assets/descriptionEntity/warship_hitbox_pod.json"
+    },
+    {
+      "name": "warship_hitbox_pod_top",
+      "file": "assets/descriptionEntity/warship_hitbox_pod_top.json"
+    },
+    {
+      "name": "warship_hitbox_pod_low",
+      "file": "assets/descriptionEntity/warship_hitbox_pod_low.json"
+    },
+    {
+      "name": "warship_hitbox_tip",
+      "file": "assets/descriptionEntity/warship_hitbox_tip.json"
     }
   ]
 }
