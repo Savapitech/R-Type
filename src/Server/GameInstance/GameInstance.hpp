@@ -249,7 +249,8 @@ private:
    * `clientTick + (now - serverTick)`.
    */
   struct InputRun {
-    rtype::protocol::InputAction actions = rtype::protocol::InputAction::NoneAction;
+    rtype::protocol::InputAction actions =
+        rtype::protocol::InputAction::NoneAction;
     std::uint32_t clientTick = 0;
     std::uint32_t serverTick = 0;
   };
@@ -267,8 +268,8 @@ private:
    * waiting in a queue.
    */
   struct SnapshotRate {
-    std::uint32_t divisor = 1; ///< Send one snapshot out of `divisor`.
-    float baseRtt = 0.0f;      ///< Smallest RTT seen, in ms, 0 if none yet.
+    std::uint32_t divisor = 1;     ///< Send one snapshot out of `divisor`.
+    float baseRtt = 0.0f;          ///< Smallest RTT seen, in ms, 0 if none yet.
     std::uint32_t cleanChecks = 0; ///< Checks in a row without congestion.
     std::uint32_t congestedChecks = 0;
   };
@@ -363,6 +364,10 @@ private:
 
   bool _bossSpawned = false;
   std::uint32_t _bossNetId = 0; ///< Network id of the current stage boss.
+  /// The boss of the stage.
+  std::string _stageBoss = "dobkeratops";
+  /// networkIds of the different parts of a boss, used for warship.
+  std::vector<std::uint32_t> _bossPartIds;
   /**
    * @brief Registers components in the instance registry.
    * @param context Instance engine context.

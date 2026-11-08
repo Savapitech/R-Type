@@ -7,6 +7,7 @@
 #include "Server.hpp"
 #include "ServerDeathSystem.hpp"
 #include "components/AABBCollider.hpp"
+#include "components/BossPart.hpp"
 #include "components/Bullet.hpp"
 #include "components/Controllable.hpp"
 #include "components/Dead.hpp"
@@ -175,6 +176,7 @@ void GameInstance::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::DeathEffect>();
   context.registry.register_component<component::tail>();
   context.registry.register_component<component::Nest>();
+  context.registry.register_component<component::BossPart>();
 }
 
 void GameInstance::registerBuilders(rtk::EngineContext &context) {
@@ -276,6 +278,10 @@ void GameInstance::registerBuilders(rtk::EngineContext &context) {
   context._entityFactory.registerBuilder("Tail", component::tailFromJson);
   context._entityFactory.registerBuilder("nest", component::nestFromJson);
   context._entityFactory.registerBuilder("Nest", component::nestFromJson);
+  context._entityFactory.registerBuilder("bossPart",
+                                         component::bossPartFromJson);
+  context._entityFactory.registerBuilder("BossPart",
+                                         component::bossPartFromJson);
 }
 
 void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
@@ -287,9 +293,8 @@ void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
   _playerArchetypes[2] = factory.getArchetypeID("player_pink");
   _playerArchetypes[3] = factory.getArchetypeID("player_red");
 
-  const char *const sceneryNames[] = {"low_ground", "medium_ground",
-                                      "high_ground", "ramp",
-                                      "reactor",    "gate"};
+  const char *const sceneryNames[] = {
+      "low_ground", "medium_ground", "high_ground", "ramp", "reactor", "gate"};
   for (std::size_t i = 0; i < _sceneryArchetypes.size(); ++i)
     _sceneryArchetypes[i] = factory.getArchetypeID(sceneryNames[i]);
 }
@@ -615,7 +620,8 @@ void GameInstance::processInput(const Server::InputEvent &inputEvent,
     return;
 
   const auto actions = inputEvent.input.actions;
-  const auto shipSpeed = rtype::protocol::shipVelocity(actions, controllable->speed);
+  const auto shipSpeed =
+      rtype::protocol::shipVelocity(actions, controllable->speed);
   velocity->x = shipSpeed.x;
   velocity->y = shipSpeed.y;
 
@@ -853,7 +859,8 @@ constexpr std::uint32_t RATE_CHECK_PERIOD = 5;
 /// Growth of the smallest RTT, in ms, above which a link counts as congested.
 constexpr float CONGESTION_MARGIN_MS = 80.0f;
 constexpr std::uint32_t CONGESTED_CHECKS_TO_SLOW = 2;
-/// Growth above which the queue is already long: go to the slowest rate at once.
+/// Growth above which the queue is already long: go to the slowest rate at
+/// once.
 constexpr float SEVERE_CONGESTION_MS = 300.0f;
 constexpr std::uint32_t SCENERY_REFRESH_BASE_TICKS = 90;
 constexpr std::uint32_t SCENERY_REFRESH_SPREAD = 20;
@@ -1347,6 +1354,13 @@ void GameInstance::loadStage(rtk::EngineContext &context,
   _stageActive = true;
   _bossSpawned = false;
   _bossNetId = 0;
+  _bossPartIds.clear();
+  _stageBoss = stageJson.value("boss", std::string("dobkeratops"));
+  if (_stageBoss != "dobkeratops" && _stageBoss != "parts") {
+    std::cerr << "[Server] Unknown boss '" << _stageBoss << "' in " << stagePath
+              << ", falling back to 'dobkeratops'" << std::endl;
+    _stageBoss = "dobkeratops";
+  }
 
   _stageRandomSpawns = stageJson.value("randomSpawns", true);
   _stageEnemyPool = stageJson.value(
@@ -1525,6 +1539,17 @@ bool GameInstance::isBossDefeated(rtk::EngineContext &context) const {
       context.registry.get_components<component::NetworkEntity>();
   auto &deads = context.registry.get_components<component::Dead>();
 
+  if (_stageBoss == "parts") {
+    for (auto entity : view) {
+      const auto *net = netEntities.get(entity);
+      if (net && deads.get(entity) == nullptr &&
+          std::find(_bossPartIds.begin(), _bossPartIds.end(), net->id) !=
+              _bossPartIds.end())
+        return false;
+    }
+    return true;
+  }
+
   for (auto entity : view) {
     const auto *net = netEntities.get(entity);
     if (net && net->id == _bossNetId) {
@@ -1664,6 +1689,20 @@ void GameInstance::updateStage(float dt) {
            (col->layer & Collider::CollisionLayer::BossRoom))) {
         vel->x = 0.0f;
       }
+    }
+
+    if (!_bossSpawned && _stageBoss == "parts") {
+      _stageRandomSpawns = false;
+      auto &netEntities =
+          context.registry.get_components<component::NetworkEntity>();
+      for (auto entity :
+           context.registry
+               .view<component::BossPart, component::NetworkEntity>()) {
+        const auto *net = netEntities.get(entity);
+        if (net && deads.get(entity) == nullptr)
+          _bossPartIds.push_back(net->id);
+      }
+      _bossSpawned = true;
     }
 
     if (!_bossSpawned) {

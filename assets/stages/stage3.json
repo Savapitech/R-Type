@@ -4,6 +4,7 @@
   "duration": 0.0,
   "startX": 0.0,
   "enemies": "stage3",
+  "boss": "parts",
   "segments": [
     {
       "blueprint": "warship",
@@ -45,6 +46,41 @@
       "spacing": 0.0,
       "offsetX": 2176.0,
       "y": 88.0
+    },
+    {
+      "blueprint": "warship_thruster",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1752.0,
+      "y": 356.0
+    },
+    {
+      "blueprint": "warship_thruster",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1884.0,
+      "y": 356.0
+    },
+    {
+      "blueprint": "warship_thruster",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 2016.0,
+      "y": 356.0
+    },
+    {
+      "blueprint": "warship_thruster",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 2148.0,
+      "y": 356.0
+    },
+    {
+      "blueprint": "warship_boss_marker",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1376.0,
+      "y": 0.0
     },
     {
       "blueprint": "stage3_high_ground",
@@ -215,11 +251,6 @@
       "blueprint": "stage3_low_ground",
       "symmetric": false,
       "spacing": 128.0
-    },
-    {
-      "blueprint": "stage3_boss_room",
-      "symmetric": false,
-      "spacing": 1536.0
     }
   ]
 }
