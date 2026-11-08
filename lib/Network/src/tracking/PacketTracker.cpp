@@ -250,6 +250,10 @@ void PacketTracker::acknowledge(std::uint32_t ack, std::uint32_t ackBits,
           now - record.sentAt);
       if (!_minRttSample || sample < *_minRttSample)
         _minRttSample = sample;
+      _lastRttSample = sample;
+      ++_rttSampleCount;
+      _roundTrip =
+          _roundTrip.count() == 0 ? sample : (_roundTrip * 7 + sample) / 8;
       _lastSampledSequence = ack;
     }
   }
@@ -265,14 +269,6 @@ void PacketTracker::acknowledge(std::uint32_t ack, std::uint32_t ackBits,
       continue;
     }
 
-    if (it->second.resends == 0) {
-      const auto sample = std::chrono::duration_cast<std::chrono::microseconds>(
-          now - it->second.lastSend);
-      _lastRttSample = sample;
-      ++_rttSampleCount;
-      _roundTrip =
-          _roundTrip.count() == 0 ? sample : (_roundTrip * 7 + sample) / 8;
-    }
     it = _pending.erase(it);
   }
 }
