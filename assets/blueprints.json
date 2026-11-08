@@ -187,6 +187,90 @@
     {
       "name": "dobkeratops_tail_tip",
       "file": "assets/descriptionEntity/dobkeratops_tail_tip.json"
+    },
+    {
+      "name": "stage2_floor_1",
+      "file": "assets/descriptionEntity/stage2_floor_1.json"
+    },
+    {
+      "name": "stage2_floor_2",
+      "file": "assets/descriptionEntity/stage2_floor_2.json"
+    },
+    {
+      "name": "stage2_floor_3",
+      "file": "assets/descriptionEntity/stage2_floor_3.json"
+    },
+    {
+      "name": "stage2_floor_4",
+      "file": "assets/descriptionEntity/stage2_floor_4.json"
+    },
+    {
+      "name": "stage2_floor_5",
+      "file": "assets/descriptionEntity/stage2_floor_5.json"
+    },
+    {
+      "name": "stage2_floor_6",
+      "file": "assets/descriptionEntity/stage2_floor_6.json"
+    },
+    {
+      "name": "stage2_pillar_floor",
+      "file": "assets/descriptionEntity/stage2_pillar_floor.json"
+    },
+    {
+      "name": "stage2_pods_floor",
+      "file": "assets/descriptionEntity/stage2_pods_floor.json"
+    },
+    {
+      "name": "stage2_boss_room",
+      "file": "assets/descriptionEntity/stage2_boss_room.json"
+    },
+    {
+      "name": "stage2_background_1",
+      "file": "assets/descriptionEntity/stage2_background_1.json"
+    },
+    {
+      "name": "stage2_background_2",
+      "file": "assets/descriptionEntity/stage2_background_2.json"
+    },
+    {
+      "name": "stage2_background_3",
+      "file": "assets/descriptionEntity/stage2_background_3.json"
+    },
+    {
+      "name": "stage2_background_4",
+      "file": "assets/descriptionEntity/stage2_background_4.json"
+    },
+    {
+      "name": "gouger",
+      "file": "assets/descriptionEntity/gouger.json"
+    },
+    {
+      "name": "gouger_nest",
+      "file": "assets/descriptionEntity/gouger_nest.json"
+    },
+    {
+      "name": "gouger_nest_ceiling",
+      "file": "assets/descriptionEntity/gouger_nest_ceiling.json"
+    },
+    {
+      "name": "gouger_nest_death",
+      "file": "assets/descriptionEntity/gouger_nest_death.json"
+    },
+    {
+      "name": "enemySeed",
+      "file": "assets/descriptionEntity/enemySeed.json"
+    },
+    {
+      "name": "seed_death_effect",
+      "file": "assets/descriptionEntity/seed_death_effect.json"
+    },
+    {
+      "name": "enemyTendril",
+      "file": "assets/descriptionEntity/enemyTendril.json"
+    },
+    {
+      "name": "enemyShell",
+      "file": "assets/descriptionEntity/enemyShell.json"
     }
   ]
 }

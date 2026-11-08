@@ -11,6 +11,7 @@
 #include <functional>
 #include <random>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace rtype::events {
@@ -51,13 +52,27 @@ private:
   busEvent &_eventBus;
   std::function<bool()> _canSpawn;
 
-  const std::vector<std::string> _enemies{
+  struct EnemyPool {
+    std::vector<std::string> enemies;
+    std::vector<std::string> waveEnemies;
+  };
+
+  static inline const std::vector<std::string> _enemiesStage1{
       "enemyBidos",      "enemyMecha", "enemyRedShip",
       "enemySpinner",    "enemyPod",   "enemyDart",
       "enemyArmoredPod", "enemyCargo", "enemyGreenMecha"};
+  static inline const std::vector<std::string> _waveEnemiesStage1{
+      "enemyRedShip", "enemySpinner", "enemyDart"};
 
-  const std::vector<std::string> _waveEnemies{"enemyRedShip", "enemySpinner",
-                                              "enemyDart"};
+  static inline const std::vector<std::string> _enemiesStage2{
+      "enemySeed", "enemyTendril", "enemyShell"};
+  static inline const std::vector<std::string> _waveEnemiesStage2{"enemySeed"};
+  static inline const std::unordered_map<std::string, EnemyPool> _pools{
+      {"stage1", {_enemiesStage1, _waveEnemiesStage1}},
+      {"stage2", {_enemiesStage2, _waveEnemiesStage2}},
+  };
+
+  const std::string *_poolName{nullptr};
 
   float _spawnTimer{0.0f};
   float _spawnInterval{2.0f};
@@ -75,23 +90,32 @@ private:
   std::uniform_real_distribution<float> _distX;
   std::uniform_real_distribution<float> _distY;
   std::uniform_real_distribution<float> _distWaveY;
-  std::uniform_int_distribution<std::size_t> _distEnemy;
-  std::uniform_int_distribution<std::size_t> _distWaveEnemy;
 
 public:
+  static constexpr const char *defaultPool = "stage1";
+
   /**
    * @brief Creates the spawner.
    * @param factory Factory used to build enemy blueprints.
    * @param eventBus Bus on which EnemySpawnedEvent is published.
    * @param canSpawn Optional predicate, spawning pauses while it returns false.
+   * @param poolName Optional name of the pool to spawn from, read every frame
+   * so the owner can switch it between stages. `stage1` when null.
    */
   EnemySpawnerSystem(rtk::factory::EntityFactory &factory, busEvent &eventBus,
-                     std::function<bool()> canSpawn = nullptr)
+                     std::function<bool()> canSpawn = nullptr,
+                     const std::string *poolName = nullptr)
       : _factory(factory), _eventBus(eventBus), _canSpawn(std::move(canSpawn)),
-        _rng(std::random_device{}()), _distX(1920.0f, 2400.0f),
-        _distY(200.0f, 500.0f), _distWaveY(280.0f, 420.0f),
-        _distEnemy(0, _enemies.size() - 1),
-        _distWaveEnemy(0, _waveEnemies.size() - 1) {}
+        _poolName(poolName), _rng(std::random_device{}()),
+        _distX(1920.0f, 2400.0f), _distY(200.0f, 500.0f),
+        _distWaveY(280.0f, 420.0f) {}
+
+  /**
+   * @brief Tells whether a pool with this name exists.
+   * @param name Pool name, as written in the stage file.
+   * @return True when the pool exists.
+   */
+  static bool hasPool(const std::string &name) { return _pools.contains(name); }
 
   /**
    * @brief Logs that the system is loaded.
@@ -109,20 +133,27 @@ public:
     if (_canSpawn && !_canSpawn())
       return;
 
+    const EnemyPool *pool = currentPool();
+    if (!pool)
+      return;
+
     _spawnTimer += dt;
     if (_spawnTimer >= _spawnInterval) {
       _spawnTimer = 0.0f;
-      spawnEnemy(reg, _enemies[_distEnemy(_rng)], _distX(_rng), _distY(_rng));
+      if (!pool->enemies.empty())
+        spawnEnemy(reg, pick(pool->enemies), _distX(_rng), _distY(_rng));
     }
 
     _waveTimer += dt;
     if (!_waveActive && _waveTimer >= _waveInterval) {
       _waveTimer = 0.0f;
-      _waveActive = true;
-      _waveRemaining = _waveSize;
-      _waveStepTimer = _waveStepDelay;
-      _waveBaseY = _distWaveY(_rng);
-      _waveBlueprint = _waveEnemies[_distWaveEnemy(_rng)];
+      if (!pool->waveEnemies.empty()) {
+        _waveActive = true;
+        _waveRemaining = _waveSize;
+        _waveStepTimer = _waveStepDelay;
+        _waveBaseY = _distWaveY(_rng);
+        _waveBlueprint = pick(pool->waveEnemies);
+      }
     }
 
     if (_waveActive) {
@@ -144,6 +175,26 @@ public:
   void onStop(rtk::ecs::Registry &) override {}
 
 private:
+  /**
+   * @brief Finds the pool named by the owner, or the default one.
+   * @return The pool, or nullptr when the name matches no pool.
+   */
+  const EnemyPool *currentPool() const {
+    const std::string name = _poolName ? *_poolName : defaultPool;
+    const auto it = _pools.find(name);
+    return it != _pools.end() ? &it->second : nullptr;
+  }
+
+  /**
+   * @brief Picks a random blueprint name.
+   * @param names Non-empty list of blueprint names.
+   * @return One of the names.
+   */
+  const std::string &pick(const std::vector<std::string> &names) {
+    std::uniform_int_distribution<std::size_t> dist(0, names.size() - 1);
+    return names[dist(_rng)];
+  }
+
   /**
    * @brief Creates an enemy from its blueprint and notifies the network.
    *

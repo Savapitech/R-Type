@@ -2,112 +2,628 @@
   "name": "Stage 2",
   "nextStage": "stage3",
   "duration": 0.0,
-  "startX": 1920.0,
+  "startX": 0.0,
+  "enemies": "stage2",
   "segments": [
     {
-      "blueprint": "medium_ground",
+      "blueprint": "stage2_pillar_floor",
       "symmetric": true,
-      "spacing": 128.0
+      "spacing": 0.0
     },
     {
-      "blueprint": "reactor",
-      "symmetric": true,
-      "spacing": 226.0
-    },
-    {
-      "blueprint": "high_ground",
-      "symmetric": true,
-      "spacing": 128.0
-    },
-    {
-      "blueprint": "ramp",
-      "symmetric": true,
-      "spacing": 384.0
-    },
-    {
-      "blueprint": "medium_ground",
+      "blueprint": "stage2_background_1",
       "symmetric": false,
       "spacing": 128.0
     },
     {
-      "blueprint": "gate",
+      "blueprint": "stage2_pods_floor",
       "symmetric": true,
-      "spacing": 384.0
+      "spacing": 0.0
     },
     {
-      "blueprint": "low_ground",
-      "symmetric": true,
-      "spacing": 512.0
-    },
-    {
-      "blueprint": "high_ground",
-      "symmetric": true,
-      "spacing": 128.0
-    },
-    {
-      "blueprint": "reactor",
-      "symmetric": true,
-      "spacing": 226.0
-    },
-    {
-      "blueprint": "reactor",
-      "symmetric": true,
-      "spacing": 226.0
-    },
-    {
-      "blueprint": "medium_ground",
-      "symmetric": true,
-      "spacing": 128.0
-    },
-    {
-      "blueprint": "ramp",
-      "symmetric": true,
-      "spacing": 384.0
-    },
-    {
-      "blueprint": "gate",
-      "symmetric": true,
-      "spacing": 384.0
-    },
-    {
-      "blueprint": "high_ground",
+      "blueprint": "stage2_background_2",
       "symmetric": false,
       "spacing": 128.0
     },
     {
-      "blueprint": "low_ground",
-      "symmetric": true,
-      "spacing": 512.0
-    },
-    {
-      "blueprint": "medium_ground",
-      "symmetric": true,
-      "spacing": 128.0
-    },
-    {
-      "blueprint": "reactor",
-      "symmetric": true,
-      "spacing": 226.0
-    },
-    {
-      "blueprint": "gate",
-      "symmetric": true,
-      "spacing": 384.0
-    },
-    {
-      "blueprint": "ramp",
-      "symmetric": true,
-      "spacing": 384.0
-    },
-    {
-      "blueprint": "high_ground",
-      "symmetric": true,
-      "spacing": 128.0
-    },
-    {
-      "blueprint": "medium_ground",
+      "blueprint": "stage2_background_3",
       "symmetric": false,
       "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_1",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_4",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_1",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_2",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_2",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_3",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_3",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_4",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_1",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_4",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_2",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_3",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_5",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_4",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_1",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_6",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_2",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "gouger_nest",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_3",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_1",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_4",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_1",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_2",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_2",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_3",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_pillar_floor",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_4",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_pillar_floor",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_1",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_1",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_2",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_3",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_2",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_4",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_1",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_3",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_2",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "gouger_nest_ceiling",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_3",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_4",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_4",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_1",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_5",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_2",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_3",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_6",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_4",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_1",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_1",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_2",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "gouger_nest",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "gouger_nest_ceiling",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_3",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_2",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_4",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_1",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_pods_floor",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_2",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_3",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_1",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_4",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_1",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_2",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_2",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_3",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_3",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_4",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_1",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_4",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_2",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "gouger_nest",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_3",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_5",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_4",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_1",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_6",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_2",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_3",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_1",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_4",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_1",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_2",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_2",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_3",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_pillar_floor",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_4",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_pods_floor",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_1",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_2",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_pillar_floor",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_3",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_1",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_4",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "gouger_nest_ceiling",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_1",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_2",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_2",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_3",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_3",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_4",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_1",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_4",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_2",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_3",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_5",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_4",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_1",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_6",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_2",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "gouger_nest",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "gouger_nest_ceiling",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_3",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_1",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_4",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_1",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_floor_2",
+      "symmetric": true,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage2_background_2",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_background_3",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage2_boss_room",
+      "symmetric": false,
+      "spacing": 1428.0
     }
   ]
 }

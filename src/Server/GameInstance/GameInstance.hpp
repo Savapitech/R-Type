@@ -333,6 +333,7 @@ private:
   bool _stageActive = false;
   bool _allStagesCompleted = false;
   bool _stageRandomSpawns = true;
+  std::string _stageEnemyPool = "stage1";
 
   /// Optional sinusoidal flight parameters of a scripted spawn.
   struct StageSpawnWave {

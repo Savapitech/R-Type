@@ -1,0 +1,87 @@
+{
+  "components": {
+    "transform": {
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "scale": {
+        "x": 1.5,
+        "y": 1.5
+      },
+      "rotation": 0.0
+    },
+    "sprite": {
+      "texture": "assets/entityTexture/tendril.png",
+      "size": {
+        "w": 64.0,
+        "h": 36.0
+      },
+      "origin": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "textureRect": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 36
+      },
+      "color": {
+        "r": 255,
+        "g": 255,
+        "b": 255,
+        "a": 255
+      },
+      "layer": 0,
+      "flags": 0
+    },
+    "collider": {
+      "width": 44.0,
+      "height": 24.0,
+      "offsetX": 2.0,
+      "offsetY": 6.0,
+      "layer": "Enemy",
+      "mask": [
+        "PlayerProjectile",
+        "Player"
+      ]
+    },
+    "velocity": {
+      "x": -170.0,
+      "y": 0.0
+    },
+    "animation": {
+      "frameDuration": 0.18,
+      "currentFrame": 0,
+      "totalFrames": 2,
+      "frameWidth": 64,
+      "frameHeight": 36,
+      "startX": 0,
+      "startY": 0,
+      "loop": true,
+      "playing": true,
+      "columns": 2,
+      "paddingX": 0,
+      "paddingY": 0
+    },
+    "enemy": {
+      "health": 30.0,
+      "fireRate": 2.8,
+      "fireDelay": 1.2,
+      "blueprintName": "enemy_bullet",
+      "offsetX": -8.0,
+      "offsetY": 24.0
+    },
+    "waveMovement": {
+      "baseY": 360.0,
+      "amplitude": 110.0,
+      "frequency": 1.4,
+      "time": 0.0
+    },
+    "networkEntity": {},
+    "deathEffect": {
+      "blueprintName": "explosion"
+    }
+  }
+}

@@ -16,6 +16,7 @@
 #include "components/EnemyEvent.hpp"
 #include "components/Health.hpp"
 #include "components/LuaScript.hpp"
+#include "components/Nest.hpp"
 #include "components/NetworkEntity.hpp"
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
@@ -29,6 +30,7 @@
 #include "systems/EnemySpawnerSystem.hpp"
 #include "systems/LuaScriptSystem.hpp"
 #include "systems/MovementSystem.hpp"
+#include "systems/NestSystem.hpp"
 #include "systems/WaveMovementSystem.hpp"
 #include "systems/tailSystem.hpp"
 
@@ -172,6 +174,7 @@ void GameInstance::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::DropPowerUp>();
   context.registry.register_component<component::DeathEffect>();
   context.registry.register_component<component::tail>();
+  context.registry.register_component<component::Nest>();
 }
 
 void GameInstance::registerBuilders(rtk::EngineContext &context) {
@@ -271,6 +274,8 @@ void GameInstance::registerBuilders(rtk::EngineContext &context) {
                                          component::deathEffectFromJson);
   context._entityFactory.registerBuilder("tail", component::tailFromJson);
   context._entityFactory.registerBuilder("Tail", component::tailFromJson);
+  context._entityFactory.registerBuilder("nest", component::nestFromJson);
+  context._entityFactory.registerBuilder("Nest", component::nestFromJson);
 }
 
 void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
@@ -318,7 +323,7 @@ void GameInstance::addSystems(Server &server) {
   context.scheduler.add<rtk::systems::EnemySpawnerSystem>(
       rtk::ecs::Order::Update, std::ref(context._entityFactory),
       std::ref(context.eventBus),
-      [this]() { return _isActive && _stageRandomSpawns; });
+      [this]() { return _isActive && _stageRandomSpawns; }, &_stageEnemyPool);
 
   context.scheduler.add<rtk::systems::EnemyGCSystem>(
       rtk::ecs::Order::SecondUpdate, context.eventBus);
@@ -341,6 +346,9 @@ void GameInstance::addSystems(Server &server) {
 
   context.scheduler.add<rtk::systems::LuaScriptSystem>(rtk::ecs::Order::Update);
   context.scheduler.add<rtk::systems::TailSystem>(rtk::ecs::Order::Update);
+  context.scheduler.add<rtk::systems::NestSystem>(
+      rtk::ecs::Order::Update, std::ref(context._entityFactory),
+      std::ref(context.eventBus));
 
   _systemsRegistered = true;
 }
@@ -1337,6 +1345,15 @@ void GameInstance::loadStage(rtk::EngineContext &context,
   _bossNetId = 0;
 
   _stageRandomSpawns = stageJson.value("randomSpawns", true);
+  _stageEnemyPool = stageJson.value(
+      "enemies", std::string(rtk::systems::EnemySpawnerSystem::defaultPool));
+  if (!rtk::systems::EnemySpawnerSystem::hasPool(_stageEnemyPool)) {
+    std::cerr << "[Server] Unknown enemy pool '" << _stageEnemyPool << "' in "
+              << stagePath << ", falling back to '"
+              << rtk::systems::EnemySpawnerSystem::defaultPool << "'"
+              << std::endl;
+    _stageEnemyPool = rtk::systems::EnemySpawnerSystem::defaultPool;
+  }
   _stageSpawns.clear();
   _nextStageSpawn = 0;
   if (stageJson.contains("spawns") && stageJson["spawns"].is_array()) {
