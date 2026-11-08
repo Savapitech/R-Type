@@ -22,12 +22,14 @@ enum class MessageType : std::uint16_t {
   Disconnect = 0x04,  ///< Client to server: closes the connection.
   QueryEntity = 0x13, ///< Client to server: asks for an unknown entity.
 
-  ListRooms = 0x20,  ///< Client to server: get available rooms.
-  CreateRoom = 0x21, ///< Client to server: room creation.
-  JoinRoom = 0x22,   ///< Client to server: join a room.
-  LeaveRoom = 0x23,  ///< Client to server: leave the current room.
-  SetReady = 0x24,   ///< Client to server: changes the player's ready state.
-  ChatSend = 0x25,   ///< Client to server: chat message for the room.
+  ListRooms = 0x20,     ///< Client to server: get available rooms.
+  CreateRoom = 0x21,    ///< Client to server: room creation.
+  JoinRoom = 0x22,      ///< Client to server: join a room.
+  LeaveRoom = 0x23,     ///< Client to server: leave the current room.
+  SetReady = 0x24,      ///< Client to server: changes the player's ready state.
+  ChatSend = 0x25,      ///< Client to server: chat message for the room.
+  SetUsername = 0x26,   ///< Client to server: name to save the stats under.
+  GetScoreboard = 0x27, ///< Client to server: asks for the scoreboard.
 
   Snapshot = 0x83,      ///< Server to client: positions of the entities.
   CreateEntity = 0x84,  ///< Server to client: spawns an entity.
@@ -40,7 +42,9 @@ enum class MessageType : std::uint16_t {
   RoomLeft = 0x93,        ///< Server to client: room leave result.
   RoomStateUpdate = 0x94, ///< Server to client: updated player ready states.
   GameStarting = 0x95, ///< Server to client: all players ready: game starting.
-  ChatMessage = 0x96   ///< Server to client: chat message sent in the room.
+  ChatMessage = 0x96,  ///< Server to client: chat message sent in the room.
+  Scoreboard = 0x97,   ///< Server to client: scoreboard as plain text lines.
+  ScoreUpdate = 0x98   ///< Server to client: score of the player this round.
 };
 
 /**
@@ -69,6 +73,8 @@ constexpr PacketPriority messagePriority(MessageType type) {
   case MessageType::LeaveRoom:
   case MessageType::SetReady:
   case MessageType::ChatSend:
+  case MessageType::SetUsername:
+  case MessageType::GetScoreboard:
   case MessageType::RoomList:
   case MessageType::RoomCreated:
   case MessageType::RoomJoined:
@@ -76,6 +82,8 @@ constexpr PacketPriority messagePriority(MessageType type) {
   case MessageType::RoomStateUpdate:
   case MessageType::GameStarting:
   case MessageType::ChatMessage:
+  case MessageType::Scoreboard:
+  case MessageType::ScoreUpdate:
     return PacketPriority::Reliable;
   default:
     return PacketPriority::Unreliable;
