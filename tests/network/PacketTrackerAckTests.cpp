@@ -235,3 +235,42 @@ TEST(PacketTrackerIsInAck, MatchesTheReceiverBits) {
   CHECK(PacketTracker::isPacketinAck(4, ack, bits));
   CHECK_FALSE(PacketTracker::isPacketinAck(5, ack, bits));
 }
+
+// Loss counting
+
+TEST(PacketTrackerLoss, NoLossWithoutGap) {
+  PacketTracker tracker;
+
+  for (std::uint32_t sequence = 1; sequence <= 10; ++sequence)
+    tracker.onPacketReceived(sequence);
+  CHECK_EQ(tracker.getLostCount(), std::uint64_t{0});
+}
+
+TEST(PacketTrackerLoss, CountsTheSkippedSequences) {
+  PacketTracker tracker;
+
+  tracker.onPacketReceived(1u);
+  tracker.onPacketReceived(4u);
+  tracker.onPacketReceived(5u);
+  CHECK_EQ(tracker.getLostCount(), std::uint64_t{2});
+}
+
+TEST(PacketTrackerLoss, ALatePacketIsNotLost) {
+  PacketTracker tracker;
+
+  tracker.onPacketReceived(1u);
+  tracker.onPacketReceived(4u);
+  tracker.onPacketReceived(3u);
+  CHECK_EQ(tracker.getLostCount(), std::uint64_t{1});
+  CHECK_EQ(tracker.getOutOfOrderCount(), std::uint64_t{1});
+}
+
+TEST(PacketTrackerLoss, DuplicatesDoNotChangeTheCount) {
+  PacketTracker tracker;
+
+  tracker.onPacketReceived(1u);
+  tracker.onPacketReceived(3u);
+  tracker.onPacketReceived(3u);
+  tracker.onPacketReceived(1u);
+  CHECK_EQ(tracker.getLostCount(), std::uint64_t{1});
+}

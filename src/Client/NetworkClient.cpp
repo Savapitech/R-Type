@@ -467,6 +467,9 @@ void NetworkClient::handleConnectedPackets(const std::uint8_t *data,
     onPacketOut(_metrics);
   }
 
+  _metrics.packetsLost = _tracker.getLostCount();
+  updatePacketMetrics(_metrics);
+
   if (_tracker.getRttSampleCount() > previousRttSamples) {
     const float rttMs =
         static_cast<float>(_tracker.getLastRttSample().count()) / 1000.0f;

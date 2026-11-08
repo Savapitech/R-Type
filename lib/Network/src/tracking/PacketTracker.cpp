@@ -27,6 +27,7 @@ PacketReceiveRes PacketTracker::onPacketReceived(std::uint32_t sequence) {
 
   if (sequence > _lastReceived) {
     const std::uint32_t diff = sequence - _lastReceived;
+    _skippedCount += std::min<std::uint32_t>(diff - 1, MAX_COUNTED_GAP);
     if (diff > 32) {
       _receivedBits = 0;
     } else if (diff == 32) {
@@ -341,6 +342,11 @@ std::uint64_t PacketTracker::getOutOfOrderCount() const {
 }
 
 std::uint64_t PacketTracker::getTooOldCount() const { return _tooOldCount; }
+
+std::uint64_t PacketTracker::getLostCount() const {
+  const std::uint64_t late = _outOfOrderCount + _tooOldCount;
+  return _skippedCount > late ? _skippedCount - late : 0;
+}
 
 std::optional<std::chrono::microseconds> PacketTracker::takeMinRttSample() {
   const auto sample = _minRttSample;

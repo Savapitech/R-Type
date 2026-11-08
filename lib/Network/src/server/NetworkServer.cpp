@@ -7,6 +7,7 @@
 #include "../protocol/SystemMessages.hpp"
 #include "metrics/Metrics.hpp"
 
+#include <algorithm>
 #include <asio/post.hpp>
 #include <chrono>
 #include <cstddef>
@@ -125,6 +126,7 @@ void NetworkServer::handleConnectedPacket(
   auto &tracker = connection.getTracker();
   const auto previousDup = tracker.getDuplicateCount();
   const auto previousOut = tracker.getOutOfOrderCount();
+  const auto previousLost = tracker.getLostCount();
   const auto previousRttSamples = tracker.getRttSampleCount();
   const bool accepted = tracker.onPacketReceived(header, now);
   if (const auto rttSample = tracker.takeMinRttSample())
@@ -141,6 +143,15 @@ void NetworkServer::handleConnectedPacket(
     onPacketOut(_metrics);
     onPacketOut(clientMetrics);
   }
+
+  const auto lost = tracker.getLostCount();
+  clientMetrics.packetsLost = lost;
+  if (lost >= previousLost)
+    _metrics.packetsLost += lost - previousLost;
+  else
+    _metrics.packetsLost -= std::min(_metrics.packetsLost, previousLost - lost);
+  updatePacketMetrics(clientMetrics);
+  updatePacketMetrics(_metrics);
 
   if (tracker.getRttSampleCount() > previousRttSamples) {
     const float rttMs =

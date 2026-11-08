@@ -140,6 +140,14 @@ public:
    */
   std::uint64_t getTooOldCount() const;
   /**
+   * @brief Returns the number of received sequences that never arrived.
+   *
+   * Counts the gaps in the received sequence numbers, minus the packets that
+   * filled a gap later (out of order or too old).
+   * @return Packets lost so far.
+   */
+  std::uint64_t getLostCount() const;
+  /**
    * @brief Returns the most recent valid RTT sample.
    * @return Last RTT sample in microseconds.
    */
@@ -210,6 +218,8 @@ private:
   std::uint64_t _duplicateCount = 0;
   std::uint64_t _outOfOrderCount = 0;
   std::uint64_t _tooOldCount = 0;
+  std::uint64_t _skippedCount = 0;
+  static constexpr std::uint32_t MAX_COUNTED_GAP = 1024;
   std::array<SentRecord, SENT_HISTORY> _sent{};
   std::uint32_t _lastSampledSequence = 0;
   std::optional<std::chrono::microseconds> _minRttSample;
