@@ -49,7 +49,8 @@ public:
       if (!transform)
         continue;
 
-      if (transform->position.x < -100.0f) {
+      if (transform->position.x < -100.0f || transform->position.y < -150.0f ||
+          transform->position.y > 870.0f) {
         entitiesToDestroy.push_back(entity);
       }
     }
