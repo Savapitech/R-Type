@@ -1504,6 +1504,7 @@ void GameInstance::updateStage(float dt) {
     }
 
     if (!_bossSpawned) {
+      _stageRandomSpawns = false;
       std::uint32_t bodyNetId = NetworkIdGenerator::getInstance().getNextId();
       auto bossEntity = context._entityFactory.createNetwork(
           context.registry, "dobkeratops_body", bodyNetId);
