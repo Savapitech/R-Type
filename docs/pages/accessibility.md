@@ -25,8 +25,8 @@ full control remapping, color blind friendly markers and difficulty options.
 | ------- | ------ |
 | No information is given by sound only: every shot, spawn and destruction is visible on screen. | In place |
 | Each player ship has its own color, and each player starts on its own row. | In place |
-| Color blind friendly palette for the four ships (the current blue, green, pink and red set is hard to read for red green color blindness). | In place |
-| Separate volume settings for music and effects. | In place |
+| Separate volume settings for music and effects, by steps of 25 percent, plus a mute switch, in the settings menu. | In place |
+| Players who leave or lose the connection are announced in the chat, so the information is not only the disappearance of a ship. | In place |
 
 ### Mental and cognitive disabilities
 
@@ -34,6 +34,7 @@ full control remapping, color blind friendly markers and difficulty options.
 | ------- | ------ |
 | Simple rules and controls: move, shoot, avoid enemies and walls. | In place |
 | Menus use a single Confirm action. | In place |
+| No timed menus: every screen waits for the player to confirm. | In place |
 | Difficulty setting (enemy speed and spawn rate). | In place |
 
 ## Documentation
