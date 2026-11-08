@@ -90,6 +90,19 @@ private:
   void broadcastChatMessage(std::uint32_t connectionId,
                             const std::string &text);
   /**
+   * @brief Sends a server notice (ChatMessage from SERVER_SENDER_ID) to every
+   * player of a room.
+   * @param roomId Room to notify.
+   * @param text Notice content, made of chat characters.
+   */
+  void broadcastRoomNotice(std::uint32_t roomId, const std::string &text);
+  /**
+   * @brief Returns the name shown for a player in notices.
+   * @param connectionId Player connection.
+   * @return The username, or P followed by the connection id.
+   */
+  std::string displayName(std::uint32_t connectionId) const;
+  /**
    * @brief Adds the scores of a round to the stats saved in scores.json.
    * @param scores Connection ID and score of each player.
    */

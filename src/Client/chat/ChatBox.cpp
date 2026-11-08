@@ -33,6 +33,7 @@ constexpr rtk::ecs::concepts::ColorRGBA8 WHITE{255, 255, 255, 255};
 constexpr rtk::ecs::concepts::ColorRGBA8 GREY{150, 150, 170, 255};
 constexpr rtk::ecs::concepts::ColorRGBA8 LOCAL_COLOR{255, 220, 90, 255};
 constexpr rtk::ecs::concepts::ColorRGBA8 OTHER_COLOR{0, 220, 255, 255};
+constexpr rtk::ecs::concepts::ColorRGBA8 SERVER_COLOR{255, 110, 80, 255};
 constexpr rtk::ecs::concepts::ColorRGBA8 OPEN_BACKGROUND{10, 12, 24, 190};
 constexpr rtk::ecs::concepts::ColorRGBA8 LOBBY_BACKGROUND{10, 12, 24, 120};
 constexpr rtk::ecs::concepts::ColorRGBA8 INPUT_BACKGROUND{40, 45, 80, 220};
@@ -73,6 +74,8 @@ constexpr rtk::ecs::concepts::Key CONTROL_KEYS[] = {
 };
 
 std::string labelOf(std::uint32_t senderId) {
+  if (senderId == protocol::SERVER_SENDER_ID)
+    return "SERVER";
   return "P" + std::to_string(senderId);
 }
 
@@ -93,7 +96,8 @@ void ChatBox::addMessage(std::uint32_t senderId, const std::string &text,
   const auto parts = wrap(text, textWidth);
   for (std::size_t i = 0; i < parts.size(); ++i) {
     message.lines.push_back({i == 0 ? label : std::string{}, parts[i],
-                             labelWidth + LABEL_GAP, fromLocalPlayer});
+                             labelWidth + LABEL_GAP, fromLocalPlayer,
+                             senderId == protocol::SERVER_SENDER_ID});
   }
   if (message.lines.empty())
     return;
@@ -373,7 +377,9 @@ void ChatBox::rebuild(rtk::ecs::Registry &registry, bool keepHistoryVisible) {
 
   float y = historyTop;
   for (const auto *line : lines) {
-    const Color labelColor = line->fromLocalPlayer ? LOCAL_COLOR : OTHER_COLOR;
+    const Color labelColor = line->fromServer        ? SERVER_COLOR
+                             : line->fromLocalPlayer ? LOCAL_COLOR
+                                                     : OTHER_COLOR;
     addText(registry, line->label, PANEL_X + PADDING, y, labelColor);
     addText(registry, line->text, PANEL_X + PADDING + line->indent, y, WHITE);
     y += LINE_HEIGHT;

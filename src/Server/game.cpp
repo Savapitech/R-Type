@@ -72,7 +72,10 @@ void Game::handleConnections(rtk::EngineContext &) {
       std::cout << "[Server] Client " << connectionId
                 << " connected. Waiting for room selection." << std::endl;
     } else if (event.type == Server::ConnectionEvent::Type::Disconnected) {
-      removePlayerFromRoom(connectionId, false);
+      const auto roomId = _roomManager.getRoomId(connectionId);
+      const std::string name = displayName(connectionId);
+      if (removePlayerFromRoom(connectionId, false) && roomId)
+        broadcastRoomNotice(*roomId, name + " LOST CONNECTION");
       _lastChatMessage.erase(connectionId);
       _usernames.erase(connectionId);
       std::cout << "[Server] Client " << connectionId << " disconnected"
@@ -417,7 +420,9 @@ void Game::handleRoomRequests() {
       if (!removePlayerFromRoom(connectionId, true)) {
         res.result = protocol::RoomResult::InternalError;
         _server.sendRoomLeft(connectionId, res);
+        break;
       }
+      broadcastRoomNotice(*roomId, displayName(connectionId) + " LEFT THE ROOM");
       break;
     }
     case Server::RoomRequestEvent::Type::SetReady: {
@@ -510,6 +515,31 @@ void Game::broadcastChatMessage(std::uint32_t connectionId,
   }
   std::cout << "[Room " << *roomId << "] Chat from " << connectionId << ": "
             << text << std::endl;
+}
+
+void Game::broadcastRoomNotice(std::uint32_t roomId,
+                               const std::string &text) {
+  auto *room = _roomManager.getRoom(roomId);
+  if (!room)
+    return;
+
+  protocol::ChatMessagePayload payload{};
+  payload.roomId = roomId;
+  payload.senderId = protocol::SERVER_SENDER_ID;
+  payload.text = text;
+  for (const auto playerId : room->getPlayers()) {
+    if (_pendingJoins.contains(playerId))
+      continue;
+    _server.sendChatMessage(playerId, payload);
+  }
+  std::cout << "[Room " << roomId << "] Notice: " << text << std::endl;
+}
+
+std::string Game::displayName(std::uint32_t connectionId) const {
+  const auto it = _usernames.find(connectionId);
+  if (it != _usernames.end())
+    return it->second;
+  return "P" + std::to_string(connectionId);
 }
 
 void Game::updateNetworkMetrics() {

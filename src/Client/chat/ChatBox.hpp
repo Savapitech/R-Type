@@ -90,6 +90,7 @@ private:
     std::string text;    ///< Part of the message on this line.
     float indent = 0.0f; ///< Offset of the text from the panel border.
     bool fromLocalPlayer = false;
+    bool fromServer = false; ///< Notice written by the server.
   };
 
   /// A message of the history, already wrapped.

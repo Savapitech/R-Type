@@ -20,6 +20,9 @@ namespace rtype::protocol {
  */
 inline constexpr std::size_t MAX_CHAT_MESSAGE_LENGTH = 64;
 
+/// Sender id of a ChatMessage written by the server itself
+inline constexpr std::uint32_t SERVER_SENDER_ID = 0;
+
 /**
  * @brief ChatSend request payload: a message typed by a player.
  */
@@ -32,7 +35,8 @@ struct ChatSendPayload {
  */
 struct ChatMessagePayload {
   std::uint32_t roomId = 0;   ///< Room the message was sent in.
-  std::uint32_t senderId = 0; ///< Connection ID of the sender.
+  std::uint32_t senderId = 0; ///< Connection ID of the sender, or
+                              ///< SERVER_SENDER_ID for a server notice.
   std::string text;           ///< Message content.
 };
 
@@ -153,7 +157,7 @@ inline bool readChatSend(PacketReader &reader, ChatSendPayload &payload) {
  */
 inline bool writeChatMessage(PacketWriter &writer,
                              const ChatMessagePayload &payload) {
-  if (payload.roomId == 0 || payload.senderId == 0)
+  if (payload.roomId == 0)
     return false;
   return writer.writeUInt32(payload.roomId) &&
          writer.writeUInt32(payload.senderId) &&
@@ -170,8 +174,7 @@ inline bool readChatMessage(PacketReader &reader, ChatMessagePayload &payload) {
   ChatMessagePayload decoded;
   if (!reader.readUInt32(decoded.roomId) ||
       !reader.readUInt32(decoded.senderId) || decoded.roomId == 0 ||
-      decoded.senderId == 0 || !readChatText(reader, decoded.text) ||
-      !reader.isEnd())
+      !readChatText(reader, decoded.text) || !reader.isEnd())
     return false;
   payload = std::move(decoded);
   return true;

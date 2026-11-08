@@ -486,12 +486,20 @@ recently destroyed ids so that it does not query them again when a late
 | Offset | Size | Field | Type | Description |
 | -----: | ---: | ----- | ---- | ----------- |
 | 0 | 4 | `roomId` | `u32` | Room the message was sent in, never 0. |
-| 4 | 4 | `senderId` | `u32` | Connection id of the sender, never 0. |
+| 4 | 4 | `senderId` | `u32` | Connection id of the sender, or 0 for a server notice. |
 | 8 | 1 | `length` | `u8` | Text length `n`, 1 to 64. |
 | 9 | n | `text` | bytes | Message, with the characters of `ChatSend`. |
 
 Sent reliably, in the lobby of the room as well as during a game. A client
 MUST drop the message if it is invalid or if `roomId` is not its current room.
+
+A `senderId` of 0 marks a notice written by the server, not by a player. The
+server sends one to the other players of a room when a player leaves it, with
+the text `<name> LEFT THE ROOM`, or when a player loses the connection (crash,
+timeout or `Disconnect` without `LeaveRoom`), with the text
+`<name> LOST CONNECTION`. `<name>` is the username of the player, or `P`
+followed by its connection id when it has none. A client SHOULD display these
+notices apart from player messages.
 
 ### 8.6 Scoreboard (0x0097)
 
