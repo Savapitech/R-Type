@@ -90,6 +90,8 @@ void GameInstance::setGameActive(bool active) { _isActive = active; }
 void GameInstance::resetGameState() {
   _isActive = false;
   _serverTick = 0;
+  _inputRuns.clear();
+  _scenerySentTicks.clear();
 }
 
 void GameInstance::requestGameStart() { _gameStartRequested = true; }
@@ -1290,6 +1292,8 @@ void GameInstance::endGame(Server &server) {
     entity = NO_ENTITY;
   _isActive = false;
   _serverTick = 0;
+  _inputRuns.clear();
+  _scenerySentTicks.clear();
 }
 
 void GameInstance::respawnPlayers() {
