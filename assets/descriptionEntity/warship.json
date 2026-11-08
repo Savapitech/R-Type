@@ -46,6 +46,12 @@
       "x": -50.0,
       "y": 0.0
     },
-    "networkEntity": {}
+    "networkEntity": {},
+    "waveMovement": {
+      "baseY": 0.0,
+      "amplitude": 48.0,
+      "frequency": 0.8,
+      "time": 0.0
+    }
   }
 }

@@ -80,6 +80,12 @@
     "networkEntity": {},
     "deathEffect": {
       "blueprintName": "explosion"
+    },
+    "waveMovement": {
+      "baseY": 0.0,
+      "amplitude": 48.0,
+      "frequency": 0.8,
+      "time": 0.0
     }
   }
 }

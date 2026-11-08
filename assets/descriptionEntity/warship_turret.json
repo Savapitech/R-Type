@@ -65,6 +65,12 @@
     },
     "health": {
       "max": 40.0
+    },
+    "waveMovement": {
+      "baseY": 0.0,
+      "amplitude": 48.0,
+      "frequency": 0.8,
+      "time": 0.0
     }
   }
 }

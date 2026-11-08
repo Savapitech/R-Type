@@ -33,6 +33,7 @@ STAGE_FIELDS = [
     schema.field("scrollSpeed", "float", 50.0),
     schema.field("randomSpawns", "bool", True),
     schema.field("enemies", "enum", "stage1", options=["stage1", "stage2", "stage3"]),
+    schema.field("boss", "enum", "dobkeratops", options=["dobkeratops", "parts"]),
 ]
 SEGMENT_FIELDS = [schema.field("blueprint", "blueprint", ""),
                   schema.field("spacing", "float", 128.0),
