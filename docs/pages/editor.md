@@ -19,7 +19,8 @@ python3 -m tools.editor path/to/project   # any folder that contains assets/
 `tools/editor/run.sh` starts the editor from the repository's `.venv`. On
 Linux without root access (for example on WSL), it also uses the system
 libraries extracted in `.venv/syslibs` and forces the X11 (xcb) Qt platform; on
-macOS the native (cocoa) platform is used.
+macOS the native (cocoa) platform is used. On Windows, use `tools\editor\run.bat`
+instead: it creates the `.venv` and installs the requirements on the first run.
 
 `python3 -m tools.editor --selftest` validates every JSON file under `assets/`
 (syntax, missing textures, unknown blueprints in stages) and smoke-tests the
