@@ -626,6 +626,9 @@ void GameInstance::subscribeEvents(Server &server) {
 
 void GameInstance::processInput(const Server::InputEvent &inputEvent,
                                 Server &server) {
+  if (!_isActive)
+    return;
+
   auto it = _players.find(inputEvent.connectionId);
   if (it == _players.end())
     return;
