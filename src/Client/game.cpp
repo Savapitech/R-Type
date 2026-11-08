@@ -3,6 +3,7 @@
 #include "EngineContext.hpp"
 #include "Logger/Logger.hpp"
 #include "NetworkClient.hpp"
+#include "Protocol/ChatPayload.hpp"
 #include "Protocol/MessageType.hpp"
 #include "Protocol/PayloadCodec.hpp"
 #include "Protocol/RoomPayload.hpp"
@@ -66,7 +67,7 @@
 namespace rtype::client {
 Game::Game(std::string host, std::string port)
     : _window({1280.f, 720.f}, "R-Type"), _adapter(_window),
-      _dependency{_window, _networkClient, *this},
+      _chat(_window, _adapter), _dependency{_window, _networkClient, *this},
       _sceneManager(_dependency, std::in_place_type<IntroScene>),
       _host(std::move(host)), _port(std::move(port)) {}
 
@@ -78,6 +79,7 @@ void Game::onLoad(rtk::EngineContext &context) {
   loadEntityBluePrint(context);
 
   _fontRtype = _window.loadFont("./assets/font/r-type.otf", 40);
+  _chat.setFont(_fontRtype);
 
   _networkClient.connect(_host, _port);
 
@@ -495,6 +497,7 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           break;
         }
         _currentRoomId = payload.roomId.get();
+        _chat.clearHistory();
         _roomPlayers.clear();
         _localReady = false;
         _readyRequestPending = false;
@@ -515,6 +518,7 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           break;
         }
         _currentRoomId = payload.roomId.get();
+        _chat.clearHistory();
         _roomPlayers.clear();
         _localReady = false;
         _readyRequestPending = false;
@@ -534,6 +538,7 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           break;
         }
         _currentRoomId.reset();
+        _chat.clearHistory();
         _roomPlayers.clear();
         _localReady = false;
         _readyRequestPending = false;
@@ -588,6 +593,17 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
         clearNetworkEntities(context);
         _gameStarting = true;
         _readyRequestPending = false;
+        break;
+      }
+      case rtype::protocol::MessageType::ChatMessage: {
+        PacketReader reader(netEvent.payload);
+        protocol::ChatMessagePayload payload{};
+        if (!protocol::readChatMessage(reader, payload))
+          break;
+        if (!_currentRoomId.has_value() || *_currentRoomId != payload.roomId)
+          break;
+        _chat.addMessage(payload.senderId, payload.text,
+                         payload.senderId == _networkClient.getConnectionId());
         break;
       }
       default:
@@ -909,6 +925,8 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
     _hudSystem->setInGameScene(_sceneManager.get<GameScene>() != nullptr);
   }
 
+  updateChat(context, dt);
+
   const bool escapePressed =
       rtype::Input::hasAction(_inputState.actionMask,
                               rtype::Action::LeaveRoom) &&
@@ -928,6 +946,17 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
   _previousMuteKey = mPressed;
 
   _sceneManager.update(context, _inputState, dt);
+}
+
+void Game::updateChat(rtk::EngineContext &context, float dt) {
+  const bool inLobby = _sceneManager.get<RoomLobbyScene>() != nullptr;
+  const bool inGame = _sceneManager.get<GameScene>() != nullptr;
+  const bool available = _currentRoomId.has_value() && (inLobby || inGame);
+
+  const auto sent = _chat.update(context.registry, dt, available, inLobby);
+  if (sent)
+    _networkClient.sendChat(*sent);
+  _inputState.textInputActive = _chat.capturesKeyboard();
 }
 
 void Game::clearNetworkEntities(rtk::EngineContext &context) {
@@ -953,6 +982,7 @@ void Game::clearNetworkEntities(rtk::EngineContext &context) {
 }
 
 void Game::onUnload(rtk::EngineContext &context) {
+  _chat.destroyEntities(context.registry);
   for (const auto &[_, entity] : _networkEntities)
     context.registry.kill_entity(entity);
   _networkEntities.clear();

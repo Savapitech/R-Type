@@ -15,6 +15,8 @@ struct InputState {
   uint32_t actionMask{0};      ///< Bit n is set while action n is active.
   bool closeRequested = false; ///< True when the window must close.
   bool debug = false;          ///< True while the debug overlay is enabled.
+  /// True while a text field captures the keyboard: actions are cleared.
+  bool textInputActive = false;
 };
 
 /** @} */

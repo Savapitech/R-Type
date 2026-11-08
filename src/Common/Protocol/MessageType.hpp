@@ -27,6 +27,7 @@ enum class MessageType : std::uint16_t {
   JoinRoom = 0x22,   ///< Client to server: join a room.
   LeaveRoom = 0x23,  ///< Client to server: leave the current room.
   SetReady = 0x24,   ///< Client to server: changes the player's ready state.
+  ChatSend = 0x25,   ///< Client to server: chat message for the room.
 
   Snapshot = 0x83,      ///< Server to client: positions of the entities.
   CreateEntity = 0x84,  ///< Server to client: spawns an entity.
@@ -38,7 +39,8 @@ enum class MessageType : std::uint16_t {
   RoomJoined = 0x92,      ///< Server to client: room join result.
   RoomLeft = 0x93,        ///< Server to client: room leave result.
   RoomStateUpdate = 0x94, ///< Server to client: updated player ready states.
-  GameStarting = 0x95 ///< Server to client: all players ready: game starting.
+  GameStarting = 0x95, ///< Server to client: all players ready: game starting.
+  ChatMessage = 0x96   ///< Server to client: chat message sent in the room.
 };
 
 /**
@@ -66,12 +68,14 @@ constexpr PacketPriority messagePriority(MessageType type) {
   case MessageType::JoinRoom:
   case MessageType::LeaveRoom:
   case MessageType::SetReady:
+  case MessageType::ChatSend:
   case MessageType::RoomList:
   case MessageType::RoomCreated:
   case MessageType::RoomJoined:
   case MessageType::RoomLeft:
   case MessageType::RoomStateUpdate:
   case MessageType::GameStarting:
+  case MessageType::ChatMessage:
     return PacketPriority::Reliable;
   default:
     return PacketPriority::Unreliable;

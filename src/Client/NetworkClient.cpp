@@ -1,5 +1,6 @@
 #include "NetworkClient.hpp"
 #include "Protocol/BigEndian.hpp"
+#include "Protocol/ChatPayload.hpp"
 #include "Protocol/DisconnectPayload.hpp"
 #include "Protocol/EntityPayload.hpp"
 #include "Protocol/InputPayload.hpp"
@@ -238,6 +239,17 @@ void NetworkClient::sendSetReady(bool ready) {
     return;
   }
   sendRoomCommand(protocol::MessageType::SetReady, writer.getData());
+}
+
+void NetworkClient::sendChat(const std::string &text) {
+  PacketWriter writer;
+  protocol::ChatSendPayload payload{};
+  payload.text = text;
+
+  if (!protocol::writeChatSend(writer, payload)) {
+    return;
+  }
+  sendRoomCommand(protocol::MessageType::ChatSend, writer.getData());
 }
 
 void NetworkClient::flush() {

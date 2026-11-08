@@ -251,6 +251,12 @@ public:
    * @param ready the status of the player.
    */
   void sendSetReady(bool ready);
+
+  /**
+   * @brief Sends a chat message to the players of the current room.
+   * @param text Message, ignored if it is not a valid chat text.
+   */
+  void sendChat(const std::string &text);
 };
 
 /** @} */

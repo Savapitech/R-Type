@@ -96,6 +96,11 @@ public:
       }
     }
 
+    if (_inputState.textInputActive) {
+      _inputState.actionMask = 0;
+      return;
+    }
+
     if (_closeOnEscape && _event.isKeyPressed(ecs::concepts::Key::Escape))
       _inputState.closeRequested = true;
 

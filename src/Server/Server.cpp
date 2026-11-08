@@ -4,6 +4,7 @@
 #include <mutex>
 #include <utility>
 
+#include "Protocol/ChatPayload.hpp"
 #include "Protocol/EntityPayload.hpp"
 #include "Protocol/MessageType.hpp"
 #include "Protocol/PayloadCodec.hpp"
@@ -187,6 +188,23 @@ void Server::handleMessage(std::uint32_t connectionId, MessageId type,
     break;
   }
 
+  case protocol::MessageType::ChatSend: {
+    PacketReader reader(payload);
+    protocol::ChatSendPayload req;
+    if (!protocol::readChatSend(reader, req))
+      return;
+    RoomRequestEvent event{};
+    event.type = RoomRequestEvent::Type::Chat;
+    event.connectionId = connectionId;
+    event.chatText = std::move(req.text);
+    {
+      std::lock_guard<std::mutex> lock(_roomRequestMutex);
+      if (_roomRequestQueue.size() < MAX_QUEUED_EVENTS)
+        _roomRequestQueue.push(std::move(event));
+    }
+    break;
+  }
+
   default:
     break;
   }
@@ -319,6 +337,15 @@ bool Server::sendGameStarting(std::uint32_t connectionId,
   if (!writer.writeUInt32(payload.roomId.get()))
     return false;
   return sendMessage(connectionId, protocol::MessageType::GameStarting,
+                     writer.getData());
+}
+
+bool Server::sendChatMessage(std::uint32_t connectionId,
+                             const protocol::ChatMessagePayload &payload) {
+  PacketWriter writer;
+  if (!protocol::writeChatMessage(writer, payload))
+    return false;
+  return sendMessage(connectionId, protocol::MessageType::ChatMessage,
                      writer.getData());
 }
 

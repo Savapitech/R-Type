@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <string>
 #include <unordered_map>
 
 namespace rtype::server {
@@ -142,6 +143,13 @@ private:
   void handleRoomEvents();
   void broadcastRoomState(std::uint32_t roomId);
   /**
+   * @brief Broadcasts a chat message to every player of the sender's room.
+   * @param connectionId Sender connection.
+   * @param text Validated message content.
+   */
+  void broadcastChatMessage(std::uint32_t connectionId,
+                            const std::string &text);
+  /**
    * @brief Removes a connection from its room.
    * @param connectionId Connection to remove.
    * @param notifyClient True to answer with RoomLeft once the room stopped
@@ -252,6 +260,9 @@ private:
   bool _metricsInitialized = false;
   std::unordered_map<std::uint32_t, NetworkMetrics> _previousClientMetrics;
   std::unordered_map<std::uint32_t, PendingJoin> _pendingJoins;
+  /// Time of the last chat message accepted from each connection.
+  std::unordered_map<std::uint32_t, std::chrono::steady_clock::time_point>
+      _lastChatMessage;
   std::uint64_t _nextJoinRequestId = 1;
   // Declared after _server: room threads must stop before it is destroyed.
   std::unordered_map<std::uint32_t, std::unique_ptr<RoomWorker>> _roomWorkers;

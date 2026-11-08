@@ -17,6 +17,7 @@
 #include "GameInstance/RoomChannels.hpp"
 #include "GameInstance/RoomWorker.hpp"
 #include "NetworkIdGenerator.hpp"
+#include "Protocol/ChatPayload.hpp"
 #include "Protocol/RoomPayload.hpp"
 #include "Room/Room.hpp"
 #include "Room/RoomManager.hpp"
@@ -369,6 +370,7 @@ void Game::handleConnections(rtk::EngineContext &) {
                 << " connected. Waiting for room selection." << std::endl;
     } else if (event.type == Server::ConnectionEvent::Type::Disconnected) {
       removePlayerFromRoom(connectionId, false);
+      _lastChatMessage.erase(connectionId);
       std::cout << "[Server] Client " << connectionId << " disconnected"
                 << std::endl;
     }
@@ -875,8 +877,40 @@ void Game::handleRoomRequests() {
       startRoomIfReady(*roomId);
       break;
     }
+    case Server::RoomRequestEvent::Type::Chat:
+      broadcastChatMessage(connectionId, event.chatText);
+      break;
     }
   }
+}
+
+void Game::broadcastChatMessage(std::uint32_t connectionId,
+                                const std::string &text) {
+  constexpr auto minimumInterval = std::chrono::milliseconds(250);
+  const auto roomId = _roomManager.getRoomId(connectionId);
+  if (!roomId || _pendingJoins.contains(connectionId))
+    return;
+  auto *room = _roomManager.getRoom(*roomId);
+  if (!room)
+    return;
+
+  const auto now = std::chrono::steady_clock::now();
+  const auto last = _lastChatMessage.find(connectionId);
+  if (last != _lastChatMessage.end() && now - last->second < minimumInterval)
+    return;
+  _lastChatMessage.insert_or_assign(connectionId, now);
+
+  protocol::ChatMessagePayload payload{};
+  payload.roomId = *roomId;
+  payload.senderId = connectionId;
+  payload.text = text;
+  for (const auto playerId : room->getPlayers()) {
+    if (_pendingJoins.contains(playerId))
+      continue;
+    _server.sendChatMessage(playerId, payload);
+  }
+  std::cout << "[Room " << *roomId << "] Chat from " << connectionId << ": "
+            << text << std::endl;
 }
 
 void Game::updateNetworkMetrics() {

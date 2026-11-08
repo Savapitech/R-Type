@@ -23,6 +23,7 @@
 #include "NetworkDiagnostics.hpp"
 #include "NetworkClient.hpp"
 #include "Protocol/RoomPayload.hpp"
+#include "chat/ChatBox.hpp"
 #include "metrics/Metrics.hpp"
 #include "scene/gameOverScene.hpp"
 #include "scene/gameScene.hpp"
@@ -160,6 +161,8 @@ public:
    * @return True if currently pressed.
    */
   [[nodiscard]] bool isKeyPressed(rtk::ecs::concepts::Key key) const {
+    if (_inputState.textInputActive)
+      return false;
     return _adapter.isKeyPressed(key);
   }
 
@@ -169,6 +172,8 @@ public:
    */
   [[nodiscard]] std::optional<rtk::ecs::concepts::Key>
   getAnyKeyPressed() const {
+    if (_inputState.textInputActive)
+      return std::nullopt;
     return _adapter.getAnyKeyPressed();
   }
 
@@ -324,6 +329,7 @@ private:
   void applySnapshot(rtk::EngineContext &context,
                      const protocol::SnapshotPayload &payload);
   void updateNetworkStats();
+  void updateChat(rtk::EngineContext &context, float dt);
 
   std::unordered_map<protocol::NetworkEntityId, std::size_t> _networkEntities;
   std::unordered_set<std::uint32_t> _pendingEntityQueries;
@@ -343,6 +349,7 @@ private:
   /// by every Snapshot.
   rtype::client::LocalPrediction _prediction;
   rtype::client::NetworkDiagnostics _networkDiagnostics;
+  ChatBox _chat;
   clientDependancy _dependency;
   rtk::SceneManager<SceneType, clientDependancy, rtk::InputState, IntroScene,
                     MenuScene, NetworkConnectionScene, RoomListScene,

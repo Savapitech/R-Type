@@ -239,10 +239,12 @@ server.
 | `0x0003` | `Ping` | Client to server | 4 | 7.2 |
 | `0x0004` | `Disconnect` | Client to server | 1 | 7.3 |
 | `0x0013` | `QueryEntity` | Client to server | 4 | 7.4 |
+| `0x0025` | `ChatSend` | Client to server | 1 + n | 7.5 |
 | `0x0083` | `Snapshot` | Server to client | 14 + 11 n | 8.1 |
 | `0x0084` | `CreateEntity` | Server to client | 16 | 8.2 |
 | `0x0085` | `DestroyEntity` | Server to client | 9 | 8.3 |
 | `0x0086` | `Pong` | Server to client | 4 | 8.4 |
+| `0x0096` | `ChatMessage` | Server to client | 9 + n | 8.5 |
 
 A receiver MUST ignore messages whose type it does not know, and keep
 processing the other messages of the packet. Type `0` is invalid and is never
@@ -342,6 +344,20 @@ it never received `CreateEntity`. If the entity still exists, the server answers
 with a `CreateEntity` describing it. Otherwise it does not answer. The server
 MUST drop the message if the payload is not exactly 4 bytes or if `networkId`
 is 0.
+
+### 7.5 ChatSend (0x0025)
+
+| Offset | Size | Field | Type | Description |
+| -----: | ---: | ----- | ---- | ----------- |
+| 0 | 1 | `length` | `u8` | Text length `n`, 1 to 64. |
+| 1 | n | `text` | bytes | Message, not null terminated. |
+
+Sent reliably. The text is made only of the characters drawn by the game font:
+`a-z`, `A-Z`, `0-9`, space and `! , . / ; ? _`, and it is not only spaces. The
+server MUST drop the message if the text is invalid, if bytes follow it, or if
+the sender is not in a room. It also drops a message sent less than 250 ms
+after the previous accepted one of the same client. Otherwise it sends a
+`ChatMessage` to every player of the sender's room, the sender included.
 
 ## 8. Server to client messages
 
@@ -445,6 +461,18 @@ recently destroyed ids so that it does not query them again when a late
 | Offset | Size | Field | Type | Description |
 | -----: | ---: | ----- | ---- | ----------- |
 | 0 | 4 | `timestamp` | `u32` | Copied from the matching `Ping`. |
+
+### 8.5 ChatMessage (0x0096)
+
+| Offset | Size | Field | Type | Description |
+| -----: | ---: | ----- | ---- | ----------- |
+| 0 | 4 | `roomId` | `u32` | Room the message was sent in, never 0. |
+| 4 | 4 | `senderId` | `u32` | Connection id of the sender, never 0. |
+| 8 | 1 | `length` | `u8` | Text length `n`, 1 to 64. |
+| 9 | n | `text` | bytes | Message, with the characters of `ChatSend`. |
+
+Sent reliably, in the lobby of the room as well as during a game. A client
+MUST drop the message if it is invalid or if `roomId` is not its current room.
 
 ## 9. Value encodings
 

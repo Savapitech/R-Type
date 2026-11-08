@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "Protocol/ChatPayload.hpp"
 #include "Protocol/EntityPayload.hpp"
 #include "Protocol/InputPayload.hpp"
 #include "Protocol/MessageType.hpp"
@@ -84,13 +85,21 @@ public:
     /**
      * @brief Supported room management operations.
      */
-    enum class Type { ListRooms, CreateRoom, JoinRoom, LeaveRoom, SetReady };
+    enum class Type {
+      ListRooms,
+      CreateRoom,
+      JoinRoom,
+      LeaveRoom,
+      SetReady,
+      Chat
+    };
 
     Type type;                  ///< Requested operation.
     std::uint32_t connectionId; ///< Sender connection.
     std::string roomName;       ///< Requested name for CreateRoom.
     std::uint32_t roomId = 0;   ///< Target room for JoinRoom.
     bool ready = false;         ///< Requested ready state for SetReady.
+    std::string chatText;       ///< Message to broadcast for Chat.
   };
 
   /// Receives Input messages on the network thread.
@@ -250,6 +259,15 @@ public:
    */
   bool sendGameStarting(std::uint32_t connectionId,
                         const protocol::GameStartingPayload &payload);
+
+  /**
+   * @brief Sends a chat message of the client's room.
+   * @param connectionId Destination connection.
+   * @param payload Message and its sender.
+   * @return True if the message was encoded and queued.
+   */
+  bool sendChatMessage(std::uint32_t connectionId,
+                       const protocol::ChatMessagePayload &payload);
 
 private:
   void handleMessage(std::uint32_t connectionId, MessageId type,
