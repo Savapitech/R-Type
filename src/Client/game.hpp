@@ -20,8 +20,8 @@
 
 #include "ClientMetrics.hpp"
 #include "LocalPrediction.hpp"
-#include "NetworkDiagnostics.hpp"
 #include "NetworkClient.hpp"
+#include "NetworkDiagnostics.hpp"
 #include "Protocol/PowerUpPayload.hpp"
 #include "Protocol/RoomPayload.hpp"
 #include "chat/ChatBox.hpp"
@@ -233,16 +233,12 @@ public:
   /**
    * @brief Plays a sound by its identifier.
    */
-  void playSound(size_t soundId) {
-    _adapterAudioManager.playSound(soundId);
-  }
+  void playSound(size_t soundId) { _adapterAudioManager.playSound(soundId); }
 
   /**
    * @brief Stops a specific dedicated sound by its identifier.
    */
-  void stopSound(size_t soundId) {
-    _adapterAudioManager.stopSound(soundId);
-  }
+  void stopSound(size_t soundId) { _adapterAudioManager.stopSound(soundId); }
 
   /**
    * @brief Checks if a specific sound is currently playing.
@@ -275,23 +271,17 @@ public:
   /**
    * @brief Stops current background music immediately.
    */
-  void stopMusic() {
-    _adapterAudioManager.stopMusic();
-  }
+  void stopMusic() { _adapterAudioManager.stopMusic(); }
 
   /**
    * @brief Pauses background music.
    */
-  void pauseMusic() {
-    _adapterAudioManager.pauseMusic();
-  }
+  void pauseMusic() { _adapterAudioManager.pauseMusic(); }
 
   /**
    * @brief Resumes paused background music.
    */
-  void resumeMusic() {
-    _adapterAudioManager.resumeMusic();
-  }
+  void resumeMusic() { _adapterAudioManager.resumeMusic(); }
 
   /**
    * @brief Checks if background music is currently playing.
@@ -303,16 +293,12 @@ public:
   /**
    * @brief Stops all active sounds and music.
    */
-  void stopAllSounds() {
-    _adapterAudioManager.stopAllSounds();
-  }
+  void stopAllSounds() { _adapterAudioManager.stopAllSounds(); }
 
   /**
    * @brief Sets whether all sound output is muted.
    */
-  void setMuted(bool muted) {
-    _adapterAudioManager.setMuted(muted);
-  }
+  void setMuted(bool muted) { _adapterAudioManager.setMuted(muted); }
 
   /**
    * @brief Returns whether audio is currently muted.
@@ -325,9 +311,7 @@ public:
    * @brief Toggles mute state of all audio output.
    * @return New mute state (true if muted).
    */
-  bool toggleMute() {
-    return _adapterAudioManager.toggleMute();
-  }
+  bool toggleMute() { return _adapterAudioManager.toggleMute(); }
 
   /**
    * @brief Destroys every replicated entity, the server does not send

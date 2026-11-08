@@ -202,7 +202,8 @@ public:
     }
     result.snapshotsPerSecond = static_cast<double>(recent) / RATE_SECONDS;
     if (any) {
-      const double expected = static_cast<double>(last - first) / TICKS_PER_FRAME + 1.0;
+      const double expected =
+          static_cast<double>(last - first) / TICKS_PER_FRAME + 1.0;
       std::size_t inWindow = 0;
       for (const auto &[time, tick] : _frames) {
         (void)tick;
@@ -221,7 +222,8 @@ public:
       entities += value;
       ++count;
     }
-    result.entitiesPerSnapshot = count ? entities / static_cast<double>(count) : 0.0;
+    result.entitiesPerSnapshot =
+        count ? entities / static_cast<double>(count) : 0.0;
     return result;
   }
 
@@ -254,8 +256,10 @@ private:
     summary.count = values.size();
     std::sort(values.begin(), values.end());
     const auto at = [&](double quantile) {
-      return values[std::min(values.size() - 1,
-                             static_cast<std::size_t>(quantile * static_cast<double>(values.size() - 1) + 0.5))];
+      return values[std::min(
+          values.size() - 1,
+          static_cast<std::size_t>(
+              quantile * static_cast<double>(values.size() - 1) + 0.5))];
     };
     summary.p50 = at(0.50);
     summary.p95 = at(0.95);
@@ -278,4 +282,4 @@ private:
 };
 
 /** @} */
-}
+} // namespace rtype::client

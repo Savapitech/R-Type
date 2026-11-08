@@ -422,7 +422,8 @@ void Game::handleRoomRequests() {
         _server.sendRoomLeft(connectionId, res);
         break;
       }
-      broadcastRoomNotice(*roomId, displayName(connectionId) + " LEFT THE ROOM");
+      broadcastRoomNotice(*roomId,
+                          displayName(connectionId) + " LEFT THE ROOM");
       break;
     }
     case Server::RoomRequestEvent::Type::SetReady: {
@@ -517,8 +518,7 @@ void Game::broadcastChatMessage(std::uint32_t connectionId,
             << text << std::endl;
 }
 
-void Game::broadcastRoomNotice(std::uint32_t roomId,
-                               const std::string &text) {
+void Game::broadcastRoomNotice(std::uint32_t roomId, const std::string &text) {
   auto *room = _roomManager.getRoom(roomId);
   if (!room)
     return;

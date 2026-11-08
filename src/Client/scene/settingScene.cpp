@@ -247,8 +247,8 @@ void SettingScene::updateVisuals(rtk::EngineContext &context) {
       const rtk::ecs::concepts::ColorRGBA8 labelColor =
           isSelected ? rtk::ecs::concepts::ColorRGBA8{255, 255, 255, 255}
                      : rtk::ecs::concepts::ColorRGBA8{170, 175, 195, 220};
-      addText(context, _dependency.window, _font, OPTIONS[i].label,
-              labelX, y, labelColor, textScale, _dynamicTextEntities);
+      addText(context, _dependency.window, _font, OPTIONS[i].label, labelX, y,
+              labelColor, textScale, _dynamicTextEntities);
 
       const std::string statusStr = muted ? "MUTED" : "UNMUTED";
       const rtk::ecs::concepts::ColorRGBA8 statusColor =

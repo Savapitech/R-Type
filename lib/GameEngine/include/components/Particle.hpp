@@ -1,8 +1,8 @@
 #pragma once
 
+#include <Registry.hpp>
 #include <cstdint>
 #include <nlohmann/json.hpp>
-#include <Registry.hpp>
 
 #include "systems/RenderConcept.hpp"
 
@@ -18,8 +18,9 @@ namespace component {
 struct Particle {
   float lifetime = 0.5f;        ///< Remaining lifetime in seconds.
   float initialLifetime = 0.5f; ///< Total lifetime in seconds.
-  rtk::ecs::concepts::ColorRGBA8 initialColor{255, 255, 255, 255}; ///< Base color.
-  bool fadeAlpha = true;        ///< Whether to fade alpha channel over time.
+  rtk::ecs::concepts::ColorRGBA8 initialColor{255, 255, 255,
+                                              255}; ///< Base color.
+  bool fadeAlpha = true; ///< Whether to fade alpha channel over time.
 };
 
 /**

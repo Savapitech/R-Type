@@ -79,13 +79,12 @@ public:
         nest->burstRemaining = nest->burstCount;
 
       const float dirX = dx < 0.0f ? -1.0f : 1.0f;
-      const float dirY = transform->position.y < screenHeight / 2.0f ? 1.0f
-                                                                     : -1.0f;
-      toSpawn.push_back({nest->spawnBlueprint,
-                         transform->position.x + nest->spawnOffsetX,
-                         transform->position.y + nest->spawnOffsetY,
-                         dirX * nest->speed * diagonalX,
-                         dirY * nest->speed * diagonalY});
+      const float dirY =
+          transform->position.y < screenHeight / 2.0f ? 1.0f : -1.0f;
+      toSpawn.push_back(
+          {nest->spawnBlueprint, transform->position.x + nest->spawnOffsetX,
+           transform->position.y + nest->spawnOffsetY,
+           dirX * nest->speed * diagonalX, dirY * nest->speed * diagonalY});
 
       nest->burstRemaining--;
       nest->timer =

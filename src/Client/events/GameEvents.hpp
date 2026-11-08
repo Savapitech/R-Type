@@ -34,7 +34,8 @@ struct BeamChargeEvent {
 };
 
 /**
- * @brief Published on the event bus to request playing a background music track.
+ * @brief Published on the event bus to request playing a background music
+ * track.
  */
 struct PlayMusicEvent {
   std::string path; ///< File path to the music audio asset.

@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-#include <miniaudio.h>
 #include "Logger/Logger.hpp"
+#include <miniaudio.h>
 
 namespace rtype::client {
 /**
@@ -36,7 +36,8 @@ struct SoundEntry {
 };
 
 /**
- * @brief Sound and music manager adapting miniaudio to the IsAudioManager concept.
+ * @brief Sound and music manager adapting miniaudio to the IsAudioManager
+ * concept.
  *
  * Supports loading, playing, stopping dedicated sounds, music streaming,
  * looping, and global mute/volume controls.
@@ -85,8 +86,8 @@ public:
 
     auto entry = std::make_unique<SoundEntry>();
     entry->path = path;
-    const ma_result result =
-        ma_sound_init_from_file(&_engine, path.c_str(), 0, NULL, NULL, &entry->sound);
+    const ma_result result = ma_sound_init_from_file(&_engine, path.c_str(), 0,
+                                                     NULL, NULL, &entry->sound);
 
     if (result != MA_SUCCESS) {
       LOG_WARN("Failed to load sound file: " + path);
@@ -172,9 +173,7 @@ public:
    * @brief Stops a sound by identifier (satisfies IsAudioManager).
    * @param id Identifier of the sound.
    */
-  void removeSound(size_t id) {
-    stopSound(id);
-  }
+  void removeSound(size_t id) { stopSound(id); }
 
   /**
    * @brief Plays dedicated background music.
@@ -188,9 +187,9 @@ public:
 
     _musicEntry = std::make_unique<SoundEntry>();
     _musicEntry->path = path;
-    const ma_result result = ma_sound_init_from_file(
-        &_engine, path.c_str(), MA_SOUND_FLAG_STREAM, NULL, NULL,
-        &_musicEntry->sound);
+    const ma_result result =
+        ma_sound_init_from_file(&_engine, path.c_str(), MA_SOUND_FLAG_STREAM,
+                                NULL, NULL, &_musicEntry->sound);
 
     if (result != MA_SUCCESS) {
       LOG_WARN("Failed to load music file: " + path);

@@ -3,9 +3,9 @@
 bool PacketHeader::serialize(PacketWriter &writer) const {
   return writer.writeUInt32(connectionId) && writer.writeUInt32(sequence) &&
          writer.writeUInt32(ack) && writer.writeUInt32(ackBits) &&
-         writer.writeUInt8(static_cast<std::uint8_t>(
-             static_cast<std::uint8_t>(priority) |
-             (compressed ? COMPRESSED_FLAG : 0))) &&
+         writer.writeUInt8(
+             static_cast<std::uint8_t>(static_cast<std::uint8_t>(priority) |
+                                       (compressed ? COMPRESSED_FLAG : 0))) &&
          writer.writeUInt16(reliableId);
 }
 

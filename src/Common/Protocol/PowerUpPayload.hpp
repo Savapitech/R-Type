@@ -15,9 +15,9 @@ namespace rtype::protocol {
  * @brief Kind of power up carried by a PowerUpTaken message.
  */
 enum class PowerUpKind : std::uint8_t {
-  Heal = 0x00,        ///< Restores health.
-  Speed = 0x01,       ///< Raises the ship speed, value in pixels per second.
-  Shield = 0x02,      ///< Adds health above the maximum.
+  Heal = 0x00,         ///< Restores health.
+  Speed = 0x01,        ///< Raises the ship speed, value in pixels per second.
+  Shield = 0x02,       ///< Adds health above the maximum.
   WeaponSpread = 0x03, ///< Three way shot, value is the duration in seconds.
   WeaponPlasma = 0x04  ///< Plasma shot, value is the duration in seconds.
 };
@@ -36,8 +36,7 @@ struct PowerUpTakenPayload {
   be16 value;                           ///< Strength, in tenths of a unit.
 };
 
-static_assert(sizeof(PowerUpTakenPayload) ==
-                  sizeof(PowerUpKind) + sizeof(be16),
+static_assert(sizeof(PowerUpTakenPayload) == sizeof(PowerUpKind) + sizeof(be16),
               "PowerUpTakenPayload must not contain padding");
 
 /**

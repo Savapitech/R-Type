@@ -49,11 +49,12 @@
 #include <unordered_map>
 #include <utility>
 
-static_assert(static_cast<int>(component::powerUpType::Speed) ==
-                  static_cast<int>(rtype::protocol::PowerUpKind::Speed) &&
-              static_cast<int>(component::powerUpType::WeaponPlasma) ==
-                  static_cast<int>(rtype::protocol::PowerUpKind::WeaponPlasma),
-              "powerUpType and PowerUpKind must use the same values");
+static_assert(
+    static_cast<int>(component::powerUpType::Speed) ==
+            static_cast<int>(rtype::protocol::PowerUpKind::Speed) &&
+        static_cast<int>(component::powerUpType::WeaponPlasma) ==
+            static_cast<int>(rtype::protocol::PowerUpKind::WeaponPlasma),
+    "powerUpType and PowerUpKind must use the same values");
 
 namespace rtype::server {
 namespace {

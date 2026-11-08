@@ -67,7 +67,8 @@ public:
   }
 
   /**
-   * @brief Shows, refreshes or hides the metrics, and writes the console report.
+   * @brief Shows, refreshes or hides the metrics, and writes the console
+   * report.
    * @param reg Entity registry.
    * @param dt Elapsed time since last frame in seconds.
    */
@@ -153,9 +154,10 @@ private:
     return value >= warning ? Level::Warning : Level::Bad;
   }
 
-  static const char *verdict(const rtype::client::ClientNetworkStats &stats,
-                             const rtype::client::NetworkDiagnostics::Report &report,
-                             Level &level) {
+  static const char *
+  verdict(const rtype::client::ClientNetworkStats &stats,
+          const rtype::client::NetworkDiagnostics::Report &report,
+          Level &level) {
     if (!report.hasSnapshots) {
       level = Level::Warning;
       return "WAITING FOR THE GAME";
@@ -187,24 +189,28 @@ private:
     std::snprintf(buffer, sizeof(buffer), "NETWORK  %s", state);
     lines.push_back({buffer, overall});
 
-    std::snprintf(buffer, sizeof(buffer), "RTT       %.0f ms  last %.0f  jitter %.1f  %s",
+    std::snprintf(buffer, sizeof(buffer),
+                  "RTT       %.0f ms  last %.0f  jitter %.1f  %s",
                   _stats.smoothPingMs, _stats.pingMs, _stats.jitterMs,
                   tag(lower(_stats.smoothPingMs, 100.0, 250.0)));
     lines.push_back({buffer, lower(_stats.smoothPingMs, 100.0, 250.0)});
 
-    std::snprintf(buffer, sizeof(buffer), "LOSS      %.1f %%  resent %.1f/s  dup %llu  reordered %llu  %s",
-                  _stats.packetLossPercent, _stats.retransmissionsPerSecond,
-                  static_cast<unsigned long long>(_stats.totalDuplicates),
-                  static_cast<unsigned long long>(_stats.totalOutOfOrder),
-                  tag(lower(_stats.packetLossPercent, 2.0, 10.0)));
+    std::snprintf(
+        buffer, sizeof(buffer),
+        "LOSS      %.1f %%  resent %.1f/s  dup %llu  reordered %llu  %s",
+        _stats.packetLossPercent, _stats.retransmissionsPerSecond,
+        static_cast<unsigned long long>(_stats.totalDuplicates),
+        static_cast<unsigned long long>(_stats.totalOutOfOrder),
+        tag(lower(_stats.packetLossPercent, 2.0, 10.0)));
     lines.push_back({buffer, lower(_stats.packetLossPercent, 2.0, 10.0)});
 
     const double bytesPerPacket =
         _stats.packetsInPerSecond > 0.0
             ? _stats.downloadKiBs * 1024.0 / _stats.packetsInPerSecond
             : 0.0;
-    std::snprintf(buffer, sizeof(buffer), "DOWN      %.2f KB/s  %.0f pkt/s  %.0f B/pkt",
-                  _stats.downloadKiBs, _stats.packetsInPerSecond, bytesPerPacket);
+    std::snprintf(
+        buffer, sizeof(buffer), "DOWN      %.2f KB/s  %.0f pkt/s  %.0f B/pkt",
+        _stats.downloadKiBs, _stats.packetsInPerSecond, bytesPerPacket);
     lines.push_back({buffer, Level::Good});
 
     std::snprintf(buffer, sizeof(buffer), "UP        %.2f KB/s  %.0f pkt/s",
@@ -212,41 +218,53 @@ private:
     lines.push_back({buffer, Level::Good});
 
     const auto waitLevel = lower(report.updateWaitMs.p99, 100.0, 200.0);
-    std::snprintf(buffer, sizeof(buffer), "WORLD     %.1f updates/s  wait p99 %.0f  max %.0f ms  %s",
+    std::snprintf(buffer, sizeof(buffer),
+                  "WORLD     %.1f updates/s  wait p99 %.0f  max %.0f ms  %s",
                   report.snapshotsPerSecond, report.updateWaitMs.p99,
                   report.updateWaitMs.max, tag(waitLevel));
     lines.push_back({buffer, waitLevel});
 
-    const auto receivedLevel = higher(report.updatesReceivedPercent, 95.0, 85.0);
-    std::snprintf(buffer, sizeof(buffer), "UPDATES   %.0f %% of 20 Hz  %.1f entities each  %s",
+    const auto receivedLevel =
+        higher(report.updatesReceivedPercent, 95.0, 85.0);
+    std::snprintf(buffer, sizeof(buffer),
+                  "UPDATES   %.0f %% of 20 Hz  %.1f entities each  %s",
                   report.updatesReceivedPercent, report.entitiesPerSnapshot,
                   tag(receivedLevel));
     lines.push_back({buffer, receivedLevel});
 
     const auto inputLevel = lower(report.confirmedInputMs.p50, 100.0, 250.0);
-    std::snprintf(buffer, sizeof(buffer), "INPUT     server confirms in %.0f ms (p95 %.0f)  %s",
+    std::snprintf(buffer, sizeof(buffer),
+                  "INPUT     server confirms in %.0f ms (p95 %.0f)  %s",
                   report.confirmedInputMs.p50, report.confirmedInputMs.p95,
                   tag(inputLevel));
     lines.push_back({buffer, inputLevel});
 
-    std::snprintf(buffer, sizeof(buffer), "SHIP      %s moves at once (prediction)",
-                  _prediction.isActive() ? "seen:" : "no prediction, seen: waits for server, ");
-    lines.push_back({buffer, _prediction.isActive() ? Level::Good : Level::Warning});
+    std::snprintf(
+        buffer, sizeof(buffer), "SHIP      %s moves at once (prediction)",
+        _prediction.isActive() ? "seen:"
+                               : "no prediction, seen: waits for server, ");
+    lines.push_back(
+        {buffer, _prediction.isActive() ? Level::Good : Level::Warning});
 
     const auto gapLevel = lower(report.predictionGapPx.p95, 10.0, 40.0);
-    std::snprintf(buffer, sizeof(buffer), "PREDICT   gap p95 %.1f px  max %.1f  fixed %llu  jumped %llu  %s",
-                  report.predictionGapPx.p95, report.predictionGapPx.max,
-                  static_cast<unsigned long long>(prediction.corrections),
-                  static_cast<unsigned long long>(prediction.snaps), tag(gapLevel));
+    std::snprintf(
+        buffer, sizeof(buffer),
+        "PREDICT   gap p95 %.1f px  max %.1f  fixed %llu  jumped %llu  %s",
+        report.predictionGapPx.p95, report.predictionGapPx.max,
+        static_cast<unsigned long long>(prediction.corrections),
+        static_cast<unsigned long long>(prediction.snaps), tag(gapLevel));
     lines.push_back({buffer, gapLevel});
 
     const auto repairLevel = lower(report.creationRepairMs.p95, 300.0, 1000.0);
-    std::snprintf(buffer, sizeof(buffer), "CREATIONS repaired in p95 %.0f ms  max %.0f  waiting %zu  %s",
-                  report.creationRepairMs.p95, report.creationRepairMs.max,
-                  report.pendingCreations, tag(repairLevel));
+    std::snprintf(
+        buffer, sizeof(buffer),
+        "CREATIONS repaired in p95 %.0f ms  max %.0f  waiting %zu  %s",
+        report.creationRepairMs.p95, report.creationRepairMs.max,
+        report.pendingCreations, tag(repairLevel));
     lines.push_back({buffer, repairLevel});
 
-    std::snprintf(buffer, sizeof(buffer), "TOTAL     down %.1f KB (%llu pkt)  up %.1f KB (%llu pkt)",
+    std::snprintf(buffer, sizeof(buffer),
+                  "TOTAL     down %.1f KB (%llu pkt)  up %.1f KB (%llu pkt)",
                   static_cast<double>(_stats.totalBytesReceived) / 1024.0,
                   static_cast<unsigned long long>(_stats.totalPacketsReceived),
                   static_cast<double>(_stats.totalBytesSent) / 1024.0,
@@ -264,12 +282,14 @@ private:
     char buffer[256];
     std::cout << "Network metrics\n";
     std::cout << "State                : " << state << "\n";
-    std::snprintf(buffer, sizeof(buffer),
-                  "RTT                  : last %.1f ms, smooth %.1f ms, jitter %.2f ms",
-                  _stats.pingMs, _stats.smoothPingMs, _stats.jitterMs);
+    std::snprintf(
+        buffer, sizeof(buffer),
+        "RTT                  : last %.1f ms, smooth %.1f ms, jitter %.2f ms",
+        _stats.pingMs, _stats.smoothPingMs, _stats.jitterMs);
     std::cout << buffer << "\n";
     std::snprintf(buffer, sizeof(buffer),
-                  "Packet loss          : %.2f %% (%llu lost)  resent %.2f/s (%llu total)  duplicated %llu  reordered %llu",
+                  "Packet loss          : %.2f %% (%llu lost)  resent %.2f/s "
+                  "(%llu total)  duplicated %llu  reordered %llu",
                   _stats.packetLossPercent,
                   static_cast<unsigned long long>(_stats.totalPacketsLost),
                   _stats.retransmissionsPerSecond,
@@ -286,18 +306,21 @@ private:
                   _stats.uploadKiBs, _stats.packetsOutPerSecond);
     std::cout << buffer << "\n";
     std::snprintf(buffer, sizeof(buffer),
-                  "World updates        : %.2f/s, %.0f %% of the normal 20 Hz received, %.1f entities each",
+                  "World updates        : %.2f/s, %.0f %% of the normal 20 Hz "
+                  "received, %.1f entities each",
                   report.snapshotsPerSecond, report.updatesReceivedPercent,
                   report.entitiesPerSnapshot);
     std::cout << buffer << "\n";
     std::snprintf(buffer, sizeof(buffer),
-                  "Wait between updates : last %.0f, p50 %.0f, p95 %.0f, p99 %.0f, max %.0f ms (%zu samples, normal 50)",
+                  "Wait between updates : last %.0f, p50 %.0f, p95 %.0f, p99 "
+                  "%.0f, max %.0f ms (%zu samples, normal 50)",
                   report.updateWaitMs.last, report.updateWaitMs.p50,
                   report.updateWaitMs.p95, report.updateWaitMs.p99,
                   report.updateWaitMs.max, report.updateWaitMs.count);
     std::cout << buffer << "\n";
     std::snprintf(buffer, sizeof(buffer),
-                  "Input confirmed in   : last %.0f, p50 %.0f, p95 %.0f, max %.0f ms (%zu samples)",
+                  "Input confirmed in   : last %.0f, p50 %.0f, p95 %.0f, max "
+                  "%.0f ms (%zu samples)",
                   report.confirmedInputMs.last, report.confirmedInputMs.p50,
                   report.confirmedInputMs.p95, report.confirmedInputMs.max,
                   report.confirmedInputMs.count);
@@ -308,7 +331,8 @@ private:
                       : "after the server confirmation (no prediction)")
               << "\n";
     std::snprintf(buffer, sizeof(buffer),
-                  "Prediction gap       : last %.2f, p50 %.2f, p95 %.2f, max %.2f px; %llu checks, %llu smooth fixes, %llu jumps",
+                  "Prediction gap       : last %.2f, p50 %.2f, p95 %.2f, max "
+                  "%.2f px; %llu checks, %llu smooth fixes, %llu jumps",
                   report.predictionGapPx.last, report.predictionGapPx.p50,
                   report.predictionGapPx.p95, report.predictionGapPx.max,
                   static_cast<unsigned long long>(prediction.reconciliations),
@@ -316,13 +340,15 @@ private:
                   static_cast<unsigned long long>(prediction.snaps));
     std::cout << buffer << "\n";
     std::snprintf(buffer, sizeof(buffer),
-                  "Creation repair      : p50 %.0f, p95 %.0f, max %.0f ms (%zu samples), %zu entities waiting",
+                  "Creation repair      : p50 %.0f, p95 %.0f, max %.0f ms (%zu "
+                  "samples), %zu entities waiting",
                   report.creationRepairMs.p50, report.creationRepairMs.p95,
                   report.creationRepairMs.max, report.creationRepairMs.count,
                   report.pendingCreations);
     std::cout << buffer << "\n";
     std::snprintf(buffer, sizeof(buffer),
-                  "Totals               : down %llu B in %llu packets, up %llu B in %llu packets",
+                  "Totals               : down %llu B in %llu packets, up %llu "
+                  "B in %llu packets",
                   static_cast<unsigned long long>(_stats.totalBytesReceived),
                   static_cast<unsigned long long>(_stats.totalPacketsReceived),
                   static_cast<unsigned long long>(_stats.totalBytesSent),
@@ -471,4 +497,4 @@ private:
 };
 
 /** @} */
-}
+} // namespace rtk::systems

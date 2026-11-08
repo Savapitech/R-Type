@@ -42,9 +42,9 @@
 #include "systems/DeadSystem.hpp"
 #include "systems/DebugCollisionSystem.hpp"
 #include "systems/HudSystem.hpp"
-#include "systems/NetworkHudSystem.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/MovementSystem.hpp"
+#include "systems/NetworkHudSystem.hpp"
 #include "systems/ParallaxSystem.hpp"
 #include "systems/PlayerSystem.hpp"
 #include "systems/RenderConcept.hpp"
@@ -329,9 +329,7 @@ void Game::subscribeEvents(rtk::EngineContext &context, uint32_t shootSoundId) {
       });
 
   context.eventBus.subscribe<rtype::events::StopMusicEvent>(
-      [this](const rtype::events::StopMusicEvent &) {
-        stopMusic();
-      });
+      [this](const rtype::events::StopMusicEvent &) { stopMusic(); });
 }
 
 void Game::addSystems(rtk::EngineContext &context) {
@@ -733,16 +731,15 @@ void Game::onUpdate(rtk::EngineContext &context, float dt) {
           auto *netEnt = networkEntities.get(e);
           if (netEnt && netEnt->id == netData.networkId.get()) {
             auto *transform = transforms.get(e);
-            if (transform && netData.networkId.get() ==
-                                 snapshotPayload.ownNetworkId.get()) {
+            if (transform &&
+                netData.networkId.get() == snapshotPayload.ownNetworkId.get()) {
               // The ship of the local player is predicted: the Snapshot only
               // corrects the prediction. Its animation follows the held keys
               // (PlayerSystem).
               const auto reconciliations = _prediction.stats().reconciliations;
-              _prediction.reconcile(
-                  protocol::decodePosition(netData.positionX),
-                  protocol::decodePosition(netData.positionY),
-                  snapshotPayload.ackedInputTick.get());
+              _prediction.reconcile(protocol::decodePosition(netData.positionX),
+                                    protocol::decodePosition(netData.positionY),
+                                    snapshotPayload.ackedInputTick.get());
               if (_prediction.stats().reconciliations > reconciliations)
                 _networkDiagnostics.onPredictionGap(
                     _prediction.stats().lastError, diagnosticsNow());

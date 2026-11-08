@@ -35,7 +35,8 @@ namespace rtype::client {
  */
 class LocalPrediction {
 public:
-  /// Errors below this many pixels are ignored (a position has a 0.25 pixel step).
+  /// Errors below this many pixels are ignored (a position has a 0.25 pixel
+  /// step).
   static constexpr float DEADZONE = 0.75f;
   /// Errors above this many pixels move the ship at once instead of smoothly.
   static constexpr float SNAP_DISTANCE = 96.0f;
@@ -98,7 +99,8 @@ public:
             std::uint32_t tick) {
     if (!isActive())
       return;
-    const protocol::ShipVelocity velocity = protocol::shipVelocity(actions, speed);
+    const protocol::ShipVelocity velocity =
+        protocol::shipVelocity(actions, speed);
     _x += velocity.x * dt;
     _y += velocity.y * dt;
     _history.push_back({tick, velocity.x * dt, velocity.y * dt});

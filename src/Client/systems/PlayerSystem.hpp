@@ -103,8 +103,8 @@ private:
    * the movement the server applies (LocalPrediction). Each Snapshot then
    * corrects it.
    */
-  void moveLocalShip(rtk::ecs::Registry &reg,
-                     float dt, rtype::protocol::InputAction actions) {
+  void moveLocalShip(rtk::ecs::Registry &reg, float dt,
+                     rtype::protocol::InputAction actions) {
     const auto ownId = _prediction.ownNetworkId();
     if (ownId == 0)
       return;
@@ -113,7 +113,8 @@ private:
     auto &transforms = reg.get_components<component::Transform>();
     auto &controllables = reg.get_components<component::Controllable>();
     auto &animators = reg.get_components<component::animator>();
-    for (auto ent : reg.view<component::NetworkEntity, component::Transform>()) {
+    for (auto ent :
+         reg.view<component::NetworkEntity, component::Transform>()) {
       const auto *netEnt = networkEntities.get(ent);
       auto *transform = transforms.get(ent);
       if (!netEnt || !transform || netEnt->id != ownId)

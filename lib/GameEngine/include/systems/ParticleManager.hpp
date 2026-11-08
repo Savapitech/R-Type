@@ -24,7 +24,8 @@ namespace rtk::systems {
 class ParticleManager;
 
 /**
- * @brief Helper generator object exposing particle generation with 4 parameters.
+ * @brief Helper generator object exposing particle generation with 4
+ * parameters.
  */
 class ParticleGenerator {
 public:
@@ -42,8 +43,7 @@ public:
    * @param position Center position of emission.
    */
   void operator()(const rtk::ecs::concepts::ColorRGBA8 &color,
-                  std::size_t density,
-                  float radius,
+                  std::size_t density, float radius,
                   const utils::vec2 &position);
 
   /**
@@ -54,9 +54,7 @@ public:
    * @param position Center position of emission.
    */
   void generate(const rtk::ecs::concepts::ColorRGBA8 &color,
-                std::size_t density,
-                float radius,
-                const utils::vec2 &position);
+                std::size_t density, float radius, const utils::vec2 &position);
 
   /**
    * @brief Alias to generate particles.
@@ -65,17 +63,16 @@ public:
    * @param radius Dispersion radius from origin.
    * @param position Center position of emission.
    */
-  void emit(const rtk::ecs::concepts::ColorRGBA8 &color,
-            std::size_t density,
-            float radius,
-            const utils::vec2 &position);
+  void emit(const rtk::ecs::concepts::ColorRGBA8 &color, std::size_t density,
+            float radius, const utils::vec2 &position);
 
 private:
   ParticleManager &_manager;
 };
 
 /**
- * @brief Manages particle lifecycles, fading, animations, and deferred generation.
+ * @brief Manages particle lifecycles, fading, animations, and deferred
+ * generation.
  */
 class ParticleManager final : public rtk::ecs::ISystem {
 public:
@@ -85,8 +82,8 @@ public:
   struct EmissionRequest {
     rtk::ecs::concepts::ColorRGBA8 color; ///< Base RGBA color of the particles.
     std::size_t density;                  ///< Number of particles in the burst.
-    float radius;                         ///< Spatial dispersion radius in pixels.
-    utils::vec2 position;                 ///< Center emission coordinates.
+    float radius;         ///< Spatial dispersion radius in pixels.
+    utils::vec2 position; ///< Center emission coordinates.
   };
 
   /**
@@ -94,7 +91,8 @@ public:
    * @param reg Registry where particle entities will be allocated.
    */
   explicit ParticleManager(rtk::ecs::Registry &reg)
-      : _registry(reg), _distAngle(0.0f, 6.28318530718f), _distUnit(0.0f, 1.0f) {
+      : _registry(reg), _distAngle(0.0f, 6.28318530718f),
+        _distUnit(0.0f, 1.0f) {
     std::random_device rd;
     _rng.seed(rd());
   }
@@ -119,8 +117,7 @@ public:
    * @param position Center emission coordinates.
    */
   void generate(const rtk::ecs::concepts::ColorRGBA8 &color,
-                std::size_t density,
-                float radius,
+                std::size_t density, float radius,
                 const utils::vec2 &position) {
     _pendingEmissions.push_back({color, density, radius, position});
   }
@@ -132,10 +129,8 @@ public:
    * @param radius Spatial radius in pixels around the center position.
    * @param position Center emission coordinates.
    */
-  void emit(const rtk::ecs::concepts::ColorRGBA8 &color,
-            std::size_t density,
-            float radius,
-            const utils::vec2 &position) {
+  void emit(const rtk::ecs::concepts::ColorRGBA8 &color, std::size_t density,
+            float radius, const utils::vec2 &position) {
     generate(color, density, radius, position);
   }
 
@@ -146,10 +141,8 @@ public:
    * @param radius Spatial radius in pixels around the center position.
    * @param position Center emission coordinates.
    */
-  void spawn(const rtk::ecs::concepts::ColorRGBA8 &color,
-             std::size_t density,
-             float radius,
-             const utils::vec2 &position) {
+  void spawn(const rtk::ecs::concepts::ColorRGBA8 &color, std::size_t density,
+             float radius, const utils::vec2 &position) {
     generate(color, density, radius, position);
   }
 
@@ -162,7 +155,8 @@ public:
   }
 
   /**
-   * @brief Updates active particles, fades alpha/scale, and processes deferred emission requests.
+   * @brief Updates active particles, fades alpha/scale, and processes deferred
+   * emission requests.
    * @param reg ECS entity registry.
    * @param dt Elapsed frame time in seconds.
    */
@@ -177,8 +171,10 @@ public:
         for (std::size_t i = 0; i < req.density; ++i) {
           const float angle = _distAngle(_rng);
           const float dist = _distUnit(_rng) * req.radius;
-          const float speed = _minSpeed + _distUnit(_rng) * (_maxSpeed - _minSpeed);
-          const float life = _minLifetime + _distUnit(_rng) * (_maxLifetime - _minLifetime);
+          const float speed =
+              _minSpeed + _distUnit(_rng) * (_maxSpeed - _minSpeed);
+          const float life =
+              _minLifetime + _distUnit(_rng) * (_maxLifetime - _minLifetime);
 
           const float spawnX = req.position.x + std::cos(angle) * dist;
           const float spawnY = req.position.y + std::sin(angle) * dist;
@@ -279,12 +275,14 @@ public:
   }
 
   /**
-   * @brief Sets the texture handle and UV coordinates used by emitted particles.
+   * @brief Sets the texture handle and UV coordinates used by emitted
+   * particles.
    * @param textureId Texture identifier returned by the renderer.
    * @param rect Source rectangle inside the texture.
    */
   void setDefaultTexture(uint32_t textureId,
-                         rtk::ecs::concepts::TextureRectU16 rect = {0, 0, 1, 1}) {
+                         rtk::ecs::concepts::TextureRectU16 rect = {0, 0, 1,
+                                                                    1}) {
     _defaultTextureId = textureId;
     _defaultTextureRect = rect;
   }
@@ -340,21 +338,23 @@ private:
   uint32_t _defaultLayer = 25;
 };
 
-inline void ParticleGenerator::operator()(
-    const rtk::ecs::concepts::ColorRGBA8 &color, std::size_t density,
-    float radius, const utils::vec2 &position) {
+inline void
+ParticleGenerator::operator()(const rtk::ecs::concepts::ColorRGBA8 &color,
+                              std::size_t density, float radius,
+                              const utils::vec2 &position) {
   _manager.generate(color, density, radius, position);
 }
 
-inline void ParticleGenerator::generate(
-    const rtk::ecs::concepts::ColorRGBA8 &color, std::size_t density,
-    float radius, const utils::vec2 &position) {
+inline void
+ParticleGenerator::generate(const rtk::ecs::concepts::ColorRGBA8 &color,
+                            std::size_t density, float radius,
+                            const utils::vec2 &position) {
   _manager.generate(color, density, radius, position);
 }
 
-inline void ParticleGenerator::emit(
-    const rtk::ecs::concepts::ColorRGBA8 &color, std::size_t density,
-    float radius, const utils::vec2 &position) {
+inline void ParticleGenerator::emit(const rtk::ecs::concepts::ColorRGBA8 &color,
+                                    std::size_t density, float radius,
+                                    const utils::vec2 &position) {
   _manager.generate(color, density, radius, position);
 }
 

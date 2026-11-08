@@ -90,11 +90,10 @@ bool PacketTracker::enqueue(std::vector<std::uint8_t> payload,
   return true;
 }
 
-std::vector<std::uint8_t>
-PacketTracker::buildPacket(std::uint32_t connectionId, PacketPriority priority,
-                           std::uint16_t reliableId,
-                           const std::vector<std::uint8_t> &body, bool compressed,
-                           TimePoint now, std::uint32_t &sequence) {
+std::vector<std::uint8_t> PacketTracker::buildPacket(
+    std::uint32_t connectionId, PacketPriority priority,
+    std::uint16_t reliableId, const std::vector<std::uint8_t> &body,
+    bool compressed, TimePoint now, std::uint32_t &sequence) {
   PacketHeader header;
   header.connectionId = connectionId;
   header.sequence = getNextSequence();
@@ -157,9 +156,9 @@ PacketTracker::collectOutgoing(TimePoint now, std::uint32_t connectionId) {
         }
 
         std::uint32_t sequence = 0;
-        auto packet = buildPacket(connectionId, priority, pending->reliableId,
-                                  pending->payload, pending->compressed, now,
-                                  sequence);
+        auto packet =
+            buildPacket(connectionId, priority, pending->reliableId,
+                        pending->payload, pending->compressed, now, sequence);
         if (packet.empty())
           continue;
 
@@ -227,9 +226,8 @@ PacketTracker::collectOutgoing(TimePoint now, std::uint32_t connectionId) {
     _ackDue = false;
   } else if (_ackDue && now - _ackDueSince >= ACK_ONLY_DELAY) {
     std::uint32_t sequence = 0;
-    auto packet =
-        buildPacket(connectionId, PacketPriority::Unreliable, 0, {}, false, now,
-                    sequence);
+    auto packet = buildPacket(connectionId, PacketPriority::Unreliable, 0, {},
+                              false, now, sequence);
     if (!packet.empty())
       out.push_back(std::move(packet));
     _ackDue = false;

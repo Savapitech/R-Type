@@ -187,12 +187,10 @@ private:
   static constexpr std::size_t RELIABLE_WINDOW = 1024;
   static constexpr std::size_t MAX_TRACKED_SEQUENCES = 32;
 
-  std::vector<std::uint8_t> buildPacket(std::uint32_t connectionId,
-                                        PacketPriority priority,
-                                        std::uint16_t reliableId,
-                                        const std::vector<std::uint8_t> &body,
-                                        bool compressed, TimePoint now,
-                                        std::uint32_t &sequence);
+  std::vector<std::uint8_t>
+  buildPacket(std::uint32_t connectionId, PacketPriority priority,
+              std::uint16_t reliableId, const std::vector<std::uint8_t> &body,
+              bool compressed, TimePoint now, std::uint32_t &sequence);
   void acknowledge(std::uint32_t ack, std::uint32_t ackBits, TimePoint now);
   bool markReliableReceived(std::uint16_t reliableId);
   std::chrono::milliseconds resendDelay() const;
