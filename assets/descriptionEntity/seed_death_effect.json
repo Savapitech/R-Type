@@ -1,0 +1,51 @@
+{
+  "components": {
+    "transform": {
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "scale": {
+        "x": 2.0,
+        "y": 2.0
+      },
+      "rotation": 0.0
+    },
+    "sprite": {
+      "texture": "assets/entityTexture/seed_death_effect.png",
+      "size": {
+        "w": 32.0,
+        "h": 32.0
+      },
+      "origin": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "textureRect": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "color": {
+        "r": 255,
+        "g": 255,
+        "b": 255,
+        "a": 255
+      },
+      "layer": 10
+    },
+    "animation": {
+      "frameDuration": 0.05,
+      "totalFrames": 8,
+      "frameWidth": 32,
+      "frameHeight": 32,
+      "startX": 0,
+      "startY": 0,
+      "columns": 8,
+      "loop": false,
+      "playing": true
+    },
+    "destroyAnimEnd": {}
+  }
+}
