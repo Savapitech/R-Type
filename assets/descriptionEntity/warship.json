@@ -1,0 +1,51 @@
+{
+  "components": {
+    "transform": {
+      "position": {
+        "x": 0.0,
+        "y": 56.0
+      },
+      "scale": {
+        "x": 2.0,
+        "y": 2.0
+      },
+      "rotation": 0.0
+    },
+    "sprite": {
+      "texture": "assets/stage3.png",
+      "size": {
+        "w": 592.0,
+        "h": 176.0
+      },
+      "origin": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "textureRect": {
+        "x": 576,
+        "y": 16,
+        "w": 592,
+        "h": 176
+      },
+      "color": {
+        "r": 255,
+        "g": 255,
+        "b": 255,
+        "a": 255
+      },
+      "layer": -1,
+      "flags": 0
+    },
+    "collider": {
+      "width": 592.0,
+      "height": 176.0,
+      "layer": "Environment",
+      "mask": []
+    },
+    "velocity": {
+      "x": -50.0,
+      "y": 0.0
+    },
+    "networkEntity": {}
+  }
+}

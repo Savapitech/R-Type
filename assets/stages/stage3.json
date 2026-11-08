@@ -3,7 +3,49 @@
   "nextStage": "",
   "duration": 0.0,
   "startX": 0.0,
+  "enemies": "stage3",
   "segments": [
+    {
+      "blueprint": "warship",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1152.0
+    },
+    {
+      "blueprint": "warship_turret",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1184.0,
+      "y": 168.0
+    },
+    {
+      "blueprint": "warship_turret",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1536.0,
+      "y": 120.0
+    },
+    {
+      "blueprint": "warship_turret",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1888.0,
+      "y": 136.0
+    },
+    {
+      "blueprint": "warship_turret",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 2048.0,
+      "y": 72.0
+    },
+    {
+      "blueprint": "warship_turret",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 2176.0,
+      "y": 88.0
+    },
     {
       "blueprint": "stage3_high_ground",
       "symmetric": true,
