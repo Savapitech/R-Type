@@ -911,7 +911,8 @@ bool GameInstance::removeConnectedPlayer(std::uint32_t connectionId,
 namespace {
 constexpr std::uint32_t RATE_CHECK_PERIOD = 5;
 /// Growth of the smallest RTT, in ms, above which a link counts as congested.
-constexpr float CONGESTION_MARGIN_MS = 60.0f;
+constexpr float CONGESTION_MARGIN_MS = 80.0f;
+constexpr std::uint32_t CONGESTED_CHECKS_TO_SLOW = 2;
 /// Growth above which the queue is already long: go to the slowest rate at once.
 constexpr float SEVERE_CONGESTION_MS = 300.0f;
 constexpr std::uint32_t SCENERY_REFRESH_BASE_TICKS = 90;
@@ -947,14 +948,20 @@ void GameInstance::updateSnapshotRates(Server &server) {
     const float queueDelay = rtt - rate.baseRtt;
     if (queueDelay > CONGESTION_MARGIN_MS) {
       rate.cleanChecks = 0;
-      if (queueDelay > SEVERE_CONGESTION_MS)
+      ++rate.congestedChecks;
+      if (queueDelay > SEVERE_CONGESTION_MS) {
         rate.divisor = MAX_SNAPSHOT_DIVISOR;
-      else if (rate.divisor < MAX_SNAPSHOT_DIVISOR)
+      } else if (rate.congestedChecks >= CONGESTED_CHECKS_TO_SLOW &&
+                 rate.divisor < MAX_SNAPSHOT_DIVISOR) {
         ++rate.divisor;
-    } else if (++rate.cleanChecks >= CLEAN_CHECKS_TO_SPEED_UP &&
-               rate.divisor > 1) {
-      --rate.divisor;
-      rate.cleanChecks = 0;
+        rate.congestedChecks = 0;
+      }
+    } else {
+      rate.congestedChecks = 0;
+      if (++rate.cleanChecks >= CLEAN_CHECKS_TO_SPEED_UP && rate.divisor > 1) {
+        --rate.divisor;
+        rate.cleanChecks = 0;
+      }
     }
   }
 }
