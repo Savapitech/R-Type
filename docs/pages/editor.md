@@ -104,6 +104,8 @@ manifest. The editor does both.
 | Key | Meaning |
 | --- | ------- |
 | `segments` | Terrain laid out one after the other, as before |
+| `segments[].offsetX` | Optional, `0` by default. Shifts this entity from the current position without moving the next segments (place it with `spacing: 0` to pin several entities on the same spot) |
+| `segments[].y` | Optional. Vertical position overriding the blueprint one. Keep it at `50` or more unless the sprite should be flipped: the client flips every entity created above `y = 50` |
 | `spawns` | Optional. Entities created by the server once the stage timer reaches `time` seconds, at `(x, y)` in screen pixels (the screen is 1280x720, so `x = 1300` is just off the right edge) |
 | `spawns[].wave` | Optional, only for blueprints with a `waveMovement` component: overrides its `amplitude` and `frequency`, the base height is `y` |
 | `randomSpawns` | Optional, `true` by default. Set it to `false` to turn off the random Bydos and Mecha spawner for this stage |

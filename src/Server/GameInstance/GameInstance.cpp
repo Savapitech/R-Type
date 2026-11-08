@@ -1292,7 +1292,8 @@ bool GameInstance::hasAlivePlayers() {
 float GameInstance::spawnStageSegment(rtk::EngineContext &context,
                                       const std::string &blueprint,
                                       float startX, float spacing,
-                                      bool symmetric) {
+                                      bool symmetric, float offsetX,
+                                      std::optional<float> y) {
   auto groundEntity = context._entityFactory.createNetwork(
       context.registry, blueprint,
       NetworkIdGenerator::getInstance().getNextId());
@@ -1300,8 +1301,11 @@ float GameInstance::spawnStageSegment(rtk::EngineContext &context,
   auto *transform =
       context.registry.get_components<component::Transform>().get(groundEntity);
 
-  if (transform)
-    transform->position.x = startX;
+  if (transform) {
+    transform->position.x = startX + offsetX;
+    if (y)
+      transform->position.y = *y;
+  }
 
   if (symmetric) {
     auto ceilingEntity = context._entityFactory.createNetwork(
@@ -1311,7 +1315,7 @@ float GameInstance::spawnStageSegment(rtk::EngineContext &context,
         context.registry.get_components<component::Transform>().get(
             ceilingEntity);
     if (ceilTransform) {
-      ceilTransform->position.x = startX;
+      ceilTransform->position.x = startX + offsetX;
       ceilTransform->position.y = 0.0f;
     }
   }
@@ -1396,11 +1400,17 @@ void GameInstance::loadStage(rtk::EngineContext &context,
 
     const float spacing = segment.value("spacing", 0.0f);
 
+    const float offsetX = segment.value("offsetX", 0.0f);
+
+    std::optional<float> y;
+    if (segment.contains("y") && segment["y"].is_number())
+      y = segment["y"].get<float>();
+
     if (blueprint.empty())
       continue;
 
-    currentX =
-        spawnStageSegment(context, blueprint, currentX, spacing, symmetric);
+    currentX = spawnStageSegment(context, blueprint, currentX, spacing,
+                                 symmetric, offsetX, y);
     _stageObstaclesSpawned += symmetric ? 2 : 1;
   }
 

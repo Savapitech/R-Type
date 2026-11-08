@@ -549,8 +549,11 @@ void Game::cleanupOffscreenEnvironment(rtk::EngineContext &context) {
     if (!col || !transform)
       continue;
 
+    const float rightEdge =
+        transform->position.x +
+        (col->offsetX + col->width) * transform->scale.x;
     if ((col->layer & Collider::CollisionLayer::Environment) &&
-        (transform->position.x + col->width < -200.0f)) {
+        rightEdge < -200.0f) {
       deads.insert_at(entity, {});
     }
   }

@@ -2,112 +2,224 @@
   "name": "Stage 3",
   "nextStage": "",
   "duration": 0.0,
-  "startX": 1920.0,
+  "startX": 0.0,
+  "enemies": "stage3",
   "segments": [
     {
-      "blueprint": "reactor",
-      "symmetric": true,
-      "spacing": 226.0
+      "blueprint": "warship",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1152.0
     },
     {
-      "blueprint": "gate",
-      "symmetric": true,
-      "spacing": 384.0
+      "blueprint": "warship_turret",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1184.0,
+      "y": 168.0
     },
     {
-      "blueprint": "high_ground",
+      "blueprint": "warship_turret",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1536.0,
+      "y": 120.0
+    },
+    {
+      "blueprint": "warship_turret",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 1888.0,
+      "y": 136.0
+    },
+    {
+      "blueprint": "warship_turret",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 2048.0,
+      "y": 72.0
+    },
+    {
+      "blueprint": "warship_turret",
+      "symmetric": false,
+      "spacing": 0.0,
+      "offsetX": 2176.0,
+      "y": 88.0
+    },
+    {
+      "blueprint": "stage3_high_ground",
       "symmetric": true,
       "spacing": 128.0
     },
     {
-      "blueprint": "ramp",
-      "symmetric": true,
-      "spacing": 384.0
+      "blueprint": "stage3_high_ceiling",
+      "symmetric": false,
+      "spacing": 0.0
     },
     {
-      "blueprint": "reactor",
-      "symmetric": true,
-      "spacing": 226.0
-    },
-    {
-      "blueprint": "medium_ground",
+      "blueprint": "stage3_low_ground",
       "symmetric": false,
       "spacing": 128.0
     },
     {
-      "blueprint": "low_ground",
-      "symmetric": true,
-      "spacing": 512.0
+      "blueprint": "stage3_low_ground",
+      "symmetric": false,
+      "spacing": 0.0
     },
     {
-      "blueprint": "gate",
-      "symmetric": true,
-      "spacing": 384.0
-    },
-    {
-      "blueprint": "ramp",
-      "symmetric": true,
-      "spacing": 384.0
-    },
-    {
-      "blueprint": "reactor",
-      "symmetric": true,
-      "spacing": 226.0
-    },
-    {
-      "blueprint": "high_ground",
-      "symmetric": true,
-      "spacing": 128.0
-    },
-    {
-      "blueprint": "high_ground",
-      "symmetric": true,
-      "spacing": 128.0
-    },
-    {
-      "blueprint": "gate",
-      "symmetric": true,
-      "spacing": 384.0
-    },
-    {
-      "blueprint": "medium_ground",
-      "symmetric": true,
-      "spacing": 128.0
-    },
-    {
-      "blueprint": "ramp",
-      "symmetric": true,
-      "spacing": 384.0
-    },
-    {
-      "blueprint": "reactor",
-      "symmetric": true,
-      "spacing": 226.0
-    },
-    {
-      "blueprint": "low_ground",
-      "symmetric": true,
-      "spacing": 512.0
-    },
-    {
-      "blueprint": "gate",
-      "symmetric": true,
-      "spacing": 384.0
-    },
-    {
-      "blueprint": "reactor",
-      "symmetric": true,
-      "spacing": 226.0
-    },
-    {
-      "blueprint": "high_ground",
-      "symmetric": true,
-      "spacing": 128.0
-    },
-    {
-      "blueprint": "medium_ground",
+      "blueprint": "stage3_medium_ceiling",
       "symmetric": false,
       "spacing": 128.0
+    },
+    {
+      "blueprint": "stage3_low_ceiling",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage3_medium_ground",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage3_low_ceiling",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage3_low_long_ground",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage3_high_ceiling",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage3_medium_ceiling",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage3_high_ceiling",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage3_high_ground",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage3_medium_ceiling",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage3_low_ground",
+      "symmetric": true,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage3_low_ground",
+      "symmetric": true,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage3_high_ceiling",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage3_medium_ground",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage3_low_ground",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage3_low_ground",
+      "symmetric": false,
+      "spacing": 384.0
+    },
+    {
+      "blueprint": "stage3_low_long_ground",
+      "symmetric": false,
+      "spacing": 512.0
+    },
+    {
+      "blueprint": "stage3_low_long_ground",
+      "symmetric": false,
+      "spacing": 512.0
+    },
+    {
+      "blueprint": "stage3_low_long_ground",
+      "symmetric": false,
+      "spacing": 512.0
+    },
+    {
+      "blueprint": "stage3_high_ground",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage3_medium_ground",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage3_low_ground",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage3_low_ground",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage3_low_ground",
+      "symmetric": false,
+      "spacing": 256.0
+    },
+    {
+      "blueprint": "stage3_low_long_ground",
+      "symmetric": false,
+      "spacing": 384.0
+    },
+    {
+      "blueprint": "stage3_low_ceiling",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage3_high_ceiling",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage3_low_ground",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage3_high_ceiling",
+      "symmetric": false,
+      "spacing": 0.0
+    },
+    {
+      "blueprint": "stage3_low_ground",
+      "symmetric": false,
+      "spacing": 128.0
+    },
+    {
+      "blueprint": "stage3_boss_room",
+      "symmetric": false,
+      "spacing": 1536.0
     }
   ]
 }
