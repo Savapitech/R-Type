@@ -382,3 +382,23 @@ meaning of `Input` changed.
 - **The speed of a ship is read from its blueprint.** A speed power up is applied
   by the client and the server with the same rule, but if they ever disagree
   the prediction is corrected at each snapshot, and the ship slides.
+
+## Playing under degraded conditions
+
+To feel a condition with the real client, run `tools/netbench/play.sh`. It opens a
+shell in a network namespace where the server is already running, and where
+the conditions can be changed while the game is running:
+
+```text
+tools/netbench/play.sh delay 50ms loss 2%    # start with RTT 100 ms and 2 % loss
+bin/r-type_client &                          # one client per call, as many as you want
+netem delay 100ms                            # RTT 200 ms
+netem loss 10%                               # 10 % of the packets lost in each direction
+netem limit 30 rate 40kbit                   # a link of 5 KB/s
+netem_off                                    # no degradation
+```
+
+The server and every client started from this shell talk through the degraded
+loopback of the namespace. `exit` stops the server.
+
+On Windows the subject recommends `clumsy`: the same conditions can be set with it.
