@@ -51,10 +51,10 @@ public:
     auto &balls = reg.get_components<pong::component::Ball>();
     auto &paddles = reg.get_components<pong::component::Paddle>();
 
-    auto ballView = reg.view<::component::Transform, ::component::Velocity,
-                             pong::component::Ball>();
+    auto ballView = reg.view<pong::component::Ball, ::component::Transform,
+                             ::component::Velocity>();
     auto paddleView =
-        reg.view<::component::Transform, pong::component::Paddle>();
+        reg.view<pong::component::Paddle, ::component::Transform>();
 
     for (auto ballEnt : ballView) {
       auto *bTrans = transforms.get(ballEnt);
@@ -81,11 +81,13 @@ public:
       if (bTrans->position.y <= TOP_BOUND) {
         bTrans->position.y = TOP_BOUND;
         bVel->y = std::abs(bVel->y);
-        _eventBus.publish(pong::events::BallBounceEvent{});
+        _eventBus.publish(pong::events::BallBounceEvent{
+            .position = {bTrans->position.x + BALL_SIZE * 0.5f, TOP_BOUND}});
       } else if (bTrans->position.y >= BOTTOM_BOUND) {
         bTrans->position.y = BOTTOM_BOUND;
         bVel->y = -std::abs(bVel->y);
-        _eventBus.publish(pong::events::BallBounceEvent{});
+        _eventBus.publish(pong::events::BallBounceEvent{
+            .position = {bTrans->position.x + BALL_SIZE * 0.5f, BOTTOM_BOUND}});
       }
 
       for (auto padEnt : paddleView) {
@@ -118,7 +120,8 @@ public:
                 ball->currentSpeed * ball->currentSpeed - bVel->y * bVel->y;
             bVel->x = std::sqrt(std::max(10000.0f, remSq));
             bTrans->position.x = padRight + 1.0f;
-            _eventBus.publish(pong::events::BallBounceEvent{});
+            _eventBus.publish(pong::events::BallBounceEvent{
+                .position = {padRight, bTrans->position.y + BALL_SIZE * 0.5f}});
           }
         } else if (paddle->side == pong::component::Paddle::Side::Right &&
                    bVel->x > 0.0f) {
@@ -132,7 +135,8 @@ public:
                 ball->currentSpeed * ball->currentSpeed - bVel->y * bVel->y;
             bVel->x = -std::sqrt(std::max(10000.0f, remSq));
             bTrans->position.x = padLeft - BALL_SIZE - 1.0f;
-            _eventBus.publish(pong::events::BallBounceEvent{});
+            _eventBus.publish(pong::events::BallBounceEvent{
+                .position = {padLeft, bTrans->position.y + BALL_SIZE * 0.5f}});
           }
         }
       }
