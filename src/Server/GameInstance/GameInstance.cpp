@@ -19,6 +19,7 @@
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
 #include "components/WaveMovement.hpp"
+#include "components/bossTail.hpp"
 #include "components/powerUp.hpp"
 #include "systems/BulletSystem.hpp"
 #include "systems/ColliderSystem.hpp"
@@ -28,6 +29,7 @@
 #include "systems/LuaScriptSystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/WaveMovementSystem.hpp"
+#include "systems/tailSystem.hpp"
 
 #include <algorithm>
 #include <array>
@@ -163,6 +165,7 @@ void GameInstance::registerComponents(rtk::EngineContext &context) {
   context.registry.register_component<component::powerUp>();
   context.registry.register_component<component::DropPowerUp>();
   context.registry.register_component<component::DeathEffect>();
+  context.registry.register_component<component::tail>();
 }
 
 void GameInstance::registerBuilders(rtk::EngineContext &context) {
@@ -260,98 +263,11 @@ void GameInstance::registerBuilders(rtk::EngineContext &context) {
                                          component::dropPowerupFromJson);
   context._entityFactory.registerBuilder("deathEffect",
                                          component::deathEffectFromJson);
+  context._entityFactory.registerBuilder("tail", component::tailFromJson);
+  context._entityFactory.registerBuilder("Tail", component::tailFromJson);
 }
 
 void GameInstance::loadEntityBlueprints(rtk::EngineContext &context) {
-  _playerArchetypes[0] = context._entityFactory.loadBlueprintFromPath(
-      "player_blue", "assets/descriptionEntity/player_blue.json");
-  _playerArchetypes[1] = context._entityFactory.loadBlueprintFromPath(
-      "player_green", "assets/descriptionEntity/player_green.json");
-
-  _playerArchetypes[2] = context._entityFactory.loadBlueprintFromPath(
-      "player_pink", "assets/descriptionEntity/player_pink.json");
-
-  _playerArchetypes[3] = context._entityFactory.loadBlueprintFromPath(
-      "player_red", "assets/descriptionEntity/player_red.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "player", "assets/descriptionEntity/player.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "bullet", "assets/descriptionEntity/bullet.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyBidos", "assets/descriptionEntity/enemyBidos.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyRedShip", "assets/descriptionEntity/enemyRedShip.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "gate", "assets/descriptionEntity/gate.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "ramp", "assets/descriptionEntity/ramp.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "reactor", "assets/descriptionEntity/reactor.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "high_ground", "assets/descriptionEntity/high_ground.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "low_ground", "assets/descriptionEntity/low_ground.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "medium_ground", "assets/descriptionEntity/medium_ground.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "enemy_bullet", "assets/descriptionEntity/enemy_bullet.json");
-
-  context._entityFactory.loadBlueprintFromPath(
-      "background_stars", "assets/descriptionEntity/background_star.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "background_fast_stars",
-      "assets/descriptionEntity/background_fast_star.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "thruster", "assets/descriptionEntity/thruster.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "explosion", "assets/descriptionEntity/explosion.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "powerup_speed", "assets/powerUp/powerUp_speed.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyMecha", "assets/descriptionEntity/enemyMecha.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "mecha_bullet", "assets/descriptionEntity/mecha_bullet.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "bidos_death_effect", "assets/descriptionEntity/bidos_death_effect.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "boss_room", "assets/descriptionEntity/boss_room.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "enemySpinner", "assets/descriptionEntity/enemySpinner.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyPod", "assets/descriptionEntity/enemyPod.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyDart", "assets/descriptionEntity/enemyDart.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyArmoredPod", "assets/descriptionEntity/enemyArmoredPod.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyCargo", "assets/descriptionEntity/enemyCargo.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "enemyGreenMecha", "assets/descriptionEntity/enemyGreenMecha.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "green_mecha_bullet", "assets/descriptionEntity/green_mecha_bullet.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "dobkeratops_body", "assets/descriptionEntity/dobkeratops_body.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "dobkeratops_bullet", "assets/descriptionEntity/dobkeratops_bullet.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "dobkeratops_alien", "assets/descriptionEntity/dobkeratops_alien.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "dobkeratops_alien_bullet",
-      "assets/descriptionEntity/dobkeratops_alien_bullet.json");
-  context._entityFactory.loadBlueprintFromPath(
-      "dobkeratops_bottom_hitbox",
-      "assets/descriptionEntity/dobkeratops_bottom_hitbox.json");
   context._entityFactory.loadBlueprintManifest("assets/blueprints.json");
 
   const auto &factory = context._entityFactory;
@@ -412,6 +328,7 @@ void GameInstance::addSystems(Server &server) {
       rtk::ecs::Order::Update);
 
   context.scheduler.add<rtk::systems::LuaScriptSystem>(rtk::ecs::Order::Update);
+  context.scheduler.add<rtk::systems::TailSystem>(rtk::ecs::Order::Update);
 
   _systemsRegistered = true;
 }
@@ -1587,6 +1504,7 @@ void GameInstance::updateStage(float dt) {
     }
 
     if (!_bossSpawned) {
+      _stageRandomSpawns = false;
       std::uint32_t bodyNetId = NetworkIdGenerator::getInstance().getNextId();
       auto bossEntity = context._entityFactory.createNetwork(
           context.registry, "dobkeratops_body", bodyNetId);
@@ -1597,19 +1515,44 @@ void GameInstance::updateStage(float dt) {
         constexpr float screenH = 720.0f;
         const float bossH = 204.0f * bossTransform->scale.y;
         const float bossW = 155.0f * bossTransform->scale.x;
-        bossTransform->position.x = 1000.0f - (bossW / 2.0f);
-        bossTransform->position.y = (screenH - bossH) / 2.0f;
+        bossTransform->position.x = std::round(1000.0f - (bossW / 2.0f));
+        bossTransform->position.y = std::round((screenH - bossH) / 2.0f);
 
         _eventBus.publish(rtype::events::EnemySpawnedEvent{
             bodyNetId, bossTransform->position.x, bossTransform->position.y,
             "dobkeratops_body"});
 
+        const auto bossPos = bossTransform->position;
+        const auto bossScale = bossTransform->scale;
+
+        auto *bossTail =
+            context.registry.get_components<component::tail>().get(bossEntity);
+        if (bossTail) {
+          const float tipScreenX = bossPos.x + bossTail->tipX * bossScale.x;
+          const float tipScreenY = bossPos.y + bossTail->tipY * bossScale.y;
+
+          bossTail->_segments.clear();
+          for (const auto &segmentBp : bossTail->_segmentsBluePrint) {
+            std::uint32_t segmentNetId =
+                NetworkIdGenerator::getInstance().getNextId();
+            auto segmentEntity = context._entityFactory.createNetwork(
+                context.registry, segmentBp, segmentNetId);
+            bossTail->_segments.push_back(segmentEntity);
+
+            if (auto *segTransform = transforms.get(segmentEntity)) {
+              segTransform->position = {tipScreenX, tipScreenY};
+              _eventBus.publish(rtype::events::EnemySpawnedEvent{
+                  segmentNetId, segTransform->position.x,
+                  segTransform->position.y, segmentBp});
+            }
+          }
+        }
         std::uint32_t hitboxNetId =
             NetworkIdGenerator::getInstance().getNextId();
         auto bottomHitbox = context._entityFactory.createNetwork(
             context.registry, "dobkeratops_bottom_hitbox", hitboxNetId);
         if (auto *hitboxTransform = transforms.get(bottomHitbox)) {
-          hitboxTransform->position = bossTransform->position;
+          hitboxTransform->position = bossPos;
           _eventBus.publish(rtype::events::EnemySpawnedEvent{
               hitboxNetId, hitboxTransform->position.x,
               hitboxTransform->position.y, "dobkeratops_bottom_hitbox"});
@@ -1621,10 +1564,8 @@ void GameInstance::updateStage(float dt) {
         auto *alienTransform = transforms.get(alienEntity);
         auto *alienVelocity = velocities.get(alienEntity);
         if (alienTransform) {
-          alienTransform->position.x =
-              bossTransform->position.x + 72.0f * bossTransform->scale.x;
-          alienTransform->position.y =
-              bossTransform->position.y + 94.0f * bossTransform->scale.y;
+          alienTransform->position.x = bossPos.x + 72.0f * bossScale.x;
+          alienTransform->position.y = bossPos.y + 94.0f * bossScale.y;
           _eventBus.publish(rtype::events::EnemySpawnedEvent{
               alienNetId, alienTransform->position.x,
               alienTransform->position.y, "dobkeratops_alien"});
