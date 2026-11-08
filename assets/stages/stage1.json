@@ -3,6 +3,7 @@
   "nextStage": "stage2",
   "duration": 0.0,
   "startX": 0.0,
+  "enemies": "stage1",
   "segments": [
     {
       "blueprint": "medium_ground",

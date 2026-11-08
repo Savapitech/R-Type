@@ -92,7 +92,8 @@ private:
   std::uniform_real_distribution<float> _distWaveY;
 
 public:
-  static constexpr const char *defaultPool = "stage1";
+  static constexpr const char *defaultPool =
+      "stage1"; ///< Default pool of enemies to spawn in game.
 
   /**
    * @brief Creates the spawner.
