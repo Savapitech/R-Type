@@ -88,7 +88,7 @@ public:
       }
 
       const bool isVisible =
-          transform->position.x >= 0.0f && transform->position.x <= 1920.0f &&
+          transform->position.x >= 0.0f && transform->position.x <= 1280.0f &&
           transform->position.y >= 0.0f && transform->position.y <= 1080.0f;
 
       if (!isVisible) {
