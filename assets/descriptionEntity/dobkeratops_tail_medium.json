@@ -1,0 +1,55 @@
+{
+    "components": {
+        "transform": {
+            "position": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "scale": {
+                "x": 3.0,
+                "y": 3.0
+            },
+            "rotation": 0.0
+        },
+        "sprite": {
+            "texture": "assets/entityTexture/dobkeratops.png",
+            "size": {
+                "w": 14.0,
+                "h": 13.0
+            },
+            "origin": {
+                "x": 7.0,
+                "y": 6.5
+            },
+            "textureRect": {
+                "x": 17,
+                "y": 237,
+                "w": 14,
+                "h": 13
+            },
+            "color": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 255
+            },
+            "layer": 0
+        },
+        "enemy": {
+            "health": 99999.0,
+            "fireRate": 99999
+        },
+        "collider": {
+            "width": 14.0,
+            "height": 13.0,
+            "offsetX": 0.0,
+            "offsetY": 0.0,
+            "layer": "Enemy",
+            "mask": [
+                "Player",
+                "PlayerProjectile"
+            ]
+        },
+        "networkEntity": {}
+    }
+}
