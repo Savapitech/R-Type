@@ -1,0 +1,33 @@
+{
+  "components": {
+    "transform": {
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "scale": {
+        "x": 2.0,
+        "y": 2.0
+      },
+      "rotation": 0.0
+    },
+    "collider": {
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "width": 74.0,
+      "height": 16.0,
+      "layer": "Environment",
+      "mask": [
+        "Player",
+        "Enemy",
+        "PlayerProjectile",
+        "EnemyProjectile"
+      ]
+    },
+    "velocity": {
+      "x": -50.0,
+      "y": 0.0
+    },
+    "networkEntity": {}
+  }
+}
