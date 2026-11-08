@@ -10,6 +10,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -310,11 +311,15 @@ private:
    * @param startX Horizontal starting position.
    * @param spacing Horizontal spacing after the segment.
    * @param symmetric Whether to create a symmetrical segment.
+   * @param offsetX Shift of the entity from startX, the spacing still starts
+   * from startX.
+   * @param y Vertical position overriding the blueprint one, if any.
    * @return Horizontal position following the created segment.
    */
   float spawnStageSegment(rtk::EngineContext &context,
                           const std::string &blueprint, float startX,
-                          float spacing, bool symmetric);
+                          float spacing, bool symmetric, float offsetX = 0.0f,
+                          std::optional<float> y = std::nullopt);
   /**
    * @brief Loads a stage from a JSON file.
    * @param context Engine context of the current game instance.
