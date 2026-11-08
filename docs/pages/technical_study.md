@@ -426,7 +426,9 @@ players, and could be lowered further by sending only what the client cannot gue
 **Choice: CMake and vcpkg.** The manifest lists every third party library and
 vcpkg builds them inside the project tree, so nothing is installed on the
 system. The two rtk libraries are fetched as prebuilt release archives with
-CMake `FetchContent`, which avoids rebuilding them.
+CMake `FetchContent`, which avoids rebuilding them. Each archive is pinned to a
+release tag and checked against its SHA-256 hash, so an upstream release can
+neither break nor silently change the build.
 
 ## 8. Storage
 
@@ -490,7 +492,6 @@ in a single file without running a database server.
 | -------- | ---- | -------------- |
 | Sequential connection ids | An attacker able to spoof the address of a player can guess its id | Random 32-bit connection ids, then a nonce exchanged in the handshake. |
 | No encryption or authentication | Traffic can be read and forged on the path | Acceptable for a LAN game. A keyed message authentication code per packet is the next step for Internet play. |
-| rtk libraries fetched from the latest release | An upstream change can alter the build without any change in our repository | Pin release versions and verify archive hashes in CMake. |
 
 ### 9.4 Long term security monitoring
 

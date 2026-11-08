@@ -74,7 +74,19 @@ if(RTYPE_BUILD_CLIENT)
         set(GRAPHIC_ARCH "x86_64")
     endif()
 
-    set(GRAPHIC_URL_BASE "https://github.com/rtk-lib/graphical/releases/latest/download" CACHE STRING "Where the prebuilt graphical lib are downloaded from")
+    set(GRAPHIC_VERSION "v1.2.18")
+    set(GRAPHIC_URL_BASE "https://github.com/rtk-lib/graphical/releases/download/${GRAPHIC_VERSION}")
+
+    set(GRAPHIC_SHA256_linux-x86_64 "7b913212dab11b24c8ee8f495db9d6344fc58c986030ee0f57dc3410288b32b6")
+    set(GRAPHIC_SHA256_linux-arm64 "0a6e18489a9834e906fdcd3eaee0a07955a157007877dd65759f84be68106651")
+    set(GRAPHIC_SHA256_macos-x86_64 "8539ae666cbaf45bae1ec6943e05f1351ed7e2604f7d3021a5679a3eb6c73f0c")
+    set(GRAPHIC_SHA256_macos-arm64 "7519081f6a726afaff824b5f4c5c9262f66ed1981a75c5c144328b7a75d7af6f")
+    set(GRAPHIC_SHA256_windows-x86_64 "1e091eb3c5126c492ff80a63aa2b05f75e3a28c3e3bde57f85f473b992b82b89")
+    set(GRAPHIC_STATIC_SHA256_linux-x86_64 "171ec24a2106f4fd565e843225478250bd0f063b5acc0bd07bc553d4cac89416")
+    set(GRAPHIC_STATIC_SHA256_linux-arm64 "2156d8713fddbdc28f07aff899e99dea1ebf931fc2bdfdb6083e717b7bb4098e")
+    set(GRAPHIC_STATIC_SHA256_macos-x86_64 "a7299552a7dfca8afec5c8d0303fac268c4fc43560d62ab0576090ada7bd1bd4")
+    set(GRAPHIC_STATIC_SHA256_macos-arm64 "b6dbdbdbb1092037aaacefb48b3e65b4c3050c1c682f9de73a7183b3213c62b8")
+    set(GRAPHIC_STATIC_SHA256_windows-x86_64 "bdce8e5ff7b13d1a2d2dedfcee05188fa03bed9da0df743821b9d552f91cedb4")
     if(WIN32)
         set(GRAPHIC_PLATFORM "windows-${GRAPHIC_ARCH}")
         set(GRAPHIC_ARCHIVE_EXT "zip")
@@ -94,10 +106,16 @@ if(RTYPE_BUILD_CLIENT)
     endif()
     set(GRAPHIC_URL "${GRAPHIC_URL_BASE}/rtk_graphical-${GRAPHIC_PLATFORM}.${GRAPHIC_ARCHIVE_EXT}")
     set(GRAPHIC_STATIC_URL "${GRAPHIC_URL_BASE}/rtk_graphical-${GRAPHIC_PLATFORM}-static.${GRAPHIC_ARCHIVE_EXT}")
+    set(GRAPHIC_SHA256 "${GRAPHIC_SHA256_${GRAPHIC_PLATFORM}}")
+    set(GRAPHIC_STATIC_SHA256 "${GRAPHIC_STATIC_SHA256_${GRAPHIC_PLATFORM}}")
+    if(NOT GRAPHIC_SHA256)
+        message(FATAL_ERROR "No prebuilt graphical lib for ${GRAPHIC_PLATFORM}")
+    endif()
 
     FetchContent_Declare(
         GraphicLib
         URL ${GRAPHIC_URL}
+        URL_HASH SHA256=${GRAPHIC_SHA256}
         SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/External/GraphicLib
     )
 
@@ -132,13 +150,15 @@ endif()
 
 
 #set variable to fetch the ECS part
-set(ECS_URL "https://github.com/rtk-lib/ECS/releases/latest/download/rtk_ecs-1.04.tar.gz")
+set(ECS_URL "https://github.com/rtk-lib/ECS/releases/download/1.04/rtk_ecs-1.04.tar.gz")
+set(ECS_SHA256 "6a60328de465aeba21111b98d5206d90c78f46c350a3535009e7d8ebaa27ec08")
 set(ECS_FOLDER_NAME "rtk_ecs/include")
 
 #declare a fetch toward the ecs lib
 FetchContent_Declare(
     ECSLib
     URL ${ECS_URL}
+    URL_HASH SHA256=${ECS_SHA256}
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/External/ECSLib
 )
 
@@ -326,6 +346,7 @@ if(RTYPE_BUILD_CLIENT AND RTYPE_EMBEDDED)
     FetchContent_Declare(
         GraphicLibStatic
         URL ${GRAPHIC_STATIC_URL}
+        URL_HASH SHA256=${GRAPHIC_STATIC_SHA256}
         SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/External/GraphicLibStatic
     )
     FetchContent_GetProperties(GraphicLibStatic)
