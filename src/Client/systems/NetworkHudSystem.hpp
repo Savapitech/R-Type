@@ -57,7 +57,6 @@ public:
 
   /**
    * @brief Loads the font.
-   * @param reg Entity registry.
    */
   void onStart(rtk::ecs::Registry &) override {
     LOG_INFO("Load Network HUD System");
