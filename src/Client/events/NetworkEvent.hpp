@@ -1,10 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 namespace rtype::events {
 /**
- * @addtogroup api_engine
+ * @addtogroup api_client
  * @{
  */
 
