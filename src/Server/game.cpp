@@ -1,5 +1,6 @@
 #include "game.hpp"
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cmath>
@@ -70,6 +71,16 @@ Game::Game(std::uint16_t port) : _server(port) {
 Game::~Game() = default;
 
 void Game::onLoad(rtk::EngineContext &) {
+  try {
+    std::ifstream file("scores.json");
+    if (file)
+      _stats = nlohmann::json::parse(file);
+  } catch (const std::exception &error) {
+    std::cerr << "[Server] Cannot read scores.json: " << error.what()
+              << std::endl;
+  }
+  if (!_stats.is_object())
+    _stats = nlohmann::json::object();
 
   _server.start();
   _defaultRoomId = _roomManager.createRoom("Default Room", true);
@@ -371,6 +382,7 @@ void Game::handleConnections(rtk::EngineContext &) {
     } else if (event.type == Server::ConnectionEvent::Type::Disconnected) {
       removePlayerFromRoom(connectionId, false);
       _lastChatMessage.erase(connectionId);
+      _usernames.erase(connectionId);
       std::cout << "[Server] Client " << connectionId << " disconnected"
                 << std::endl;
     }
@@ -649,6 +661,7 @@ void Game::handleRoomEvents() {
       finishJoin(event);
       break;
     case RoomEvent::Type::GameEnded:
+      saveScores(event.scores);
       finishGame(event.roomId);
       break;
     case RoomEvent::Type::Crashed:
@@ -880,8 +893,52 @@ void Game::handleRoomRequests() {
     case Server::RoomRequestEvent::Type::Chat:
       broadcastChatMessage(connectionId, event.chatText);
       break;
+    case Server::RoomRequestEvent::Type::SetUsername:
+      _usernames.insert_or_assign(connectionId, event.username);
+      break;
+    case Server::RoomRequestEvent::Type::GetScoreboard:
+      _server.sendScoreboard(connectionId, scoreboardText());
+      break;
     }
   }
+}
+
+void Game::saveScores(
+    const std::vector<std::pair<std::uint32_t, std::uint32_t>> &scores) {
+  bool changed = false;
+  for (const auto &[connectionId, score] : scores) {
+    const auto username = _usernames.find(connectionId);
+    if (username == _usernames.end())
+      continue;
+    auto &stats = _stats[username->second];
+    if (!stats.is_object())
+      stats = nlohmann::json::object();
+    stats["best"] = std::max(stats.value("best", 0u), score);
+    stats["total"] = stats.value("total", 0u) + score;
+    stats["games"] = stats.value("games", 0u) + 1;
+    changed = true;
+  }
+  if (changed)
+    std::ofstream("scores.json") << _stats.dump(2) << std::endl;
+}
+
+std::string Game::scoreboardText() const {
+  std::vector<std::pair<std::uint32_t, std::string>> sorted;
+  for (const auto &[name, stats] : _stats.items()) {
+    if (stats.is_object())
+      sorted.emplace_back(stats.value("best", 0u), name);
+  }
+  std::sort(sorted.rbegin(), sorted.rend());
+
+  std::string text;
+  for (std::size_t i = 0; i < sorted.size() && i < 10; ++i) {
+    const auto &stats = _stats.at(sorted[i].second);
+    text += std::to_string(i + 1) + ". " + sorted[i].second + "  BEST " +
+            std::to_string(stats.value("best", 0u)) + "  TOTAL " +
+            std::to_string(stats.value("total", 0u)) + "  GAMES " +
+            std::to_string(stats.value("games", 0u)) + "\n";
+  }
+  return text.empty() ? "NO SCORE YET" : text;
 }
 
 void Game::broadcastChatMessage(std::uint32_t connectionId,

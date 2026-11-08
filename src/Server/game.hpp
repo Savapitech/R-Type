@@ -18,8 +18,11 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace rtype::server {
 /**
@@ -150,6 +153,17 @@ private:
   void broadcastChatMessage(std::uint32_t connectionId,
                             const std::string &text);
   /**
+   * @brief Adds the scores of a round to the stats saved in scores.json.
+   * @param scores Connection ID and score of each player.
+   */
+  void saveScores(
+      const std::vector<std::pair<std::uint32_t, std::uint32_t>> &scores);
+  /**
+   * @brief Formats the 10 best players as plain text lines.
+   * @return The scoreboard text.
+   */
+  std::string scoreboardText() const;
+  /**
    * @brief Removes a connection from its room.
    * @param connectionId Connection to remove.
    * @param notifyClient True to answer with RoomLeft once the room stopped
@@ -260,6 +274,10 @@ private:
   bool _metricsInitialized = false;
   std::unordered_map<std::uint32_t, NetworkMetrics> _previousClientMetrics;
   std::unordered_map<std::uint32_t, PendingJoin> _pendingJoins;
+  /// Username sent by each connection, absent for anonymous players.
+  std::unordered_map<std::uint32_t, std::string> _usernames;
+  /// Stats of the registered players, saved in scores.json.
+  nlohmann::json _stats = nlohmann::json::object();
   /// Time of the last chat message accepted from each connection.
   std::unordered_map<std::uint32_t, std::chrono::steady_clock::time_point>
       _lastChatMessage;
