@@ -101,6 +101,7 @@ private:
   NetworkMetrics _metrics = {};
   std::chrono::steady_clock::time_point _rttWindowStart;
   float _rttWindowMin = 0.0f; ///< 0 while the window has no sample
+  std::uint32_t _rttWindowSamples = 0;
 };
 
 /** @} */
