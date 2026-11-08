@@ -20,6 +20,7 @@ code is available from the navigation tree on the left.
 | Write a new client or a network tool | @ref protocol |
 | Add content or features step by step | @ref tutorials |
 | Build levels and entities without writing JSON by hand | @ref editor |
+| See the engine running a second, different game | @ref pong |
 | Understand our technical choices | @ref technical_study |
 | See how the game behaves with lag and packet loss | @ref network_benchmark |
 | Know how the project handles accessibility | @ref accessibility |
@@ -33,7 +34,7 @@ code is available from the navigation tree on the left.
 | Language | C++20 |
 | Build system | CMake 3.20 or newer |
 | Package manager | vcpkg (manifest mode) |
-| Programs | `r-type_server`, `r-type_client` |
+| Programs | `r-type_server`, `r-type_client`, and the sample game `pong` |
 | Networking | UDP, custom binary protocol, Asio |
 | Rendering | rtk graphical, a Vulkan 2D sprite renderer |
 | Architecture | Entity Component System, event bus, scene manager |
@@ -64,6 +65,7 @@ The flat lists of namespaces, classes and source files follow.
 - @subpage protocol
 - @subpage tutorials
 - @subpage editor
+- @subpage pong
 - @subpage technical_study
 - @subpage network_benchmark
 - @subpage accessibility
