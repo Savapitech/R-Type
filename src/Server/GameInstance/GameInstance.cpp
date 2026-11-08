@@ -793,11 +793,14 @@ void GameInstance::sendExistingEntities(std::uint32_t connectionId,
   auto &transforms = _context.registry.get_components<component::Transform>();
   auto &networkEntities =
       _context.registry.get_components<component::NetworkEntity>();
+  auto &deads = _context.registry.get_components<component::Dead>();
 
   for (auto entity : view) {
     const auto *transform = transforms.get(entity);
     const auto *netEnt = networkEntities.get(entity);
     if (!transform || !netEnt)
+      continue;
+    if (deads.get(entity) != nullptr)
       continue;
 
     if (!std::isfinite(transform->position.x) ||
@@ -1020,13 +1023,15 @@ void GameInstance::processEntityQuery(
   auto &transforms = registry.get_components<component::Transform>();
   auto &networkEntities = registry.get_components<component::NetworkEntity>();
 
+  auto &deads = registry.get_components<component::Dead>();
+
   for (auto entity : view) {
     const auto *netEnt = networkEntities.get(entity);
     if (!netEnt || netEnt->id != queryEvent.networkId)
       continue;
 
     const auto *transform = transforms.get(entity);
-    if (!transform)
+    if (!transform || deads.get(entity) != nullptr)
       break;
 
     if (!std::isfinite(transform->position.x) ||
