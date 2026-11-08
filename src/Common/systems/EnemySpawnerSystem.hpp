@@ -67,9 +67,14 @@ private:
   static inline const std::vector<std::string> _enemiesStage2{
       "enemySeed", "enemyTendril", "enemyShell"};
   static inline const std::vector<std::string> _waveEnemiesStage2{"enemySeed"};
+
+  static inline const std::vector<std::string> _enemiesStage3{};
+  static inline const std::vector<std::string> _waveEnemiesStage3{};
+
   static inline const std::unordered_map<std::string, EnemyPool> _pools{
       {"stage1", {_enemiesStage1, _waveEnemiesStage1}},
       {"stage2", {_enemiesStage2, _waveEnemiesStage2}},
+      {"stage3", {_enemiesStage3, _waveEnemiesStage3}},
   };
 
   const std::string *_poolName{nullptr};
