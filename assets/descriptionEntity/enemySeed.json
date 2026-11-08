@@ -1,0 +1,84 @@
+{
+  "components": {
+    "transform": {
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "scale": {
+        "x": 2.0,
+        "y": 2.0
+      },
+      "rotation": 0.0
+    },
+    "sprite": {
+      "texture": "assets/entityTexture/seed.png",
+      "size": {
+        "w": 17.0,
+        "h": 10.0
+      },
+      "origin": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "textureRect": {
+        "x": 0,
+        "y": 0,
+        "w": 17,
+        "h": 10
+      },
+      "color": {
+        "r": 255,
+        "g": 255,
+        "b": 255,
+        "a": 255
+      },
+      "layer": 0,
+      "flags": 0
+    },
+    "collider": {
+      "width": 15.0,
+      "height": 8.0,
+      "offsetX": 1.0,
+      "offsetY": 1.0,
+      "layer": "Enemy",
+      "mask": [
+        "PlayerProjectile",
+        "Player"
+      ]
+    },
+    "velocity": {
+      "x": -260.0,
+      "y": 0.0
+    },
+    "animation": {
+      "frameDuration": 0.1,
+      "currentFrame": 0,
+      "totalFrames": 4,
+      "frameWidth": 17,
+      "frameHeight": 10,
+      "startX": 0,
+      "startY": 0,
+      "loop": true,
+      "playing": true,
+      "columns": 4,
+      "paddingX": 0,
+      "paddingY": 0
+    },
+    "enemy": {
+      "health": 10.0,
+      "fireRate": 9999.0,
+      "fireDelay": 9999.0
+    },
+    "waveMovement": {
+      "baseY": 360.0,
+      "amplitude": 70.0,
+      "frequency": 3.0,
+      "time": 0.0
+    },
+    "networkEntity": {},
+    "deathEffect": {
+      "blueprintName": "seed_death_effect"
+    }
+  }
+}

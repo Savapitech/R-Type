@@ -255,6 +255,22 @@
     {
       "name": "gouger_nest_death",
       "file": "assets/descriptionEntity/gouger_nest_death.json"
+    },
+    {
+      "name": "enemySeed",
+      "file": "assets/descriptionEntity/enemySeed.json"
+    },
+    {
+      "name": "seed_death_effect",
+      "file": "assets/descriptionEntity/seed_death_effect.json"
+    },
+    {
+      "name": "enemyTendril",
+      "file": "assets/descriptionEntity/enemyTendril.json"
+    },
+    {
+      "name": "enemyShell",
+      "file": "assets/descriptionEntity/enemyShell.json"
     }
   ]
 }
