@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "EngineContext.hpp"
-#include "Game.hpp"
 #include "protocol/PongProtocol.hpp"
 #include "systems/PongBallSystem.hpp"
 #include "systems/PongPaddleSystem.hpp"

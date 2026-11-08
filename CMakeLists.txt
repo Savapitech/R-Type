@@ -389,6 +389,14 @@ if(WIN32 AND RTYPE_BUILD_CLIENT)
     endforeach()
 endif()
 
+option(RTYPE_BUILD_PONG "Build the Pong sample game, see pong/" OFF)
+if(RTYPE_BUILD_PONG)
+    if(NOT RTYPE_BUILD_CLIENT)
+        message(FATAL_ERROR "RTYPE_BUILD_PONG needs RTYPE_BUILD_CLIENT")
+    endif()
+    add_subdirectory(pong)
+endif()
+
 # Unit tests (cmake -DRTYPE_BUILD_TESTS=ON, or make tests), see tests/
 option(RTYPE_BUILD_TESTS "Build the unit tests, run them with ctest" OFF)
 if(RTYPE_BUILD_TESTS)

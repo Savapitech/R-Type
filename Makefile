@@ -56,6 +56,11 @@ server: check_vcpkg
 client: check_vcpkg
 	$(call cmake_build,$(BUILD_DIR),r-type_client,-DRTYPE_BUILD_CLIENT=ON)
 
+pong: check_vcpkg
+	$(call cmake_configure,$(BUILD_DIR),-DRTYPE_BUILD_CLIENT=ON -DRTYPE_BUILD_PONG=ON)
+	@ cmake --build $(BUILD_DIR) --config $(BUILD_TYPE) --target pong pong_server
+	@ $(LOG_TIME) "$(C_BLUE) OK $(C_GREEN) pong built $(C_RESET)"
+
 server_tsan: check_vcpkg
 	$(call cmake_build,$(BUILD_DIR)-tsan,r-type_server,-DRTYPE_BUILD_CLIENT=OFF -DRTYPE_SANITIZE_THREAD=ON)
 
@@ -103,4 +108,4 @@ docs: $(DOCS_THEME_DIR)
 	@ doxygen docs/Doxyfile
 	@ $(LOG_TIME) "$(C_BLUE) OK $(C_GREEN) docs written to build/docs/html $(C_RESET)"
 
-.PHONY: all build server client server_tsan tests server_embedded client_embedded check_vcpkg debug clean fclean re format docs
+.PHONY: all build server client pong server_tsan tests server_embedded client_embedded check_vcpkg debug clean fclean re format docs
